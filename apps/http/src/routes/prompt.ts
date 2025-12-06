@@ -1,18 +1,19 @@
 import { Router } from "express";
-import { Manager } from "../redisclient";
+import { QueueManager } from "@repo/queue";
 
 const router = Router();
 
 router.post("/", async (req, res) => {
   try {
     const { prompt } = req.body;
-    if(!prompt){
-      return res.status(400).json({error: "Promot is required"});
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
     }
-    Manager.getInstance().pushtoqueue(prompt);
-    return res.status(200).json({message: "Prompt Enqueud"});
+    const result = await QueueManager.getInstance().pushToQueue(prompt);
+    return res.status(200).json({ message: "Prompt enqueued", ...result });
   } catch (e) {
     console.error(e);
+    return res.status(500).json({ error: "Failed to enqueue prompt" });
   }
 });
 
