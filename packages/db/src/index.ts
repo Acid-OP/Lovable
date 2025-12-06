@@ -1,10 +1,6 @@
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../generated/prisma/index.js";
 
-const databaseUrl = process.env.DATABASE_URL;
+export const prisma = new PrismaClient();
 
-export const prisma = new PrismaClient({
-  datasourceUrl: databaseUrl,
-});
-
-export * from "../generated/prisma/client.js";
+export * from "../generated/prisma/index.js";
 export { PrismaClient };
