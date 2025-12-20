@@ -13,10 +13,13 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@ai-sdk/google": "^2.0.51",
     "@repo/queue": "workspace:*",
     "@types/ioredis": "^5.0.0",
+    "ai": "^5.0.116",
     "bullmq": "^5.10.1",
-    "ioredis": "^5.4.1"
+    "ioredis": "^5.4.1",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*"
