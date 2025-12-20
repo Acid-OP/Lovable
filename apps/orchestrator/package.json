@@ -12,6 +12,12 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "dependencies": {
+    "@repo/queue": "workspace:*",
+    "@types/ioredis": "^5.0.0",
+    "bullmq": "^5.10.1",
+    "ioredis": "^5.4.1"
+  },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*"
   }
