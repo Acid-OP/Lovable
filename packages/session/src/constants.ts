@@ -1,4 +1,5 @@
 export const SESSION_PREFIX = "session:job:" as const;
+export const CHANNEL_PREFIX = "job:" as const;
 
 export const SESSION_STATUS = {
   QUEUED: "queued",
