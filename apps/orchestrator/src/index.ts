@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { Redis } from "ioredis";
-import { createPromptWorker } from "./worker.js";
+import { createPromptWorker } from "./workers/promptWorker.js";
 
 const connection = new Redis({
   host: "localhost",
