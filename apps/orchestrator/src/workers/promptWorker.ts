@@ -2,10 +2,9 @@ import { Worker, Job } from "bullmq";
 import { redis } from "@repo/redis";
 import { QUEUE_NAMES } from "@repo/queue";
 import { SessionManager, SESSION_STATUS } from "@repo/session";
-import { givePromptToLLM } from "../llm.js";
 import { logger } from "../utils/logger.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
-import { enhancePrompt } from "../planner/promptEnhancer.js";
+import { enhancePrompt, generatePlan } from "../planner/index.js";
 import os from "os";
 
 const WORKER_CONCURRENCY = 3;
@@ -22,30 +21,33 @@ export function createPromptWorker() {
       const promptText = job.data?.prompt;
       const jobId = job.id as string;
       
+      // Step 1: Sanitize
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
         currentStep: "Sanitizing prompt",
       });
-
       const validation = await sanitizePrompt(promptText);
       if (!validation.isValid) {
         throw new Error(validation.rejectionReason || "Prompt failed validation");
       }
       
+      // Step 2: Enhance
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
         currentStep: "Enhancing prompt",
       });
       const enhancedPrompt = await enhancePrompt(validation.sanitizedPrompt);
       
+      // Step 3: Generate plan
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
         currentStep: "Generating plan",
       });
-      const result = await givePromptToLLM(enhancedPrompt);
+      const plan = await generatePlan(enhancedPrompt);
       
       return {
-        ...result,
+        plan,
+        enhancedPrompt,
         warnings: validation.warnings,
         riskLevel: validation.riskLevel,
       };
