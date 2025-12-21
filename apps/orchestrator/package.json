@@ -15,11 +15,11 @@
   "dependencies": {
     "@ai-sdk/google": "^2.0.51",
     "@repo/queue": "workspace:*",
-    "@types/ioredis": "^5.0.0",
+    "@repo/redis": "workspace:*",
+    "@repo/session": "workspace:*",
     "ai": "^5.0.116",
     "bullmq": "^5.10.1",
     "dotenv": "^16.4.5",
-    "ioredis": "^5.4.1",
     "winston": "^3.19.0"
   },
   "devDependencies": {

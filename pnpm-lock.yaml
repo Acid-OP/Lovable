@@ -26,6 +26,9 @@ importers:
       '@repo/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@repo/session':
+        specifier: workspace:*
+        version: link:../../packages/session
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
@@ -57,9 +60,12 @@ importers:
       '@repo/queue':
         specifier: workspace:*
         version: link:../../packages/queue
-      '@types/ioredis':
-        specifier: ^5.0.0
-        version: 5.0.0
+      '@repo/redis':
+        specifier: workspace:*
+        version: link:../../packages/redis
+      '@repo/session':
+        specifier: workspace:*
+        version: link:../../packages/session
       ai:
         specifier: ^5.0.116
         version: 5.0.116(zod@4.2.1)
@@ -69,9 +75,6 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
-      ioredis:
-        specifier: ^5.4.1
-        version: 5.8.2
       winston:
         specifier: ^3.19.0
         version: 3.19.0
@@ -192,12 +195,32 @@ importers:
 
   packages/queue:
     dependencies:
+      '@repo/redis':
+        specifier: workspace:*
+        version: link:../redis
       bullmq:
         specifier: ^5.30.0
         version: 5.65.1
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+
+  packages/redis:
+    dependencies:
       ioredis:
         specifier: ^5.4.1
         version: 5.8.2
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+
+  packages/session:
+    dependencies:
+      '@repo/redis':
+        specifier: workspace:*
+        version: link:../redis
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
@@ -951,10 +974,6 @@ packages:
 
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
-
-  '@types/ioredis@5.0.0':
-    resolution: {integrity: sha512-zJbJ3FVE17CNl5KXzdeSPtdltc4tMT3TzC6fxQS0sQngkbFZ6h+0uTafsRqu+eSLIugf6Yb0Ea0SUuRr42Nk9g==}
-    deprecated: This is a stub types definition. ioredis provides its own type definitions, so you do not need this installed.
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -3303,12 +3322,6 @@ snapshots:
       '@types/serve-static': 2.2.0
 
   '@types/http-errors@2.0.5': {}
-
-  '@types/ioredis@5.0.0':
-    dependencies:
-      ioredis: 5.8.2
-    transitivePeerDependencies:
-      - supports-color
 
   '@types/json-schema@7.0.15': {}
 

@@ -1,6 +1,7 @@
 import { Worker, Job } from "bullmq";
-import { Redis } from "ioredis";
+import { redis } from "@repo/redis";
 import { QUEUE_NAMES } from "@repo/queue";
+import { SessionManager, SESSION_STATUS } from "@repo/session";
 import { givePromptToLLM } from "../llm.js";
 import { logger } from "../utils/logger.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
@@ -13,18 +14,27 @@ export function isWorkerHealthy() {
   return workerHealthy;
 }
 
-export function createPromptWorker(connection: Redis) {
+export function createPromptWorker() {
   const worker = new Worker(
     QUEUE_NAMES.PROMPT_QUEUE,
     async (job: Job) => {
       const promptText = job.data?.prompt;
+      const jobId = job.id as string;
       const validation = await sanitizePrompt(promptText);
-
+      await SessionManager.update(jobId, {
+        status: SESSION_STATUS.PROCESSING,
+        currentStep: "Sanitizing prompt",
+      });
+      
       if (!validation.isValid) {
         throw new Error(validation.rejectionReason || "Prompt failed validation");
       }
 
       const result = await givePromptToLLM(validation.sanitizedPrompt);
+      await SessionManager.update(jobId, {
+        status: SESSION_STATUS.PROCESSING,
+        currentStep: "Prompt sent to LLm",
+      });
       return {
         ...result,
         sanitizedPrompt: validation.sanitizedPrompt,
@@ -33,7 +43,7 @@ export function createPromptWorker(connection: Redis) {
       };
     },
     {
-      connection,
+      connection: redis,
       concurrency: WORKER_CONCURRENCY,
     }
   );
@@ -48,9 +58,17 @@ export function createPromptWorker(connection: Redis) {
     workerHealthy = true;
   });
 
-  worker.on("completed", (job: Job) => {
+  worker.on("completed", async (job: Job) => {
+    const jobId = job.id as string;
     const durationMs =
       job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : undefined;
+    
+    await SessionManager.update(jobId, {
+      status: SESSION_STATUS.COMPLETED,
+      currentStep: "Done",
+      result: JSON.stringify(job.returnvalue),
+    });
+    
     logger.info("job.completed", {
       queue: QUEUE_NAMES.PROMPT_QUEUE,
       jobId: job.id,
@@ -58,10 +76,17 @@ export function createPromptWorker(connection: Redis) {
       durationMs,
       returnValuePresent: job.returnvalue !== undefined,
     });
-    // place to trigger webhook / notifier with job.returnvalue
   });
 
-  worker.on("failed", (job: Job | undefined, err: Error) => {
+  worker.on("failed", async (job: Job | undefined, err: Error) => {
+    if (job?.id) {
+      await SessionManager.update(job.id, {
+        status: SESSION_STATUS.FAILED,
+        currentStep: `Error: ${err.message}`,
+        errors: [err.message],
+      });
+    }
+    
     logger.error("job.failed", {
       queue: QUEUE_NAMES.PROMPT_QUEUE,
       jobId: job?.id,

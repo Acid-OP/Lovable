@@ -1,5 +1,5 @@
 {
-  "name": "@repo/queue",
+  "name": "@repo/session",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/src/index.js",
@@ -14,8 +14,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@repo/redis": "workspace:*",
-    "bullmq": "^5.30.0"
+    "@repo/redis": "workspace:*"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*"
@@ -23,5 +22,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "Queue management package"
+  "description": "Session management package"
 }
+

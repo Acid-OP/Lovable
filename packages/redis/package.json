@@ -1,5 +1,5 @@
 {
-  "name": "@repo/queue",
+  "name": "@repo/redis",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/src/index.js",
@@ -14,14 +14,10 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@repo/redis": "workspace:*",
-    "bullmq": "^5.30.0"
+    "ioredis": "^5.4.1"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "Queue management package"
+  }
 }
+
