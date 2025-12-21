@@ -5,6 +5,7 @@ import { SessionManager, SESSION_STATUS } from "@repo/session";
 import { givePromptToLLM } from "../llm.js";
 import { logger } from "../utils/logger.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
+import { enhancePrompt } from "../planner/promptEnhancer.js";
 import os from "os";
 
 const WORKER_CONCURRENCY = 3;
@@ -20,24 +21,31 @@ export function createPromptWorker() {
     async (job: Job) => {
       const promptText = job.data?.prompt;
       const jobId = job.id as string;
-      const validation = await sanitizePrompt(promptText);
+      
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
         currentStep: "Sanitizing prompt",
       });
-      
+
+      const validation = await sanitizePrompt(promptText);
       if (!validation.isValid) {
         throw new Error(validation.rejectionReason || "Prompt failed validation");
       }
-
-      const result = await givePromptToLLM(validation.sanitizedPrompt);
+      
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
-        currentStep: "Prompt sent to LLm",
+        currentStep: "Enhancing prompt",
       });
+      const enhancedPrompt = await enhancePrompt(validation.sanitizedPrompt);
+      
+      await SessionManager.update(jobId, {
+        status: SESSION_STATUS.PROCESSING,
+        currentStep: "Generating plan",
+      });
+      const result = await givePromptToLLM(enhancedPrompt);
+      
       return {
         ...result,
-        sanitizedPrompt: validation.sanitizedPrompt,
         warnings: validation.warnings,
         riskLevel: validation.riskLevel,
       };
