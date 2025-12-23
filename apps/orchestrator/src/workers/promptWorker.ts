@@ -5,6 +5,7 @@ import { SessionManager, SESSION_STATUS } from "@repo/session";
 import { logger } from "../utils/logger.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
 import { enhancePrompt, generatePlan } from "../planner/index.js";
+import { planValidator } from "../validation/index.js";
 import os from "os";
 
 const WORKER_CONCURRENCY = 3;
@@ -21,7 +22,7 @@ export function createPromptWorker() {
       const promptText = job.data?.prompt;
       const jobId = job.id as string;
       
-      // Step 1: Sanitize
+      // Sanitize
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
         currentStep: "Sanitizing prompt",
@@ -31,24 +32,37 @@ export function createPromptWorker() {
         throw new Error(validation.rejectionReason || "Prompt failed validation");
       }
       
-      // Step 2: Enhance
+      // Enhance
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
         currentStep: "Enhancing prompt",
       });
       const enhancedPrompt = await enhancePrompt(validation.sanitizedPrompt);
       
-      // Step 3: Generate plan
+      // Generate plan
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
         currentStep: "Generating plan",
       });
       const plan = await generatePlan(enhancedPrompt);
       
+      // Validate plan
+      await SessionManager.update(jobId, {
+        status: SESSION_STATUS.PROCESSING,
+        currentStep: "Validating plan",
+      });
+      const planValidation = planValidator.validate(plan);
+      
+      if (!planValidation.valid) {
+        throw new Error(
+          `Plan validation failed: ${planValidation.errors.join(", ")}`
+        );
+      }
+      
       return {
-        plan,
+        plan: planValidation.plan,
         enhancedPrompt,
-        warnings: validation.warnings,
+        warnings: [...validation.warnings, ...planValidation.warnings],
         riskLevel: validation.riskLevel,
       };
     },

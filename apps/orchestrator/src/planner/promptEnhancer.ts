@@ -15,7 +15,6 @@ export async function enhancePrompt(userPrompt: string): Promise<string> {
   const enhancerPrompt = ` ${ENHANCER_SYSTEM_PROMPT} 
     Original user prompt:
     "${userPrompt}"
-
     Return the enhanced, more specific version of this prompt:`;
 
   const result = await givePromptToLLM(enhancerPrompt);

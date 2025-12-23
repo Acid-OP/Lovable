@@ -1,4 +1,5 @@
-export type StepType = "command" | "file_write" | "file_delete";
+export const STEP_TYPES = ["command", "file_write", "file_delete"] as const;
+export type StepType = (typeof STEP_TYPES)[number];
 
 export interface PlanStep {
   id: number;

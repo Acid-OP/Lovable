@@ -58,12 +58,7 @@ IMPORTANT:
 - Focus on project setup and file creation`;
 
 export async function generatePlan(enhancedPrompt: string): Promise<Plan> {
-  const fullPrompt = `${PLAN_SYSTEM_PROMPT}
-
-USER REQUEST:
-${enhancedPrompt}
-
-Generate the plan:`;
+  const fullPrompt = `${PLAN_SYSTEM_PROMPT} USER REQUEST:${enhancedPrompt}Generate the plan:`;
 
   const result = await givePromptToLLM(fullPrompt);
   
@@ -71,7 +66,6 @@ Generate the plan:`;
     throw new Error("Failed to generate plan from LLM");
   }
   
-  // Extract JSON from response (handle markdown code blocks if present)
   let jsonString = result.response.trim();
   if (jsonString.startsWith("```json")) {
     jsonString = jsonString.slice(7);

@@ -5,7 +5,7 @@ import { prisma } from "@repo/db";
 import routes from "./routes/index.js";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 app.use(helmet());
 app.use(express.json());
