@@ -31,7 +31,7 @@ export function createPromptWorker() {
       if (!validation.isValid) {
         throw new Error(validation.rejectionReason || "Prompt failed validation");
       }
-      
+
       // Enhance
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
@@ -52,6 +52,15 @@ export function createPromptWorker() {
         currentStep: "Validating plan",
       });
       const planValidation = planValidator.validate(plan);
+      
+      logger.info("plan.validated", {
+        jobId,
+        valid: planValidation.valid,
+        errors: planValidation.errors,
+        warnings: planValidation.warnings,
+        stepsCount: plan.steps.length,
+        plan: plan,
+      });
       
       if (!planValidation.valid) {
         throw new Error(

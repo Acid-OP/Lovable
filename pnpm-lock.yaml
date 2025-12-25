@@ -216,6 +216,12 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
 
+  packages/sandbox:
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+
   packages/session:
     dependencies:
       '@repo/redis':
