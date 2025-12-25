@@ -2,6 +2,7 @@ import { Worker, Job } from "bullmq";
 import { redis } from "@repo/redis";
 import { QUEUE_NAMES } from "@repo/queue";
 import { SessionManager, SESSION_STATUS } from "@repo/session";
+import { SandboxManager } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
 import { enhancePrompt, generatePlan } from "../planner/index.js";
@@ -67,7 +68,18 @@ export function createPromptWorker() {
           `Plan validation failed: ${planValidation.errors.join(", ")}`
         );
       }
-      
+
+      // Create sandbox container for this job
+      const containerId = await SandboxManager.getInstance().createContainer(jobId);
+      console.log("container created with", containerId);
+      // TODO: Execute plan steps in container
+      // for (const step of planValidation.plan.steps) {
+      //   await SandboxManager.getInstance().exec(containerId, step.command);
+      // }
+
+      // TODO: Destroy container after execution
+      // await SandboxManager.getInstance().destroy(containerId);
+
       return {
         plan: planValidation.plan,
         enhancedPrompt,
