@@ -5,12 +5,8 @@ export interface PlanStep {
   id: number;
   type: StepType;
   description: string;
-  
-  // For command type
   command?: string;
   workingDirectory?: string;
-  
-  // For file types
   path?: string;
   content?: string;
 }

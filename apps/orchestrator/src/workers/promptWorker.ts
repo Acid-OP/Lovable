@@ -68,17 +68,65 @@ export function createPromptWorker() {
           `Plan validation failed: ${planValidation.errors.join(", ")}`
         );
       }
+      const validatedPlan = planValidation.plan!;
+      
+      // Create and start sandbox
+      const sandbox = SandboxManager.getInstance();
+      
+      logger.info("sandbox.creating", { jobId });
+      const containerId = await sandbox.createContainer(jobId);
+      logger.info("sandbox.created", { jobId, containerId });
+      
+      await sandbox.startContainer(containerId);
+      logger.info("sandbox.started", { jobId, containerId });
 
-      // Create sandbox container for this job
-      const containerId = await SandboxManager.getInstance().createContainer(jobId);
-      console.log("container created with", containerId);
-      // TODO: Execute plan steps in container
-      // for (const step of planValidation.plan.steps) {
-      //   await SandboxManager.getInstance().exec(containerId, step.command);
-      // }
+      // Execute each step
+      const totalSteps = validatedPlan.steps.length;
+      
+      for (const step of validatedPlan.steps) {
+        logger.info("step.executing", {
+          jobId,
+          stepId: step.id,
+          stepType: step.type,
+          description: step.description,
+          progress: `${step.id}/${totalSteps}`,
+        });
 
-      // TODO: Destroy container after execution
-      // await SandboxManager.getInstance().destroy(containerId);
+        await SessionManager.update(jobId, {
+          currentStep: `Step ${step.id}/${totalSteps}: ${step.description}`,
+        });
+
+        if (step.type === "command" && step.command) {
+          const result = await sandbox.exec(containerId, step.command, step.workingDirectory);
+          logger.info("step.command.completed", {
+            jobId,
+            stepId: step.id,
+            exitCode: result.exitCode,
+          });
+        }
+
+        if (step.type === "file_write" && step.path && step.content) {
+          await sandbox.writeFile(containerId, step.path, step.content);
+          logger.info("step.file_write.completed", {
+            jobId,
+            stepId: step.id,
+            path: step.path,
+          });
+        }
+
+        if (step.type === "file_delete" && step.path) {
+          await sandbox.deleteFile(containerId, step.path);
+          logger.info("step.file_delete.completed", {
+            jobId,
+            stepId: step.id,
+            path: step.path,
+          });
+        }
+      }
+
+      logger.info("sandbox.destroying", { jobId, containerId });
+      await sandbox.destroy(containerId);
+      logger.info("sandbox.destroyed", { jobId, containerId });
 
       return {
         plan: planValidation.plan,

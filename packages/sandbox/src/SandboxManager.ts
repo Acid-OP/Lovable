@@ -1,6 +1,11 @@
 import { dockerRequest } from "./dockerClient.js";
 import { DEFAULT_IMAGE, CONTAINER_CONFIG } from "./constants.js";
 
+export interface ExecResult {
+  exitCode: number;
+  output: string;
+}
+
 export class SandboxManager {
   private static instance: SandboxManager;
 
@@ -52,9 +57,60 @@ export class SandboxManager {
     }
   }
 
-  public async exec(containerId: string, command: string): Promise<void> {
-    // TODO: Docker API call to exec command
-    console.log(`Executing in ${containerId}: ${command}`);
+  public async exec(containerId: string, command: string, workingDir?: string): Promise<ExecResult> {
+    // creating exec
+    const createResponse = await dockerRequest({
+      path: `/containers/${containerId}/exec`,
+      method: "POST",
+      body: {
+        Cmd: ["sh", "-c", command],
+        AttachStdout: true,
+        AttachStderr: true,
+        WorkingDir: workingDir || CONTAINER_CONFIG.WORKING_DIR,
+      },
+    });
+
+    const execData = JSON.parse(createResponse.data);
+    if (!execData.Id) {
+      throw new Error(execData.message || "Failed to create exec");
+    }
+
+    const execId = execData.Id;
+
+    // Start exec and get output
+    const startResponse = await dockerRequest({
+      path: `/exec/${execId}/start`,
+      method: "POST",
+      body: { Detach: false, Tty: false },
+    });
+
+    const output = startResponse.data;
+
+    // exit code
+    const inspectResponse = await dockerRequest({
+      path: `/exec/${execId}/json`,
+      method: "GET",
+    });
+
+    const inspectData = JSON.parse(inspectResponse.data);
+    const exitCode = inspectData.ExitCode ?? 0;
+
+    if (exitCode !== 0) {
+      throw new Error(`Command failed with exit code ${exitCode}: ${output}`);
+    }
+
+    return { exitCode, output };
+  }
+
+  public async writeFile(containerId: string, filePath: string, content: string): Promise<void> {
+    const base64Content = Buffer.from(content).toString("base64");
+    const command = `mkdir -p "$(dirname '${filePath}')" && echo '${base64Content}' | base64 -d > '${filePath}'`;
+
+    await this.exec(containerId, command);
+  }
+
+  public async deleteFile(containerId: string, filePath: string): Promise<void> {
+    await this.exec(containerId, `rm -f '${filePath}'`);
   }
 
   public async destroy(containerId: string): Promise<void> {
@@ -68,4 +124,3 @@ export class SandboxManager {
     }
   }
 }
-

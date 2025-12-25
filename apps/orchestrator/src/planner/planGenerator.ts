@@ -8,12 +8,13 @@ RULES:
 1. Use Next.js 14 with App Router for web applications
 2. Use TypeScript for all code
 3. Use Tailwind CSS for styling
-4. Use pnpm as package manager
+4. Use npm as package manager (NOT pnpm, NOT yarn)
 5. All file paths must be relative to /workspace
 6. Maximum 20 steps per plan
 7. No sudo commands
 8. No dangerous commands (rm -rf /, etc.)
 9. No network fetch commands (curl, wget) unless explicitly needed
+10. All commands must be prefixed with CI=true to avoid interactive prompts
 
 STEP TYPES:
 - "command": Execute a shell command
@@ -30,14 +31,14 @@ Return ONLY valid JSON matching this structure:
       "id": 1,
       "type": "command",
       "description": "Initialize Next.js project",
-      "command": "npx create-next-app@latest my-app --typescript --tailwind --eslint --app --src-dir=false --import-alias='@/*'",
+      "command": "CI=true npx --yes create-next-app@latest my-app --typescript --tailwind --eslint --app --src-dir=false --import-alias='@/*' --use-npm",
       "workingDirectory": "/workspace"
     },
     {
       "id": 2,
       "type": "command",
       "description": "Navigate to project and install dependencies",
-      "command": "cd my-app && pnpm install",
+      "command": "cd my-app && npm install",
       "workingDirectory": "/workspace"
     },
     {
@@ -52,7 +53,10 @@ Return ONLY valid JSON matching this structure:
 
 IMPORTANT:
 - Each step must have a unique incrementing id
-- Commands must be non-interactive (use --yes flags where needed)
+- ALL commands MUST start with CI=true to avoid interactive prompts
+- Use "CI=true npx --yes" for npx commands
+- Use npm (not pnpm or yarn) for package management
+- For create-next-app, use --use-npm flag
 - File content must be valid, complete code
 - Do not include steps for running the dev server
 - Focus on project setup and file creation`;
@@ -84,4 +88,3 @@ export async function generatePlan(enhancedPrompt: string): Promise<Plan> {
     throw new Error(`Failed to parse plan JSON: ${parseError}`);
   }
 }
-
