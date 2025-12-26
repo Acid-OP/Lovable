@@ -26,7 +26,7 @@ const DANGEROUS_PATTERNS: { pattern: RegExp; reason: string }[] = [
   { pattern: /reboot/, reason: "System reboot" },
 ];
 
-const MAX_STEPS = 20;
+const MAX_STEPS = 25;
 const MAX_COMMAND_LENGTH = 500;
 const MAX_FILE_CONTENT_LENGTH = 50000;
 
@@ -238,42 +238,39 @@ export class PlanValidator {
   private validateSemantics(plan: Plan, result: ValidationResult): void {
     const steps = plan.steps;
 
-    const firstStep = steps[0];
-    if (firstStep && firstStep.type === "command" && firstStep.command) {
-      const cmd = firstStep.command.toLowerCase();
-      if (
-        !cmd.includes("create") &&
-        !cmd.includes("init") &&
-        !cmd.includes("clone") &&
-        !cmd.includes("install")
-      ) {
-        result.warnings.push(
-          "First step should typically initialize the project"
-        );
+    // Check for unnecessary package manager commands (packages are pre-installed)
+    steps.forEach((step, index) => {
+      if (step.type === "command" && step.command) {
+        const cmd = step.command.toLowerCase();
+        
+        // Warn about package installation commands (not needed with pre-built image)
+        if (
+          cmd.includes("npm install") ||
+          cmd.includes("pnpm install") ||
+          cmd.includes("yarn install") ||
+          cmd.includes("yarn add") ||
+          cmd.includes("npm i ") ||
+          cmd.includes("pnpm add")
+        ) {
+          result.warnings.push(
+            `Step ${index + 1}: Package install command detected - packages are pre-installed in sandbox`
+          );
+        }
+
+        // Warn about CLI scaffolding tools (should use file_write instead)
+        if (
+          cmd.includes("create-next-app") ||
+          cmd.includes("create-react-app") ||
+          cmd.includes("npx create-")
+        ) {
+          result.warnings.push(
+            `Step ${index + 1}: CLI scaffolding detected - use file_write steps instead for faster execution`
+          );
+        }
       }
-    }
+    });
 
-    const initStepIndex = steps.findIndex(
-      (step) =>
-        step.type === "command" &&
-        step.command &&
-        (step.command.includes("create-next-app") ||
-          step.command.includes("create-react-app") ||
-          step.command.includes("npm init") ||
-          step.command.includes("pnpm init"))
-    );
-
-    if (initStepIndex > 0) {
-      const earlyFileOps = steps.slice(0, initStepIndex).some(
-        (step) => step.type === "file_write" || step.type === "file_delete"
-      );
-      if (earlyFileOps) {
-        result.warnings.push(
-          "File operations found before project initialization"
-        );
-      }
-    }
-
+    // Check for duplicate file paths
     const filePaths = steps
       .filter((step) => step.type === "file_write" || step.type === "file_delete")
       .map((step) => step.path);
@@ -288,26 +285,15 @@ export class PlanValidator {
       );
     }
 
-    const installIndex = steps.findIndex(
-      (step) =>
-        step.type === "command" &&
-        step.command &&
-        (step.command.includes("npm install") ||
-          step.command.includes("pnpm install") ||
-          step.command.includes("yarn install"))
-    );
-
-    const buildIndex = steps.findIndex(
-      (step) =>
-        step.type === "command" &&
-        step.command &&
-        (step.command.includes("npm run build") ||
-          step.command.includes("pnpm build") ||
-          step.command.includes("yarn build"))
-    );
-
-    if (buildIndex !== -1 && installIndex !== -1 && buildIndex < installIndex) {
-      result.warnings.push("Build step found before dependency installation");
+    // Check that essential Next.js files are being created
+    const hasLayoutFile = filePaths.some((p) => p?.includes("layout.tsx"));
+    const hasPageFile = filePaths.some((p) => p?.includes("page.tsx"));
+    
+    if (!hasLayoutFile) {
+      result.warnings.push("No layout.tsx file in plan - Next.js App Router requires app/layout.tsx");
+    }
+    if (!hasPageFile) {
+      result.warnings.push("No page.tsx file in plan - Next.js requires at least one page");
     }
   }
 }
