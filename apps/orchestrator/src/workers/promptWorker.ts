@@ -4,6 +4,7 @@ import { QUEUE_NAMES } from "@repo/queue";
 import { SessionManager, SESSION_STATUS } from "@repo/session";
 import { SandboxManager } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
+import * as cache from "../utils/cache.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
 import { enhancePrompt, generatePlan } from "../planner/index.js";
 import { planValidator } from "../validation/index.js";
@@ -32,45 +33,69 @@ export function createPromptWorker() {
       if (!validation.isValid) {
         throw new Error(validation.rejectionReason || "Prompt failed validation");
       }
+      // caching
+      const cacheKey = cache.buildKey(cache.CACHE_PREFIX.PLAN, validation.sanitizedPrompt);
+      const cachedData = await cache.get<{ plan: any; enhancedPrompt: string }>(cacheKey);
 
-      // Enhance
-      await SessionManager.update(jobId, {
-        status: SESSION_STATUS.PROCESSING,
-        currentStep: "Enhancing prompt",
-      });
-      const enhancedPrompt = await enhancePrompt(validation.sanitizedPrompt);
-      
-      // Generate plan
-      await SessionManager.update(jobId, {
-        status: SESSION_STATUS.PROCESSING,
-        currentStep: "Generating plan",
-      });
-      const plan = await generatePlan(enhancedPrompt);
-      
-      // Validate plan
-      await SessionManager.update(jobId, {
-        status: SESSION_STATUS.PROCESSING,
-        currentStep: "Validating plan",
-      });
-      const planValidation = planValidator.validate(plan);
-      
-      logger.info("plan.validated", {
-        jobId,
-        valid: planValidation.valid,
-        errors: planValidation.errors,
-        warnings: planValidation.warnings,
-        stepsCount: plan.steps.length,
-        plan: plan,
-      });
-      
-      if (!planValidation.valid) {
-        throw new Error(
-          `Plan validation failed: ${planValidation.errors.join(", ")}`
-        );
+      let validatedPlan: any;
+      let enhancedPrompt: string;
+      let fromCache = false;
+      let planWarnings: string[] = [];
+
+      if (cachedData) {
+        // Cached
+        logger.info("plan.cache.hit", { jobId, cacheKey });
+        await SessionManager.update(jobId, {
+          status: SESSION_STATUS.PROCESSING,
+          currentStep: "Using cached plan",
+        });
+
+        validatedPlan = cachedData.plan;
+        enhancedPrompt = cachedData.enhancedPrompt;
+        fromCache = true;
+      } else {
+        logger.info("plan.cache.miss", { jobId, cacheKey });
+
+        // Enhance
+        await SessionManager.update(jobId, {
+          status: SESSION_STATUS.PROCESSING,
+          currentStep: "Enhancing prompt",
+        });
+        enhancedPrompt = await enhancePrompt(validation.sanitizedPrompt);
+
+        // Generate plan
+        await SessionManager.update(jobId, {
+          status: SESSION_STATUS.PROCESSING,
+          currentStep: "Generating plan",
+        });
+        const plan = await generatePlan(enhancedPrompt);
+
+        // Validate plan
+        await SessionManager.update(jobId, {
+          status: SESSION_STATUS.PROCESSING,
+          currentStep: "Validating plan",
+        });
+        const planValidation = planValidator.validate(plan);
+
+        logger.info("plan.validated", {
+          jobId,
+          valid: planValidation.valid,
+          errors: planValidation.errors,
+          warnings: planValidation.warnings,
+          stepsCount: plan.steps.length,
+          plan: plan,
+        });
+
+        if (!planValidation.valid) {
+          throw new Error(
+            `Plan validation failed: ${planValidation.errors.join(", ")}`
+          );
+        }
+
+        validatedPlan = planValidation.plan!;
+        planWarnings = planValidation.warnings;
       }
-      const validatedPlan = planValidation.plan!;
-      
-      // Create and start sandbox
+      // sandbox
       const sandbox = SandboxManager.getInstance();
       
       logger.info("sandbox.creating", { jobId });
@@ -79,8 +104,7 @@ export function createPromptWorker() {
       
       await sandbox.startContainer(containerId);
       logger.info("sandbox.started", { jobId, containerId });
-
-      // Execute each step
+      
       const totalSteps = validatedPlan.steps.length;
       
       for (const step of validatedPlan.steps) {
@@ -128,11 +152,22 @@ export function createPromptWorker() {
       await sandbox.destroy(containerId);
       logger.info("sandbox.destroyed", { jobId, containerId });
 
+      // Cache the plan if it wasn't from cache
+      if (!fromCache) {
+        await cache.set(
+          cacheKey,
+          { plan: validatedPlan, enhancedPrompt },
+          cache.CACHE_TTL.PLAN
+        );
+        logger.info("plan.cache.stored", { jobId, cacheKey });
+      }
+
       return {
-        plan: planValidation.plan,
+        plan: validatedPlan,
         enhancedPrompt,
-        warnings: [...validation.warnings, ...planValidation.warnings],
+        warnings: [...validation.warnings, ...planWarnings],
         riskLevel: validation.riskLevel,
+        cached: fromCache,
       };
     },
     {
