@@ -18,16 +18,23 @@ export class SandboxManager {
     return this.instance;
   }
 
-  public async createContainer(jobId: string): Promise<string> {
+  public async createContainer(jobId: string, exposePort?: number): Promise<string> {
     const containerName = `sandbox-${jobId}`;
+    const hostPort = exposePort || 3003;
 
     const body = {
       Image: DEFAULT_IMAGE,
       Cmd: ["/bin/sh"],
       Tty: true,
       WorkingDir: CONTAINER_CONFIG.WORKING_DIR,
+      ExposedPorts: {
+        "3000/tcp": {},
+      },
       HostConfig: {
         Memory: CONTAINER_CONFIG.MEMORY_LIMIT,
+        PortBindings: {
+          "3000/tcp": [{ HostPort: String(hostPort) }],
+        },
       },
     };
 
@@ -111,6 +118,30 @@ export class SandboxManager {
 
   public async deleteFile(containerId: string, filePath: string): Promise<void> {
     await this.exec(containerId, `rm -f '${filePath}'`);
+  }
+
+  public async startDevServer(containerId: string): Promise<void> {
+    const command = `cd /workspace && nohup pnpm exec next dev -H 0.0.0.0 -p 3000 > /tmp/dev.log 2>&1 &`;
+    
+    await dockerRequest({
+      path: `/containers/${containerId}/exec`,
+      method: "POST",
+      body: {
+        Cmd: ["sh", "-c", command],
+        AttachStdout: false,
+        AttachStderr: false,
+        Detach: true,
+      },
+    }).then(async (res) => {
+      const execData = JSON.parse(res.data);
+      if (execData.Id) {
+        await dockerRequest({
+          path: `/exec/${execData.Id}/start`,
+          method: "POST",
+          body: { Detach: true, Tty: false },
+        });
+      }
+    });
   }
 
   public async destroy(containerId: string): Promise<void> {

@@ -23,9 +23,9 @@ PRE-INSTALLED PACKAGES (already available, do not install):
 - framer-motion, zustand, zod, date-fns
 
 STEP TYPES:
-- "file_write": Create or overwrite a file (PREFERRED - use this for everything)
-- "command": Execute a shell command (ONLY for mkdir if needed)
+- "file_write": Create or overwrite a file (USE THIS FOR EVERYTHING)
 - "file_delete": Delete a file
+DO NOT use "command" type - directories are created automatically when writing files.
 
 REQUIRED FILES FOR NEXT.JS (write these directly to /workspace):
 1. /workspace/next.config.js
@@ -47,7 +47,7 @@ Return ONLY valid JSON matching this structure:
       "type": "file_write",
       "description": "Create Next.js config",
       "path": "/workspace/next.config.js",
-      "content": "/** @type {import('next').NextConfig} */\\nconst nextConfig = {};\\nmodule.exports = nextConfig;"
+      "content": "/** @type {import('next').NextConfig} */\\nconst nextConfig = {\\n  images: {\\n    remotePatterns: [\\n      { protocol: 'https', hostname: '**' }\\n    ]\\n  }\\n};\\nmodule.exports = nextConfig;"
     },
     {
       "id": 2,
@@ -96,11 +96,13 @@ Return ONLY valid JSON matching this structure:
 
 IMPORTANT:
 - Each step must have a unique incrementing id
+- ONLY use "file_write" type steps - NO "command" type steps
 - NEVER use npx, npm, pnpm, or yarn commands
 - File paths go directly in /workspace (e.g., /workspace/app/page.tsx)
-- File content must be valid, complete, production-ready code
+- File content must be valid, complete, production-ready code that compiles without errors
 - Do not include steps for running the dev server
-- Use the pre-installed packages (lucide-react for icons, framer-motion for animations, etc.)`;
+- Use the pre-installed packages (lucide-react for icons, framer-motion for animations, etc.)
+- VERIFY each file's syntax before including it - no typos, no missing brackets`;
 
 export async function generatePlan(enhancedPrompt: string): Promise<Plan> {
   const fullPrompt = `${PLAN_SYSTEM_PROMPT} USER REQUEST:${enhancedPrompt}Generate the plan:`;

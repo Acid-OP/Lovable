@@ -148,9 +148,16 @@ export function createPromptWorker() {
         }
       }
 
-      logger.info("sandbox.destroying", { jobId, containerId });
-      await sandbox.destroy(containerId);
-      logger.info("sandbox.destroyed", { jobId, containerId });
+      // Start dev server for preview
+      logger.info("sandbox.starting_dev_server", { jobId, containerId });
+      await sandbox.startDevServer(containerId);
+      logger.info("sandbox.dev_server_started", { jobId, containerId, previewUrl: "http://localhost:3003" });
+
+      // NOTE: Not destroying container so preview stays alive
+      // TODO: Add cleanup mechanism (timeout, manual trigger, etc.)
+      // logger.info("sandbox.destroying", { jobId, containerId });
+      // await sandbox.destroy(containerId);
+      // logger.info("sandbox.destroyed", { jobId, containerId });
 
       // Cache the plan if it wasn't from cache
       if (!fromCache) {
@@ -168,6 +175,8 @@ export function createPromptWorker() {
         warnings: [...validation.warnings, ...planWarnings],
         riskLevel: validation.riskLevel,
         cached: fromCache,
+        previewUrl: "http://localhost:3003",
+        containerId,
       };
     },
     {
