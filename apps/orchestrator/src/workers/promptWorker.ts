@@ -6,11 +6,12 @@ import { SandboxManager } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
 import * as cache from "../utils/cache.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
-import { enhancePrompt, generatePlan } from "../planner/index.js";
+import { enhancePrompt, generatePlan, getFileErrors, generateFixes } from "../planner/index.js";
 import { planValidator } from "../validation/index.js";
 import os from "os";
 
 const WORKER_CONCURRENCY = 3;
+const MAX_FIX_RETRIES = 3;
 let workerHealthy = false;
 
 export function isWorkerHealthy() {
@@ -146,6 +147,54 @@ export function createPromptWorker() {
             path: step.path,
           });
         }
+      }
+      // Build and fix errors loop
+      let buildSuccess = false;
+      let fixAttempts = 0;
+
+      while (!buildSuccess && fixAttempts < MAX_FIX_RETRIES) {
+        await SessionManager.update(jobId, {
+          currentStep: fixAttempts === 0 ? "Building project..." : `Fixing errors (attempt ${fixAttempts})...`,
+        });
+
+        const buildResult = await sandbox.runBuild(containerId);
+
+        if (buildResult.success) {
+          buildSuccess = true;
+          logger.info("sandbox.build_success", { jobId, containerId, attempts: fixAttempts });
+        } else {
+          fixAttempts++;
+          logger.warn("sandbox.build_failed", { jobId, containerId, attempt: fixAttempts });
+
+          if (fixAttempts < MAX_FIX_RETRIES) {
+            const fileErrors = await getFileErrors(containerId, buildResult.errors);
+            
+            logger.info("sandbox.fixing_errors", {
+              jobId,
+              attempt: fixAttempts,
+              errorCount: fileErrors.length,
+              files: fileErrors.map(f => f.path),
+            });
+
+            const fixes = await generateFixes(fileErrors);
+            
+            logger.info("sandbox.applying_fixes", {
+              jobId,
+              fixCount: fixes.length,
+              files: fixes.map(f => f.path),
+            });
+
+            // Apply fixes
+            for (const fix of fixes) {
+              await sandbox.writeFile(containerId, fix.path, fix.content);
+              logger.info("sandbox.fix_applied", { jobId, path: fix.path });
+            }
+          }
+        }
+      }
+
+      if (!buildSuccess) {
+        logger.error("sandbox.build_failed_after_retries", { jobId, containerId, attempts: fixAttempts });
       }
 
       // Start dev server for preview

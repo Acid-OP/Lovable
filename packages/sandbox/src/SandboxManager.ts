@@ -120,6 +120,24 @@ export class SandboxManager {
     await this.exec(containerId, `rm -f '${filePath}'`);
   }
 
+  public async readFile(containerId: string, filePath: string): Promise<string> {
+    try {
+      const result = await this.exec(containerId, `cat '${filePath}'`);
+      return result.output;
+    } catch {
+      return ""; 
+    }
+  }
+
+  public async runBuild(containerId: string): Promise<{ success: boolean; errors: string }> {
+    try {
+      await this.exec(containerId, "cd /workspace && pnpm build 2>&1");
+      return { success: true, errors: "" };
+    } catch (error: any) {
+      return { success: false, errors: error.message || String(error) };
+    }
+  }
+
   public async startDevServer(containerId: string): Promise<void> {
     const command = `cd /workspace && nohup pnpm exec next dev -H 0.0.0.0 -p 3000 > /tmp/dev.log 2>&1 &`;
     

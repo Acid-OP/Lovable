@@ -1,5 +1,21 @@
 import { givePromptToLLM } from "../llm.js";
 import { Plan } from "./types.js";
+import { z } from "zod";
+
+// Zod schema for structured output (guarantees valid JSON)
+const PlanStepSchema = z.object({
+  id: z.number().describe("Unique step ID, starting from 1"),
+  type: z.literal("file_write").describe("Always use file_write"),
+  description: z.string().describe("Brief description of what this step does"),
+  path: z.string().describe("Full file path starting with /workspace/"),
+  content: z.string().describe("Complete file content - this is REQUIRED"),
+});
+
+const PlanSchema = z.object({
+  summary: z.string().describe("Brief description of what will be built"),
+  estimatedTimeSeconds: z.number().describe("Estimated time in seconds"),
+  steps: z.array(PlanStepSchema).describe("Array of file_write steps"),
+});
 
 const PLAN_SYSTEM_PROMPT = `You are an expert software architect and developer.
 Your job is to create a detailed, executable plan to build what the user asks for.
@@ -105,29 +121,8 @@ IMPORTANT:
 - VERIFY each file's syntax before including it - no typos, no missing brackets`;
 
 export async function generatePlan(enhancedPrompt: string): Promise<Plan> {
-  const fullPrompt = `${PLAN_SYSTEM_PROMPT} USER REQUEST:${enhancedPrompt}Generate the plan:`;
+  const fullPrompt = `${PLAN_SYSTEM_PROMPT}\n\nUSER REQUEST: ${enhancedPrompt}\n\nGenerate the plan:`;
 
-  const result = await givePromptToLLM(fullPrompt);
-  
-  if (!result.success || !result.response) {
-    throw new Error("Failed to generate plan from LLM");
-  }
-  
-  let jsonString = result.response.trim();
-  if (jsonString.startsWith("```json")) {
-    jsonString = jsonString.slice(7);
-  }
-  if (jsonString.startsWith("```")) {
-    jsonString = jsonString.slice(3);
-  }
-  if (jsonString.endsWith("```")) {
-    jsonString = jsonString.slice(0, -3);
-  }
-  
-  try {
-    const plan: Plan = JSON.parse(jsonString.trim());
-    return plan;
-  } catch (parseError) {
-    throw new Error(`Failed to parse plan JSON: ${parseError}`);
-  }
+  const plan = await givePromptToLLM(fullPrompt, PlanSchema);
+  return plan as Plan;
 }
