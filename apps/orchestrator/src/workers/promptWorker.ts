@@ -99,6 +99,9 @@ export function createPromptWorker() {
       // sandbox
       const sandbox = SandboxManager.getInstance();
       
+      // Cleanup old container 
+      await sandbox.cleanupOldContainers();
+      
       logger.info("sandbox.creating", { jobId });
       const containerId = await sandbox.createContainer(jobId);
       logger.info("sandbox.created", { jobId, containerId });
@@ -151,6 +154,7 @@ export function createPromptWorker() {
       // Build and fix errors loop
       let buildSuccess = false;
       let fixAttempts = 0;
+      let lastBuildErrors = "";
 
       while (!buildSuccess && fixAttempts < MAX_FIX_RETRIES) {
         await SessionManager.update(jobId, {
@@ -163,6 +167,7 @@ export function createPromptWorker() {
           buildSuccess = true;
           logger.info("sandbox.build_success", { jobId, containerId, attempts: fixAttempts });
         } else {
+          lastBuildErrors = buildResult.errors;
           fixAttempts++;
           logger.warn("sandbox.build_failed", { jobId, containerId, attempt: fixAttempts });
 
@@ -194,7 +199,12 @@ export function createPromptWorker() {
       }
 
       if (!buildSuccess) {
-        logger.error("sandbox.build_failed_after_retries", { jobId, containerId, attempts: fixAttempts });
+        logger.error("sandbox.build_failed_after_retries", { 
+          jobId, 
+          containerId, 
+          attempts: fixAttempts,
+          errors: lastBuildErrors.slice(0, 500), 
+        });
       }
 
       // Start dev server for preview
@@ -208,7 +218,6 @@ export function createPromptWorker() {
       // await sandbox.destroy(containerId);
       // logger.info("sandbox.destroyed", { jobId, containerId });
 
-      // Cache the plan if it wasn't from cache
       if (!fromCache) {
         await cache.set(
           cacheKey,

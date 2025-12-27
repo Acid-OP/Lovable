@@ -25,11 +25,30 @@ export class QueueManager {
 
   async pushToQueue(prompt: string) {
     const clientId = this.createId();
-    const job = await this.queue.add(JOB_NAMES.PROCESS_PROMPT, {
-      clientId,
-      prompt,
-      timestamp: Date.now(),
-    });
+    const job = await this.queue.add(
+      JOB_NAMES.PROCESS_PROMPT,
+      {
+        clientId,
+        prompt,
+        timestamp: Date.now(),
+      },
+      {
+        // Retry failed jobs 
+        attempts: 2,
+        backoff: {
+          type: "exponential",
+          delay: 3000, 
+        },
+        removeOnComplete: {
+          age: 3600, 
+          count: 100, 
+        },
+        removeOnFail: {
+          age: 86400,
+          count: 50,
+        },
+      }
+    );
     return { jobId: job.id, clientId };
   }
 }

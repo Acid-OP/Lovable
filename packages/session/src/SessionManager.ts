@@ -1,6 +1,9 @@
 import { redis } from "@repo/redis";
 import { SESSION_PREFIX, CHANNEL_PREFIX, SESSION_STATUS, SessionData } from "./constants.js";
 
+// Session expir
+const SESSION_TTL_SECONDS = 60 * 60 * 2; // 2 hours
+
 class SessionManagerClass {
   private getKey(jobId: string) {
     return `${SESSION_PREFIX}${jobId}`;
@@ -11,17 +14,20 @@ class SessionManagerClass {
   }
 
   async create(jobId: string) {
+    const key = this.getKey(jobId);
     const data = {
       jobId,
       status: SESSION_STATUS.QUEUED,
       progress: "0",
       createdAt: Date.now().toString(),
     };
-    await redis.hset(this.getKey(jobId), data);
+    await redis.hset(key, data);
+    await redis.expire(key, SESSION_TTL_SECONDS);
     await redis.publish(this.getChannel(jobId), JSON.stringify(data));
   }
 
   async update(jobId: string, data: SessionData) {
+    const key = this.getKey(jobId);
     const flatData: Record<string, string> = {};
     for (const [field, value] of Object.entries(data)) {
       if (value !== undefined) {
@@ -29,7 +35,8 @@ class SessionManagerClass {
       }
     }
     if (Object.keys(flatData).length > 0) {
-      await redis.hset(this.getKey(jobId), flatData);
+      await redis.hset(key, flatData);
+      await redis.expire(key, SESSION_TTL_SECONDS);
       await redis.publish(this.getChannel(jobId), JSON.stringify(data));
     }
   }

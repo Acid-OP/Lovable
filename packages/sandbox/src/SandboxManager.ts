@@ -18,6 +18,26 @@ export class SandboxManager {
     return this.instance;
   }
 
+  public async cleanupOldContainers(): Promise<void> {
+    try {
+      const response = await dockerRequest({
+        path: `/containers/json?all=true`,
+        method: "GET",
+      });
+      const containers = JSON.parse(response.data);
+      const sandboxContainers = containers.filter((c: any) =>
+        c.Names.some((name: string) => name.startsWith("/sandbox-"))
+      );
+
+      for (const container of sandboxContainers) {
+        await this.destroy(container.Id);
+        console.log(`Cleaned up old sandbox container: ${container.Id.slice(0, 12)}`);
+      }
+    } catch (error) {
+      console.warn("Failed to cleanup old containers:", error);
+    }
+  }
+
   public async createContainer(jobId: string, exposePort?: number): Promise<string> {
     const containerName = `sandbox-${jobId}`;
     const hostPort = exposePort || 3003;
