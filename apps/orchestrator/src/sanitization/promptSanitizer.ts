@@ -45,7 +45,6 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     sanitized = sanitized.substring(0, SANITIZATION_CONFIG.maxLength);
   }
 
-  //Dangerous system commands
   const dangerousCommands = [
     /\b(rm|delete|sudo|chmod|chown|kill|shutdown|reboot|format)\b/gi,
     /\b(unlink|rmdir|fdisk|mkfs|dd)\b/gi,
@@ -59,7 +58,6 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     }
   });
 
-  //Code injection patterns
   const injectionPatterns = [
     /(;|\||&&|`|\$\(|\$\{)/g, // Shell injection
     /(\bDROP\b|\bDELETE\b|\bTRUNCATE\b).*\b(TABLE|DATABASE)\b/gi, // SQL
@@ -76,7 +74,6 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     }
   });
 
-  //Prompt injection attempts
   const promptInjection = [
     /ignore\s+(previous|all|above|prior)\s+(instructions?|prompts?|commands?)/gi,
     /disregard\s+(previous|all|above)\s+(instructions?|prompts?)/gi,
@@ -84,8 +81,8 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     /new\s+(instructions?|rules?|prompts?)/gi,
     /forget\s+(everything|all|previous)/gi,
     /system\s*:\s*/gi,
-    /\[INST\]/gi, // LLaMA prompt format
-    /\<\|im_start\|\>/gi, // ChatML format
+    /\[INST\]/gi, 
+    /\<\|im_start\|\>/gi, 
   ];
 
   promptInjection.forEach((pattern) => {
@@ -96,7 +93,6 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     }
   });
 
-  // Excessive special characters (potential obfuscation)
   const specialCharCount = (sanitized.match(/[^a-zA-Z0-9\s.,!?-]/g) || []).length;
   const specialCharRatio = specialCharCount / sanitized.length;
 
@@ -105,7 +101,6 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     riskLevel = riskLevel === "low" ? "medium" : riskLevel;
   }
 
-  // Repeated characters (potential DoS or obfuscation)
   const repeatedPattern = /(.)\1{20,}/g;
   if (repeatedPattern.test(sanitized)) {
     warnings.push("Excessive character repetition detected");
@@ -125,7 +120,6 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
       try {
         const parsedUrl = new URL(url);
 
-        // Check for suspicious TLDs
         if (suspiciousTLDs.some((tld) => parsedUrl.hostname.endsWith(tld))) {
           warnings.push(`Suspicious URL detected: ${url}`);
           sanitized = sanitized.replace(url, "[URL_REMOVED]");
@@ -147,13 +141,12 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     });
   }
 
-  // HTML encoding (if not already handled by injection filters)
+  // HTML encoding
   sanitized = sanitized
     .replace(/&(?!amp;|lt;|gt;|quot;|#x27;)/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  // Final validation
   const isHighRisk = (riskLevel as string) === "high";
   const meetsMinLength = sanitized.length >= SANITIZATION_CONFIG.minLength;
   const isValid = !isHighRisk && meetsMinLength;
