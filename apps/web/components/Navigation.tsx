@@ -3,12 +3,12 @@ import { SITE_CONFIG } from '@/lib/constants';
 export default function Navigation() {
   return (
     <nav className="flex justify-center pt-6 md:pt-6">
-      <div className="bg-white/95 backdrop-blur-md rounded-full px-8 py-2 shadow-lg flex items-center gap-8">
+      <div className="bg-blue-50/35 backdrop-blur-2xl rounded-full px-8 py-1 shadow-xl flex items-center gap-8 border border-blue-200/25">
 
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-bold">⚡</span>
+          <div className="w-6 h-6 bg-linear-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm">🚀</span>
           </div>
           <span className="font-bold text-gray-900 text-lg">{SITE_CONFIG.name}</span>
         </div>

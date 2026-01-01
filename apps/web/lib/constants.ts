@@ -2,10 +2,10 @@ export const SITE_CONFIG = {
   name: 'Haven',
   tagline: 'Design with ease.',
   description: 'Design smarter with AI that understands you.\nSo you can take a breath.',
-  badge: 'We just raised 20M 💰',
+  badge: 'Not Backed by Y Combinator',
   
-  // Hero image from Unsplash - Pink flowers and river landscape
-  heroImage: 'https://plus.unsplash.com/premium_photo-1711434824963-ca894373272e?w=1920&q=80&auto=format&fit=crop',
+  // Hero image from Unsplash - Snowy mountain valley at dusk (soft, professional)
+  heroImage: 'https://images.unsplash.com/photo-1767171361732-c8a90df5c94f?w=1920&q=80&auto=format&fit=crop',
   
   // CTA Buttons
   ctaPrimary: 'Get Started',
@@ -14,10 +14,9 @@ export const SITE_CONFIG = {
   // Navigation links
   navLinks: [
     { label: 'Home', href: '#' },
-    { label: 'Usecases', href: '#' },
-    { label: 'Pricing', href: '#' },
-    { label: 'Careers', href: '#' },
-    { label: 'Contact', href: '#' },
+    { label: 'Features', href: '#features' },
+    { label: 'Pricing', href: '#pricing' },
+    { label: 'Docs', href: '#docs' },
   ],
 } as const;
 

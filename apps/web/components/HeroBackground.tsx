@@ -10,8 +10,8 @@ export default function HeroBackground({ imageUrl }: HeroBackgroundProps) {
         backgroundImage: `url('${imageUrl}')`,
       }}
     >
-      {/* Overlay for better text readability */}
-      <div className="absolute inset-0 bg-linear-to-b from-black/20 via-transparent to-black/40"></div>
+      {/* Overlay for better text readability - soft for snowy mountains */}
+      <div className="absolute inset-0 bg-linear-to-b from-blue-900/10 via-purple-900/5 to-blue-900/20"></div>
     </div>
   );
 }
