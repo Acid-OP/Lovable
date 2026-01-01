@@ -5,14 +5,14 @@ export default function HeroSection() {
     <div className="flex-1 flex flex-col items-center justify-start pt-32 px-4 text-center relative">
       
       {/* Badge */}
-      <div className="mb-6">
+      {/* <div className="mb-6">
         <span className="bg-black/30 backdrop-blur-2xl px-4 py-2 rounded-full text-sm font-semibold text-white shadow-lg border border-white/30 drop-shadow-lg inline-flex items-center gap-2">
           <div className="w-4 h-4 bg-orange-500 rounded flex items-center justify-center">
             <span className="text-white text-[10px] font-bold">Y</span>
           </div>
           {SITE_CONFIG.badge}
         </span>
-      </div>
+      </div> */}
 
       {/* Main Heading */}
       <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-gray-900 mb-6 leading-tight tracking-tight">
