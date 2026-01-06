@@ -1,33 +1,39 @@
-"use client"
+'use client';
+
+import { useRef } from 'react';
 import Editor from '@monaco-editor/react';
 
-export default function CodeEditor() {
-  const handleEditorChange = (value: string | undefined) => {
-    console.log('Code changed:', value);
-  };
+export default function MyEditor() {
+  const editorRef = useRef(null);
+  const modelsRef = useRef(new Map());
+
+  function handleEditorDidMount(editor: any, monaco: any) {
+    // Store editor instance
+    editorRef.current = editor;
+
+    // Create models (monaco is available here!)
+    const jsModel = monaco.editor.createModel(
+      'console.log("JS");',
+      'javascript',
+      monaco.Uri.parse('file:///app.js')
+    );
+
+    // Store model
+    modelsRef.current.set('app.js', jsModel);
+
+    // Set model to editor
+    editor.setModel(jsModel);
+  }``
 
   return (
-    <div className="h-screen w-full">
+    <div className="h-screen">
       <Editor
         height="100vh"
-        defaultLanguage="javascript"
-        defaultValue={`// Welcome to Monaco Editor!
-            const greeting = "Hello, World!";
-            console.log(greeting);
-
-            function add(a, b) {
-            return a + b;
-            }
-
-            const result = add(5, 3);
-            console.log("Result:", result);
-        `}
-        theme="light"
-        onChange={handleEditorChange}
+        theme="vs-dark"
+        onMount={handleEditorDidMount}
         options={{
           fontSize: 14,
-          minimap: { enabled: true },
-          scrollBeyondLastLine: false,
+          minimap: { enabled: false },
           automaticLayout: true,
         }}
       />

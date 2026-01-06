@@ -13,9 +13,11 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@repo/ui": "workspace:*",
+    "monaco-editor": "^0.55.1",
     "next": "^16.0.7",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
