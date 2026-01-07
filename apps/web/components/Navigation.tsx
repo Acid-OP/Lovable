@@ -8,7 +8,6 @@ export default function Navigation() {
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-linear-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm">🚀</span>
           </div>
           <span className="font-bold text-gray-900 text-lg">{SITE_CONFIG.name}</span>
         </div>

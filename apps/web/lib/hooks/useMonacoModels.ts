@@ -4,6 +4,32 @@ import { useEffect, useRef, useState } from "react"
 import type { Monaco } from "@monaco-editor/react"
 import type { editor } from "monaco-editor"
 
+function getFilenameFromPath(path: string): string {
+  return path.split('/').pop() || path;
+}
+
+function getLanguageFromPath(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase();
+  
+  const langMap: Record<string, string> = {
+    'ts': 'typescript',
+    'tsx': 'typescript',
+    'js': 'javascript',
+    'jsx': 'javascript',
+    'css': 'css',
+    'scss': 'scss',
+    'sass': 'sass',
+    'html': 'html',
+    'json': 'json',
+    'md': 'markdown',
+    'xml': 'xml',
+    'sql': 'sql',
+    'py': 'python',
+  };
+  
+  return langMap[ext || ''] || 'plaintext';
+}
+
 export default function useMonacoModel() {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
@@ -13,6 +39,39 @@ export default function useMonacoModel() {
     function handleEditorDidMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
         editorRef.current = editor;
         monacoRef.current = monaco;
+
+        monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+            jsx: monaco.languages.typescript.JsxEmit.React,
+            jsxFactory: 'React.createElement',
+            reactNamespace: 'React',
+            allowNonTsExtensions: true,
+            allowJs: true,
+            target: monaco.languages.typescript.ScriptTarget.Latest,
+            moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+            module: monaco.languages.typescript.ModuleKind.ESNext,
+            noEmit: true,
+            esModuleInterop: true,
+            skipLibCheck: true,
+        });
+
+        monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+            jsx: monaco.languages.typescript.JsxEmit.React,
+            jsxFactory: 'React.createElement',
+            reactNamespace: 'React',
+            allowNonTsExtensions: true,
+            allowJs: true,
+            target: monaco.languages.typescript.ScriptTarget.Latest,
+            moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+            module: monaco.languages.typescript.ModuleKind.ESNext,
+            noEmit: true,
+            esModuleInterop: true,
+        });
+
+        monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+            noSemanticValidation: true,
+            noSyntaxValidation: false,
+        });
+
         setIsReady(true);
     }
 
@@ -46,15 +105,17 @@ export default function useMonacoModel() {
     function getCurrentContent() {
         const currentModel = editorRef.current?.getModel();
         return currentModel?.getValue() || '';
-      }
+    }
+
+    function clearAllModels() {
+        modelsRef.current.forEach(model => model.dispose());
+        modelsRef.current.clear();
+    }
       
     useEffect(() => {
         return () => {
-            // Dispose all models
             modelsRef.current.forEach(model => model.dispose());
             modelsRef.current.clear();
-            
-            // Dispose editor
             editorRef.current?.dispose();
         };
     }, []);
@@ -65,6 +126,9 @@ export default function useMonacoModel() {
         switchToFile,
         updateContent,
         getCurrentContent,
+        clearAllModels,
+        getFilenameFromPath,
+        getLanguageFromPath,
         isReady,
       };
 }

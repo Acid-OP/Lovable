@@ -6,64 +6,80 @@ import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { useState } from "react";
 
+interface PlanStep {
+  id: number;
+  type: 'file_write';
+  description: string;
+  path: string;
+  content: string;
+}
+
+interface Plan {
+  summary: string;
+  estimatedTimeSeconds: number;
+  steps: PlanStep[];
+}
+
 export default function EditorPage() {
   const {
     handleEditorDidMount,
     createModel,
     switchToFile,
-    updateContent,
-    getCurrentContent,
+    clearAllModels,
+    getFilenameFromPath,
+    getLanguageFromPath,
     isReady,
   } = useMonacoModel();
-  const [activeFile, setActiveFile] = useState('app.js');
-  const files = ['app.js', 'style.css', 'index.html'];
+  
+  const [activeFile, setActiveFile] = useState('');
+  const [files, setFiles] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
     handleEditorDidMount(editor, monaco);
-
-    createModel('app.js', 'console.log("JS");', 'javascript');
-    createModel('style.css', 'body { }', 'css');
-    createModel('index.html', '<h1>Hi</h1>', 'html');
-
-    switchToFile('app.js');
   };
 
   const handleTabClick = (filename:string) => {
     switchToFile(filename);
-    
     setActiveFile(filename);
   };
 
   const handleGenerate = async () => {
     try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: 'Create a React counter component',
-        }),
-      });
-
-      const aiCode = await response.text();
-      updateContent('app.js', aiCode);
+      setIsGenerating(true);
       
-      console.log('AI Code generated and updated!');
+      const response = await fetch('/api/generate', { method: 'POST' });
+      const plan: Plan = await response.json();
+
+      clearAllModels();
+      
+      const newFilenames: string[] = [];
+      
+      plan.steps.forEach((step) => {
+        const filename = getFilenameFromPath(step.path);
+        const language = getLanguageFromPath(step.path);
+        
+        createModel(filename, step.content, language);
+        newFilenames.push(filename);
+      });
+      
+      setFiles(newFilenames);
+      
+      if (newFilenames.length > 0) {
+        const firstFile = newFilenames[0]!;
+        switchToFile(firstFile);
+        setActiveFile(firstFile);
+      }
+      
     } catch (error) {
-      console.error('Failed to generate code:', error);
+      console.error('Generation failed:', error);
+    } finally {
+      setIsGenerating(false);
     }
   };
   
-  const handleSave = () => {
-    const code = getCurrentContent();
-    
-    console.log('Saving:', code);
-  };
-
   return (
     <div className="h-screen flex flex-col">
-      {/* File Tabs */}
       <div className="flex gap-1 p-2 bg-gray-900 border-b border-gray-700">
         {files.map(file => (
           <button
@@ -80,7 +96,6 @@ export default function EditorPage() {
         ))}
       </div>
 
-      {/* Monaco Editor */}
       <Editor
         height="100%"
         theme="vs-dark"
@@ -91,19 +106,17 @@ export default function EditorPage() {
         }}
       />
 
-      {/* Actions */}
       <div className="flex gap-2 p-4 bg-gray-800 border-t border-gray-700">
         <button 
           onClick={handleGenerate}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition"
+          disabled={isGenerating}
+          className={`px-4 py-2 text-white rounded transition ${
+            isGenerating 
+              ? 'bg-blue-400 cursor-not-allowed' 
+              : 'bg-blue-600 hover:bg-blue-700'
+          }`}
         >
-          🤖 Generate AI Code
-        </button>
-        <button 
-          onClick={handleSave}
-          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition"
-        >
-          💾 Save
+          {isGenerating ? 'Generating...' : 'Generate AI Code'}
         </button>
       </div>
     </div>
