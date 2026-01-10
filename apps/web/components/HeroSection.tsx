@@ -14,14 +14,14 @@ export default function HeroSection() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleGenerate();
     }
   };
   return (
-    <div className="flex-1 flex flex-col items-center justify-start pt-32 px-4 text-center relative">
+    <div className="flex-1 flex flex-col items-center justify-start pt-16 px-4 text-center relative">
       
       {/* Badge */}
       <div className="mb-6">
@@ -38,8 +38,11 @@ export default function HeroSection() {
         {SITE_CONFIG.tagline}
       </h1>
 
+      {/* Spacer between heading and subheading */}
+      <div className="h-4"></div>
+
       {/* Subheading */}
-      <p className="text-lg md:text-xl text-gray-800 max-w-2xl mb-8 leading-relaxed">
+      <p className="text-lg md:text-xl text-gray-800 max-w-2xl mb-24 leading-relaxed">
         {SITE_CONFIG.description.split('\n').map((line, i) => (
           <span key={i}>
             {line}
@@ -48,15 +51,19 @@ export default function HeroSection() {
         ))}
       </p>
 
+      {/* Spacer to push input down */}
+      <div className="h-32"></div>
+
       {/* Prompt Input Box */}
       <div className="w-full max-w-3xl text-left">
-        <input
-          type="text"
+        <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Describe what you want to build"
-          className="w-full px-4 py-12 bg-[#f7f4ed] backdrop-blur-xl rounded-3xl transition-all shadow-2xl focus:outline-none focus:ring-0"
+          rows={3}
+          className="w-full px-6 pt-4 pb-6 bg-[#f7f4ed] backdrop-blur-xl rounded-3xl transition-all shadow-2xl focus:outline-none focus:ring-0 text-left resize-none"
+          style={{ lineHeight: '1.5' }}
           suppressHydrationWarning
         />
         <p className="text-sm text-gray-800 mt-3 text-center font-medium">
