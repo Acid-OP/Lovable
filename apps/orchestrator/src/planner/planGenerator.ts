@@ -38,6 +38,13 @@ PRE-INSTALLED PACKAGES (already available, do not install):
 - lucide-react, clsx, tailwind-merge
 - framer-motion, zustand, zod, date-fns
 
+CRITICAL: DO NOT use any packages outside this list. This includes:
+- NO @radix-ui packages
+- NO class-variance-authority
+- NO shadcn/ui components
+- NO other third-party UI libraries
+- Build all UI components using ONLY Tailwind CSS classes and native HTML elements
+
 STEP TYPES:
 - "file_write": Create or overwrite a file (USE THIS FOR EVERYTHING)
 - "file_delete": Delete a file
