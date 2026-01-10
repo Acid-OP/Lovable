@@ -57,6 +57,7 @@ export default function HeroSection() {
           onKeyDown={handleKeyDown}
           placeholder="Describe what you want to build"
           className="w-full px-4 py-12 bg-[#f7f4ed] backdrop-blur-xl rounded-3xl transition-all shadow-2xl focus:outline-none focus:ring-0"
+          suppressHydrationWarning
         />
         <p className="text-sm text-gray-800 mt-3 text-center font-medium">
           Press <kbd className="px-2 py-1 bg-white/50 backdrop-blur-md rounded text-xs font-mono shadow-sm">Enter</kbd> to generate
@@ -65,7 +66,10 @@ export default function HeroSection() {
 
       {/* Scroll Indicator - Absolutely positioned at bottom */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <button className="bg-white/10 hover:bg-white/20 backdrop-blur-xl px-4 py-2 rounded-full border border-white/30 hover:border-white/50 flex items-center justify-center transition-all duration-300 cursor-pointer group">
+        <button 
+          className="bg-white/10 hover:bg-white/20 backdrop-blur-xl px-4 py-2 rounded-full border border-white/30 hover:border-white/50 flex items-center justify-center transition-all duration-300 cursor-pointer group"
+          suppressHydrationWarning
+        >
           <span className="text-white text-xs font-light tracking-wide uppercase leading-none group-hover:tracking-wider transition-all">Scroll ↓</span>
         </button>
       </div>

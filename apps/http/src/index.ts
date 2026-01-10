@@ -3,9 +3,10 @@ import express from "express";
 import helmet from "helmet";
 import { prisma } from "@repo/db";
 import routes from "./routes/index.js";
+import { config } from "./config.js";
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = config.server.port;
 
 app.use(helmet());
 app.use(express.json());

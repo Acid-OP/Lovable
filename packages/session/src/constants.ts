@@ -20,4 +20,7 @@ export interface SessionData {
   createdAt?: string;
   completedAt?: string;
   failedAt?: string;
+  containerId?: string;
+  lastActivity?: string;
+  previewUrl?: string;
 }

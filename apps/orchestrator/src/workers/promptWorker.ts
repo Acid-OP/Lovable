@@ -8,6 +8,7 @@ import * as cache from "../utils/cache.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
 import { enhancePrompt, generatePlan, getFileErrors, generateFixes } from "../planner/index.js";
 import { planValidator } from "../validation/index.js";
+import { config } from "../config.js";
 import os from "os";
 
 const WORKER_CONCURRENCY = 3;
@@ -108,6 +109,14 @@ export function createPromptWorker() {
       
       await sandbox.startContainer(containerId);
       logger.info("sandbox.started", { jobId, containerId });
+      
+      // Store container metadata in session
+      const previewUrl = `${config.api.baseUrl}/preview/${jobId}`;
+      await SessionManager.update(jobId, {
+        containerId,
+        lastActivity: Date.now().toString(),
+        previewUrl,
+      });
       
       const totalSteps = validatedPlan.steps.length;
       
@@ -210,7 +219,7 @@ export function createPromptWorker() {
       // Start dev server for preview
       logger.info("sandbox.starting_dev_server", { jobId, containerId });
       await sandbox.startDevServer(containerId);
-      logger.info("sandbox.dev_server_started", { jobId, containerId, previewUrl: "http://localhost:3003" });
+      logger.info("sandbox.dev_server_started", { jobId, containerId, previewUrl: `http://localhost:${config.container.port}` });
 
       // NOTE: Not destroying container so preview stays alive
       // TODO: Add cleanup mechanism (timeout, manual trigger, etc.)
@@ -233,7 +242,7 @@ export function createPromptWorker() {
         warnings: [...validation.warnings, ...planWarnings],
         riskLevel: validation.riskLevel,
         cached: fromCache,
-        previewUrl: "http://localhost:3003",
+        previewUrl: `${config.api.baseUrl}/preview/${jobId}`,
         containerId,
       };
     },
