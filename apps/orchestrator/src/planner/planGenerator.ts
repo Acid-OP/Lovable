@@ -125,7 +125,13 @@ IMPORTANT:
 - File content must be valid, complete, production-ready code that compiles without errors
 - Do not include steps for running the dev server
 - Use the pre-installed packages (lucide-react for icons, framer-motion for animations, etc.)
-- VERIFY each file's syntax before including it - no typos, no missing brackets`;
+- VERIFY each file's syntax before including it - no typos, no missing brackets
+- CRITICAL: Import statements MUST use 'from' keyword, NOT '=>'
+  Example: import { Button } from './ui/button'  ✓ CORRECT
+  Example: import { Button } => './ui/button'    ✗ WRONG
+- Double-check all import/export statements for correct ES6 syntax
+- Ensure all JSX tags are properly closed
+- Validate string escaping (especially apostrophes in JSX)`;
 
 export async function generatePlan(enhancedPrompt: string): Promise<Plan> {
   const fullPrompt = `${PLAN_SYSTEM_PROMPT}\n\nUSER REQUEST: ${enhancedPrompt}\n\nGenerate the plan:`;

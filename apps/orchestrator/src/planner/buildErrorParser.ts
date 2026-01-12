@@ -14,11 +14,17 @@ export function parseErrorFiles(buildOutput: string): Map<string, string> {
   let currentError = "";
 
   for (const line of lines) {
-    const fileMatch = line.match(
+    // Match standard format: ./path/file.tsx:line:col or path/file.tsx:line:col
+    const standardMatch = line.match(
       /^\.?\/?(?:workspace\/)?([a-zA-Z0-9_\-\/\.]+\.(?:tsx?|jsx?|css|json)):(\d+):?(\d+)?/
     );
+    
+    // Match SWC error format: ./path/file.tsx (without line number on same line)
+    const swcFileMatch = line.match(
+      /^\.\/([a-zA-Z0-9_\-\/\.]+\.(?:tsx?|jsx?|css|json))$/
+    );
 
-    if (fileMatch) { 
+    if (standardMatch) { 
       if (currentFile && currentError) {
         const existingError = errorMap.get(currentFile);
         if (existingError) {
@@ -27,7 +33,19 @@ export function parseErrorFiles(buildOutput: string): Map<string, string> {
           errorMap.set(currentFile, currentError.trim());
         }
       }
-      currentFile = `/workspace/${fileMatch[1]}`;
+      currentFile = `/workspace/${standardMatch[1]}`;
+      currentError = line;
+    } else if (swcFileMatch) {
+      // SWC format: file path on one line, error details follow
+      if (currentFile && currentError) {
+        const existingError = errorMap.get(currentFile);
+        if (existingError) {
+          errorMap.set(currentFile, existingError + "\n\n" + currentError.trim());
+        } else {
+          errorMap.set(currentFile, currentError.trim());
+        }
+      }
+      currentFile = `/workspace/${swcFileMatch[1]}`;
       currentError = line;
     } else if (currentFile && line.trim()) {
       currentError += "\n" + line;

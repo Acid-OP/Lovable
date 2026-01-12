@@ -26,8 +26,13 @@ RULES:
 4. Ensure the fixed code compiles without errors
 5. Add 'use client' at top of files using React hooks, event handlers, or framer-motion
 6. Escape apostrophes in strings properly
-7. Ensure all imports are valid ES6 syntax
-8. Close all JSX tags properly`;
+7. Ensure all imports are valid ES6 syntax:
+   - MUST use 'from' keyword, NOT '=>' in import statements
+   - Correct: import { Button } from './ui/button'
+   - WRONG: import { Button } => './ui/button'
+8. Close all JSX tags properly
+9. Pay special attention to syntax errors in import/export statements
+10. Check for typos like using => instead of from, missing semicolons, mismatched brackets`;
 
 function buildFixPrompt(fileErrors: FileError[]): string {
   let prompt = `${FIX_SYSTEM_PROMPT}\n\nFILES WITH ERRORS:\n\n`;
