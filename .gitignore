@@ -36,3 +36,10 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Claude Code temp files
+.claude/
+.claude_code/
+*.claude.tmp
+.anthropic/
+tmpclaude-*-cwd

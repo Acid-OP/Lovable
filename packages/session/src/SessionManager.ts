@@ -2,7 +2,7 @@ import { redis } from "@repo/redis";
 import { SESSION_PREFIX, CHANNEL_PREFIX, SESSION_STATUS, SessionData } from "./constants.js";
 
 // Session expir
-const SESSION_TTL_SECONDS = 60 * 60 * 2; // 2 hours
+const SESSION_TTL_SECONDS = 60 * 60 * 2; 
 
 class SessionManagerClass {
   private getKey(jobId: string) {

@@ -6,8 +6,11 @@ import { SandboxManager } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
 import * as cache from "../utils/cache.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
-import { enhancePrompt, generatePlan, getFileErrors, generateFixes } from "../planner/index.js";
+import { enhancePrompt, generatePlan } from "../planner/index.js";
 import { planValidator } from "../validation/index.js";
+import { classifyBuildErrors } from "../planner/errorClassifier.js";
+import { routeAndHandleErrors, applyFixes } from "../planner/errorRouter.js";
+import { parseErrorFiles } from "../planner/buildErrorParser.js";
 import { config } from "../config.js";
 import os from "os";
 
@@ -181,27 +184,59 @@ export function createPromptWorker() {
           logger.warn("sandbox.build_failed", { jobId, containerId, attempt: fixAttempts });
 
           if (fixAttempts < MAX_FIX_RETRIES) {
-            const fileErrors = await getFileErrors(containerId, buildResult.errors);
-            
-            logger.info("sandbox.fixing_errors", {
+            // Parse errors from build output
+            const errorMap = parseErrorFiles(buildResult.errors);
+
+            //Classify errors by type
+            const classifiedErrors = classifyBuildErrors(errorMap);
+
+            logger.info("sandbox.errors_classified", {
               jobId,
               attempt: fixAttempts,
-              errorCount: fileErrors.length,
-              files: fileErrors.map(f => f.path),
+              totalErrors: classifiedErrors.length,
+              byType: classifiedErrors.reduce((acc, err) => {
+                acc[err.type] = (acc[err.type] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>),
             });
 
-            const fixes = await generateFixes(fileErrors);
-            
-            logger.info("sandbox.applying_fixes", {
+            //Route errors to appropriate handlers
+            const handlingResult = await routeAndHandleErrors(
+              containerId,
+              classifiedErrors,
+              jobId
+            );
+
+            logger.info("sandbox.errors_handled", {
               jobId,
-              fixCount: fixes.length,
-              files: fixes.map(f => f.path),
+              success: handlingResult.success,
+              autoFixed: handlingResult.autoFixedErrors.length,
+              llmFixed: handlingResult.llmFixedErrors.length,
+              failed: handlingResult.failedErrors.length,
+              message: handlingResult.message,
             });
 
-            // Apply fixes
-            for (const fix of fixes) {
-              await sandbox.writeFile(containerId, fix.path, fix.content);
-              logger.info("sandbox.fix_applied", { jobId, path: fix.path });
+            // Apply LLM-generated fixes if any
+            if (handlingResult.fixes && handlingResult.fixes.length > 0) {
+              await applyFixes(containerId, handlingResult.fixes, jobId);
+            }
+
+            // If we auto-fixed dependencies, the build will likely succeed on retry
+            if (handlingResult.autoFixedErrors.length > 0) {
+              logger.info("sandbox.auto_fixes_applied", {
+                jobId,
+                count: handlingResult.autoFixedErrors.length,
+                retryingBuild: true,
+              });
+            }
+
+            // If config errors, abort immediately
+            if (!handlingResult.success && handlingResult.failedErrors.some(e => e.type === 'config')) {
+              logger.error("sandbox.config_error_abort", {
+                jobId,
+                message: handlingResult.message,
+              });
+              throw new Error(handlingResult.message);
             }
           }
         }
@@ -220,12 +255,6 @@ export function createPromptWorker() {
       logger.info("sandbox.starting_dev_server", { jobId, containerId });
       await sandbox.startDevServer(containerId);
       logger.info("sandbox.dev_server_started", { jobId, containerId, previewUrl: `http://localhost:${config.container.port}` });
-
-      // NOTE: Not destroying container so preview stays alive
-      // TODO: Add cleanup mechanism (timeout, manual trigger, etc.)
-      // logger.info("sandbox.destroying", { jobId, containerId });
-      // await sandbox.destroy(containerId);
-      // logger.info("sandbox.destroyed", { jobId, containerId });
 
       if (!fromCache) {
         await cache.set(
