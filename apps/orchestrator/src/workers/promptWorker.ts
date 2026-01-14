@@ -186,6 +186,55 @@ export function createPromptWorker() {
         if (buildResult.success) {
           buildSuccess = true;
           logger.info("sandbox.build_success", { jobId, containerId, attempts: fixAttempts });
+
+          // Post-build UI validation on actual generated files
+          if (fixAttempts > 0) {
+            // Only validate after fixes to check if quality was maintained
+            await SessionManager.update(jobId, {
+              currentStep: "Validating UI quality of fixed code...",
+            });
+
+            try {
+              // Read generated files from sandbox
+              const appFiles = validatedPlan.steps
+                .filter((s: any) => s.type === "file_write" && s.path?.endsWith(".tsx"))
+                .map((s: any) => s.path as string);
+
+              const generatedPlan = {
+                summary: validatedPlan.summary,
+                estimatedTimeSeconds: validatedPlan.estimatedTimeSeconds,
+                steps: await Promise.all(
+                  appFiles.map(async (path: string, index: number) => {
+                    const content = await sandbox.readFile(containerId, path);
+                    return {
+                      id: index + 1,
+                      type: "file_write" as const,
+                      description: `File ${path}`,
+                      path,
+                      content,
+                    };
+                  })
+                ),
+              };
+
+              const postBuildValidation = frontendValidator.validate(generatedPlan);
+
+              if (postBuildValidation.warnings.length > 0 || postBuildValidation.suggestions.length > 0) {
+                logger.warn("sandbox.post_build_ui_issues", {
+                  jobId,
+                  warnings: postBuildValidation.warnings,
+                  suggestions: postBuildValidation.suggestions,
+                });
+              } else {
+                logger.info("sandbox.post_build_ui_quality_maintained", { jobId });
+              }
+            } catch (validationError) {
+              logger.error("sandbox.post_build_validation_failed", {
+                jobId,
+                error: validationError instanceof Error ? validationError.message : String(validationError),
+              });
+            }
+          }
         } else {
           lastBuildErrors = buildResult.errors;
           fixAttempts++;
@@ -263,6 +312,57 @@ export function createPromptWorker() {
       logger.info("sandbox.starting_dev_server", { jobId, containerId });
       await sandbox.startDevServer(containerId);
       logger.info("sandbox.dev_server_started", { jobId, containerId, previewUrl: `http://localhost:${config.container.port}` });
+
+      // Health check: Verify dev server is responding and app renders without errors
+      await SessionManager.update(jobId, {
+        currentStep: "Verifying app health...",
+      });
+
+      // Wait a bit for dev server to fully start
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      try {
+        const healthCheckUrl = `http://localhost:${config.container.port}`;
+        const response = await fetch(healthCheckUrl, {
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        });
+
+        const html = await response.text();
+
+        if (response.status !== 200) {
+          logger.warn("sandbox.health_check_http_error", {
+            jobId,
+            status: response.status,
+            statusText: response.statusText,
+          });
+        } else {
+          // Check for common error patterns in HTML
+          const hasApplicationError = /Application error/i.test(html) || /Internal Server Error/i.test(html);
+          const hasHydrationError = /Hydration failed/i.test(html) || /Hydration error/i.test(html);
+          const hasUnhandledError = /Unhandled Runtime Error/i.test(html);
+
+          if (hasApplicationError || hasHydrationError || hasUnhandledError) {
+            logger.warn("sandbox.health_check_runtime_errors", {
+              jobId,
+              hasApplicationError,
+              hasHydrationError,
+              hasUnhandledError,
+            });
+          } else {
+            logger.info("sandbox.health_check_passed", {
+              jobId,
+              status: response.status,
+              message: "App is rendering successfully without errors",
+            });
+          }
+        }
+      } catch (healthCheckError) {
+        logger.error("sandbox.health_check_failed", {
+          jobId,
+          error: healthCheckError instanceof Error ? healthCheckError.message : String(healthCheckError),
+          message: "Dev server may not be fully started or unreachable",
+        });
+      }
 
       if (!fromCache) {
         await cache.set(
