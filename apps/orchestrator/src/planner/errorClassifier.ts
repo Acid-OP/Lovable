@@ -1,11 +1,13 @@
 export enum ErrorType {
-  DEPENDENCY = 'dependency',    
-  IMPORT = 'import',             
-  SYNTAX = 'syntax',    
-  TYPE = 'type',           
-  RUNTIME = 'runtime',           
-  CONFIG = 'config',             
-  UNKNOWN = 'unknown',          
+  DEPENDENCY = 'dependency',
+  IMPORT = 'import',
+  SYNTAX = 'syntax',
+  TYPE = 'type',
+  RUNTIME = 'runtime',
+  HYDRATION = 'hydration',
+  ROUTING = 'routing',
+  CONFIG = 'config',
+  UNKNOWN = 'unknown',
 }
 
 export interface ClassifiedError {
@@ -85,6 +87,36 @@ const ERROR_PATTERNS = {
     /Failed to load config/i,
     /next\.config/i,
     /tailwind\.config/i,
+  ],
+
+  hydration: [
+    /Hydration failed/i,
+    /Text content does not match server-rendered HTML/i,
+    /There was an error while hydrating/i,
+    /Minified React error #418/i,
+    /Minified React error #423/i,
+    /dangerouslySetInnerHTML/i,
+    /Expected server HTML to contain/i,
+  ],
+
+  routing: [
+    /NEXT_NOT_FOUND/i,
+    /notFound is not defined/i,
+    /redirect.*is not a function/i,
+    /useRouter.*is not a function/i,
+    /usePathname.*is not a function/i,
+    /useSearchParams.*is not a function/i,
+    /generateStaticParams/i,
+  ],
+
+  runtime: [
+    /Runtime error/i,
+    /Unhandled Runtime Error/i,
+    /Cannot read propert.*of undefined/i,
+    /Cannot read propert.*of null/i,
+    /is not a function/i,
+    /Maximum update depth exceeded/i,
+    /Too many re-renders/i,
   ],
 };
 
@@ -174,6 +206,51 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
     }
   }
 
+  // Check for hydration errors
+  for (const pattern of ERROR_PATTERNS.hydration) {
+    if (pattern.test(trimmedError)) {
+      return {
+        type: ErrorType.HYDRATION,
+        originalError: errorMessage,
+        filePath,
+        details: {
+          message: 'Hydration mismatch between server and client',
+          severity: 'high',
+        },
+      };
+    }
+  }
+
+  // Check for routing errors
+  for (const pattern of ERROR_PATTERNS.routing) {
+    if (pattern.test(trimmedError)) {
+      return {
+        type: ErrorType.ROUTING,
+        originalError: errorMessage,
+        filePath,
+        details: {
+          message: 'Next.js routing error',
+          severity: 'high',
+        },
+      };
+    }
+  }
+
+  // Check for runtime errors
+  for (const pattern of ERROR_PATTERNS.runtime) {
+    if (pattern.test(trimmedError)) {
+      return {
+        type: ErrorType.RUNTIME,
+        originalError: errorMessage,
+        filePath,
+        details: {
+          message: 'Runtime error',
+          severity: 'high',
+        },
+      };
+    }
+  }
+
   // Unknown error type
   return {
     type: ErrorType.UNKNOWN,
@@ -236,8 +313,11 @@ export function requiresLLMFix(errorType: ErrorType): boolean {
     case ErrorType.IMPORT:
     case ErrorType.SYNTAX:
     case ErrorType.TYPE:
+    case ErrorType.HYDRATION:
+    case ErrorType.ROUTING:
+    case ErrorType.RUNTIME:
     case ErrorType.UNKNOWN:
-      return true;  // Send to Gemini
+      return true;  // Send to LLM for fixing
     default:
       return true;
   }

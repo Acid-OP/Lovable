@@ -242,7 +242,7 @@ export class PlanValidator {
     steps.forEach((step, index) => {
       if (step.type === "command" && step.command) {
         const cmd = step.command.toLowerCase();
-        
+
         // Warn about package installation commands (not needed with pre-built image)
         if (
           cmd.includes("npm install") ||
@@ -288,13 +288,101 @@ export class PlanValidator {
     // Check that essential Next.js files are being created
     const hasLayoutFile = filePaths.some((p) => p?.includes("layout.tsx"));
     const hasPageFile = filePaths.some((p) => p?.includes("page.tsx"));
-    
+
     if (!hasLayoutFile) {
       result.warnings.push("No layout.tsx file in plan - Next.js App Router requires app/layout.tsx");
     }
     if (!hasPageFile) {
       result.warnings.push("No page.tsx file in plan - Next.js requires at least one page");
     }
+
+    // Validate Next.js routing conventions
+    this.validateRoutingConventions(steps, result);
+  }
+
+  private validateRoutingConventions(steps: PlanStep[], result: ValidationResult): void {
+    const appFiles = steps
+      .filter((step) => step.type === "file_write" && step.path?.includes("/app/"))
+      .map((step) => ({ path: step.path || "", stepId: step.id }));
+
+    appFiles.forEach(({ path, stepId }) => {
+      // Check for incorrect route file naming (e.g., home.tsx instead of page.tsx)
+      if (path.match(/\/(home|about|contact|dashboard|profile|settings|blog|products|services)\.tsx$/i)) {
+        result.errors.push(
+          `Step ${stepId}: Invalid route file "${path}" - Next.js routes must use page.tsx inside a directory (e.g., /app/about/page.tsx instead of /app/about.tsx)`
+        );
+        result.valid = false;
+      }
+
+      // Check for wrong file extensions in app directory
+      if (path.match(/\/app\/.*\.(js|jsx)$/)) {
+        result.warnings.push(
+          `Step ${stepId}: File "${path}" uses .js/.jsx extension - prefer .ts/.tsx for TypeScript`
+        );
+      }
+
+      // Validate dynamic route syntax
+      const dynamicRouteMatch = path.match(/\/\[([^\]]+)\]/);
+      if (dynamicRouteMatch) {
+        const paramName = dynamicRouteMatch[1];
+        if (paramName.includes(" ") || paramName.includes("-")) {
+          result.errors.push(
+            `Step ${stepId}: Invalid dynamic route parameter "[${paramName}]" in "${path}" - use camelCase without spaces/hyphens (e.g., [userId] not [user-id])`
+          );
+          result.valid = false;
+        }
+      }
+
+      // Validate route groups
+      const routeGroupMatch = path.match(/\/\(([^)]+)\)/);
+      if (routeGroupMatch) {
+        const groupName = routeGroupMatch[1];
+        if (groupName.includes(" ") || groupName.match(/[A-Z]/)) {
+          result.warnings.push(
+            `Step ${stepId}: Route group "(${groupName})" in "${path}" should use lowercase-kebab-case`
+          );
+        }
+      }
+
+      // Check for proper page/layout file structure
+      if (path.includes("/app/") && !path.match(/\/(page|layout|loading|error|not-found|template|default|route)\.tsx$/)) {
+        const fileName = path.split("/").pop() || "";
+        // Allow files starting with underscore or in components/api/lib directories
+        if (!fileName.startsWith("_") && !path.includes("/components/") && !path.includes("/api/") && !path.includes("/lib/")) {
+          result.warnings.push(
+            `Step ${stepId}: File "${fileName}" in app directory is not a special Next.js file - consider moving to /app/components or /lib`
+          );
+        }
+      }
+    });
+
+    // Check for conflicting routes
+    const routes = appFiles
+      .filter(({ path }) => path.endsWith("/page.tsx"))
+      .map(({ path }) => path.replace("/workspace/app", "").replace("/page.tsx", "") || "/");
+
+    const routeConflicts = this.findRouteConflicts(routes);
+    routeConflicts.forEach((conflict) => {
+      result.warnings.push(`Potential route conflict: ${conflict}`);
+    });
+  }
+
+  private findRouteConflicts(routes: string[]): string[] {
+    const conflicts: string[] = [];
+    const normalizedRoutes = routes.map((r) => ({
+      original: r,
+      normalized: r.replace(/\/\[([^\]]+)\]/g, "/:param").replace(/\/\([^)]+\)/g, ""),
+    }));
+
+    for (let i = 0; i < normalizedRoutes.length; i++) {
+      for (let j = i + 1; j < normalizedRoutes.length; j++) {
+        if (normalizedRoutes[i].normalized === normalizedRoutes[j].normalized) {
+          conflicts.push(`${normalizedRoutes[i].original} vs ${normalizedRoutes[j].original}`);
+        }
+      }
+    }
+
+    return conflicts;
   }
 }
 

@@ -31,6 +31,30 @@ CRITICAL RULES:
 8. Maximum 25 steps per plan
 9. No sudo commands, no dangerous commands
 
+UI QUALITY REQUIREMENTS (CRITICAL):
+10. Responsive Design: ALWAYS use mobile-first Tailwind breakpoints (sm:, md:, lg:, xl:)
+11. Semantic HTML: Use proper tags (header, nav, main, section, article, footer, aside)
+12. Accessibility: Add aria-label, aria-labelledby, role attributes to interactive elements
+13. Clean Component Structure:
+    - Separate concerns (data fetching, UI, logic)
+    - Extract reusable components when appropriate
+    - Use proper React patterns (composition over inheritance)
+14. Professional Styling:
+    - Consistent spacing using Tailwind scale (p-4, gap-6, space-y-4)
+    - Proper color contrast for readability
+    - Smooth transitions and hover states
+    - Clean typography hierarchy (text-3xl, text-xl, text-base)
+15. User Experience:
+    - Loading states for async operations
+    - Error boundaries and error handling
+    - Empty states with helpful messages
+    - Form validation with clear error messages
+16. Code Quality:
+    - Proper TypeScript types for all props and state
+    - NO inline styles (style={{...}}) - use Tailwind classes only
+    - NO magic numbers - use Tailwind spacing scale
+    - Close all JSX tags properly
+
 PRE-INSTALLED PACKAGES (already available, do not install):
 - next@14.2.3, react@18, react-dom@18
 - tailwindcss@3, autoprefixer, postcss
@@ -56,8 +80,22 @@ REQUIRED FILES FOR NEXT.JS (write these directly to /workspace):
 3. /workspace/tailwind.config.ts
 4. /workspace/postcss.config.mjs
 5. /workspace/app/globals.css (with @tailwind directives)
-6. /workspace/app/layout.tsx (root layout)
+6. /workspace/app/layout.tsx (root layout with proper metadata)
 7. /workspace/app/page.tsx (home page)
+
+ROUTING CONVENTIONS (CRITICAL - MUST FOLLOW):
+- Route files MUST be named "page.tsx" inside a directory
+  ✓ CORRECT: /workspace/app/about/page.tsx
+  ✗ WRONG: /workspace/app/about.tsx or /workspace/app/about-page.tsx
+- Layout files MUST be named "layout.tsx"
+  ✓ CORRECT: /workspace/app/dashboard/layout.tsx
+- Dynamic routes use [param] folders
+  ✓ CORRECT: /workspace/app/posts/[postId]/page.tsx
+  ✗ WRONG: /workspace/app/posts/[post-id]/page.tsx (no hyphens in param names)
+- Route groups use (group) folders
+  ✓ CORRECT: /workspace/app/(auth)/login/page.tsx
+- Components should go in /workspace/app/components/ or /workspace/components/
+- Use .tsx extension for all React components (NOT .js or .jsx)
 
 RESPONSE FORMAT:
 Return ONLY valid JSON matching this structure:
@@ -103,16 +141,16 @@ Return ONLY valid JSON matching this structure:
     {
       "id": 6,
       "type": "file_write",
-      "description": "Create root layout",
+      "description": "Create root layout with metadata",
       "path": "/workspace/app/layout.tsx",
-      "content": "import './globals.css';\\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\\n  return <html lang=\\"en\\"><body>{children}</body></html>;\\n}"
+      "content": "import './globals.css';\\nimport { Metadata } from 'next';\\n\\nexport const metadata: Metadata = {\\n  title: 'My App',\\n  description: 'Built with Next.js 14',\\n};\\n\\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\\n  return (\\n    <html lang=\\"en\\">\\n      <body className=\\"min-h-screen bg-gray-50 text-gray-900\\">{children}</body>\\n    </html>\\n  );\\n}"
     },
     {
       "id": 7,
       "type": "file_write",
-      "description": "Create home page",
+      "description": "Create responsive home page",
       "path": "/workspace/app/page.tsx",
-      "content": "export default function Home() {\\n  return <main className=\\"p-8\\"><h1>Hello World</h1></main>;\\n}"
+      "content": "export default function Home() {\\n  return (\\n    <main className=\\"min-h-screen p-4 sm:p-8 md:p-12\\">\\n      <div className=\\"max-w-4xl mx-auto\\">\\n        <h1 className=\\"text-3xl md:text-4xl font-bold text-gray-900 mb-4\\">\\n          Welcome to My App\\n        </h1>\\n        <p className=\\"text-lg text-gray-600\\">Get started by editing this page.</p>\\n      </div>\\n    </main>\\n  );\\n}"
     }
   ]
 }

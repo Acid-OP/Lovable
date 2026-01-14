@@ -7,7 +7,7 @@ import { logger } from "../utils/logger.js";
 import * as cache from "../utils/cache.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
 import { enhancePrompt, generatePlan } from "../planner/index.js";
-import { planValidator } from "../validation/index.js";
+import { planValidator, frontendValidator } from "../validation/index.js";
 import { classifyBuildErrors } from "../planner/errorClassifier.js";
 import { routeAndHandleErrors, applyFixes } from "../planner/errorRouter.js";
 import { parseErrorFiles } from "../planner/buildErrorParser.js";
@@ -97,8 +97,16 @@ export function createPromptWorker() {
           );
         }
 
+        // Validate UI quality
+        const uiValidation = frontendValidator.validate(plan);
+        logger.info("plan.ui_validated", {
+          jobId,
+          warnings: uiValidation.warnings,
+          suggestions: uiValidation.suggestions,
+        });
+
         validatedPlan = planValidation.plan!;
-        planWarnings = planValidation.warnings;
+        planWarnings = [...planValidation.warnings, ...uiValidation.warnings, ...uiValidation.suggestions];
       }
       // sandbox
       const sandbox = SandboxManager.getInstance();
