@@ -321,6 +321,9 @@ export function createPromptWorker() {
       // Wait a bit for dev server to fully start
       await new Promise(resolve => setTimeout(resolve, 5000));
 
+      let runtimeErrorDetected = false;
+      let runtimeErrorMessage = "";
+
       try {
         const healthCheckUrl = `http://localhost:${config.container.port}`;
         const response = await fetch(healthCheckUrl, {
@@ -330,6 +333,8 @@ export function createPromptWorker() {
         const html = await response.text();
 
         if (response.status !== 200) {
+          runtimeErrorDetected = true;
+          runtimeErrorMessage = `HTTP ${response.status}: ${response.statusText}`;
           logger.warn("sandbox.health_check_http_error", {
             jobId,
             status: response.status,
@@ -342,11 +347,18 @@ export function createPromptWorker() {
           const hasUnhandledError = /Unhandled Runtime Error/i.test(html);
 
           if (hasApplicationError || hasHydrationError || hasUnhandledError) {
+            runtimeErrorDetected = true;
+
+            // Extract error message from HTML for more context
+            const errorMatch = html.match(/Error: ([^\n<]+)/i) || html.match(/Unhandled Runtime Error[^\n]*\n([^\n<]+)/i);
+            runtimeErrorMessage = errorMatch?.[1] || "Runtime error detected in browser";
+
             logger.warn("sandbox.health_check_runtime_errors", {
               jobId,
               hasApplicationError,
               hasHydrationError,
               hasUnhandledError,
+              extractedError: runtimeErrorMessage,
             });
           } else {
             logger.info("sandbox.health_check_passed", {
@@ -357,11 +369,116 @@ export function createPromptWorker() {
           }
         }
       } catch (healthCheckError) {
+        runtimeErrorDetected = true;
+        runtimeErrorMessage = healthCheckError instanceof Error ? healthCheckError.message : String(healthCheckError);
         logger.error("sandbox.health_check_failed", {
           jobId,
-          error: healthCheckError instanceof Error ? healthCheckError.message : String(healthCheckError),
+          error: runtimeErrorMessage,
           message: "Dev server may not be fully started or unreachable",
         });
+      }
+
+      // If runtime errors detected, attempt one fix (extending the build fix loop by 1)
+      if (runtimeErrorDetected) {
+        logger.info("sandbox.runtime_error_fix_attempt", {
+          jobId,
+          runtimeError: runtimeErrorMessage,
+          message: "Runtime errors detected, attempting fix",
+        });
+
+        await SessionManager.update(jobId, {
+          currentStep: "Fixing runtime errors...",
+        });
+
+        // Create synthetic error for the LLM to fix
+        const runtimeErrorMap = new Map<string, string>();
+        runtimeErrorMap.set(
+          "Runtime Error",
+          `Application runtime error detected:\n${runtimeErrorMessage}\n\nCommon causes:\n- Missing 'use client' directive in components using hooks/events\n- Missing imports (especially for framer-motion, lucide-react)\n- Incorrect component structure (server/client mismatch)\n- Type errors not caught at build time`
+        );
+
+        // Use existing error classification and handling pipeline
+        const runtimeClassifiedErrors = classifyBuildErrors(runtimeErrorMap);
+        const runtimeHandlingResult = await routeAndHandleErrors(
+          containerId,
+          runtimeClassifiedErrors,
+          jobId
+        );
+
+        logger.info("sandbox.runtime_errors_handled", {
+          jobId,
+          success: runtimeHandlingResult.success,
+          llmFixed: runtimeHandlingResult.llmFixedErrors.length,
+          message: runtimeHandlingResult.message,
+        });
+
+        // Apply LLM-generated fixes if any
+        if (runtimeHandlingResult.fixes && runtimeHandlingResult.fixes.length > 0) {
+          await applyFixes(containerId, runtimeHandlingResult.fixes, jobId);
+
+          // Rebuild after runtime fixes
+          await SessionManager.update(jobId, {
+            currentStep: "Rebuilding after runtime fixes...",
+          });
+
+          const rebuildResult = await sandbox.runBuild(containerId);
+
+          if (!rebuildResult.success) {
+            logger.error("sandbox.rebuild_failed_after_runtime_fix", {
+              jobId,
+              errors: rebuildResult.errors.slice(0, 500),
+            });
+            throw new Error(`Rebuild failed after runtime fix: ${rebuildResult.errors.slice(0, 200)}`);
+          }
+
+          logger.info("sandbox.rebuild_success_after_runtime_fix", { jobId });
+
+          // Restart dev server (rebuild stops the old one)
+          await sandbox.startDevServer(containerId);
+          await new Promise(resolve => setTimeout(resolve, 5000));
+
+          // Re-run health check to verify fix worked
+          try {
+            const healthCheckUrl = `http://localhost:${config.container.port}`;
+            const recheckResponse = await fetch(healthCheckUrl, {
+              signal: AbortSignal.timeout(10000),
+            });
+
+            const recheckHtml = await recheckResponse.text();
+
+            const stillHasErrors =
+              recheckResponse.status !== 200 ||
+              /Application error/i.test(recheckHtml) ||
+              /Hydration failed/i.test(recheckHtml) ||
+              /Unhandled Runtime Error/i.test(recheckHtml);
+
+            if (stillHasErrors) {
+              logger.error("sandbox.runtime_errors_persist_after_fix", {
+                jobId,
+                status: recheckResponse.status,
+                message: "Runtime errors still present after fix attempt",
+              });
+              throw new Error(`Runtime errors persist after fix: ${runtimeErrorMessage}`);
+            } else {
+              logger.info("sandbox.runtime_fix_successful", {
+                jobId,
+                message: "Runtime errors resolved successfully",
+              });
+            }
+          } catch (recheckError) {
+            logger.error("sandbox.health_recheck_failed", {
+              jobId,
+              error: recheckError instanceof Error ? recheckError.message : String(recheckError),
+            });
+            throw new Error(`Health check failed after runtime fix: ${recheckError instanceof Error ? recheckError.message : String(recheckError)}`);
+          }
+        } else {
+          logger.error("sandbox.no_runtime_fixes_generated", {
+            jobId,
+            message: "LLM did not generate fixes for runtime errors",
+          });
+          throw new Error(`Runtime errors detected but could not generate fixes: ${runtimeErrorMessage}`);
+        }
       }
 
       if (!fromCache) {

@@ -323,9 +323,9 @@ export class PlanValidator {
 
       // Validate dynamic route syntax
       const dynamicRouteMatch = path.match(/\/\[([^\]]+)\]/);
-      if (dynamicRouteMatch) {
+      if (dynamicRouteMatch && dynamicRouteMatch[1]) {
         const paramName = dynamicRouteMatch[1];
-        if (paramName.includes(" ") || paramName.includes("-")) {
+        if (paramName && (paramName.includes(" ") || paramName.includes("-"))) {
           result.errors.push(
             `Step ${stepId}: Invalid dynamic route parameter "[${paramName}]" in "${path}" - use camelCase without spaces/hyphens (e.g., [userId] not [user-id])`
           );
@@ -335,13 +335,11 @@ export class PlanValidator {
 
       // Validate route groups
       const routeGroupMatch = path.match(/\/\(([^)]+)\)/);
-      if (routeGroupMatch) {
-        const groupName = routeGroupMatch[1];
-        if (groupName.includes(" ") || groupName.match(/[A-Z]/)) {
-          result.warnings.push(
-            `Step ${stepId}: Route group "(${groupName})" in "${path}" should use lowercase-kebab-case`
-          );
-        }
+      const groupName = routeGroupMatch?.[1];
+      if (groupName && (groupName.includes(" ") || groupName.match(/[A-Z]/))) {
+        result.warnings.push(
+          `Step ${stepId}: Route group "(${groupName})" in "${path}" should use lowercase-kebab-case`
+        );
       }
 
       // Check for proper page/layout file structure
@@ -375,9 +373,13 @@ export class PlanValidator {
     }));
 
     for (let i = 0; i < normalizedRoutes.length; i++) {
+      const routeI = normalizedRoutes[i];
+      if (!routeI) continue;
+
       for (let j = i + 1; j < normalizedRoutes.length; j++) {
-        if (normalizedRoutes[i].normalized === normalizedRoutes[j].normalized) {
-          conflicts.push(`${normalizedRoutes[i].original} vs ${normalizedRoutes[j].original}`);
+        const routeJ = normalizedRoutes[j];
+        if (routeJ && routeI.normalized === routeJ.normalized) {
+          conflicts.push(`${routeI.original} vs ${routeJ.original}`);
         }
       }
     }

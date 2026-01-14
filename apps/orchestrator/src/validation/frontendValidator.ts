@@ -132,9 +132,10 @@ export class FrontendValidator {
 
       // Check for proper component naming
       const exportMatch = content.match(/export\s+default\s+function\s+(\w+)/);
-      if (exportMatch) {
+      if (exportMatch?.[1]) {
         const componentName = exportMatch[1];
-        if (componentName[0] === componentName[0].toLowerCase()) {
+        const firstChar = componentName[0];
+        if (firstChar && firstChar === firstChar.toLowerCase()) {
           result.warnings.push(
             `${fileName}: Component name "${componentName}" should start with uppercase letter`
           );

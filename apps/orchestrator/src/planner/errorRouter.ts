@@ -231,8 +231,10 @@ export function prioritizeErrors(errors: ClassifiedError[]): ClassifiedError[] {
     [ErrorType.SYNTAX]: 3,      // Fix before type errors
     [ErrorType.IMPORT]: 4,      // Fix before type errors
     [ErrorType.TYPE]: 5,        // Fix after syntax/imports
-    [ErrorType.UNKNOWN]: 6,     // Fix last
-    [ErrorType.RUNTIME]: 7,     // Rare in builds
+    [ErrorType.HYDRATION]: 6,   // React hydration errors
+    [ErrorType.ROUTING]: 7,     // Next.js routing errors
+    [ErrorType.RUNTIME]: 8,     // Runtime errors
+    [ErrorType.UNKNOWN]: 9,     // Fix last
   };
 
   return [...errors].sort((a, b) => {
