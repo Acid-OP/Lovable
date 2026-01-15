@@ -11,6 +11,8 @@ import { planValidator, frontendValidator } from "../validation/index.js";
 import { classifyBuildErrors } from "../planner/errorClassifier.js";
 import { routeAndHandleErrors, applyFixes } from "../planner/errorRouter.js";
 import { parseErrorFiles } from "../planner/buildErrorParser.js";
+import { performHealthCheck } from "../planner/healthCheck.js";
+import { extractRoutesFromPlan } from "../planner/routeExtractor.js";
 import { config } from "../config.js";
 import os from "os";
 
@@ -128,7 +130,13 @@ export function createPromptWorker() {
         lastActivity: Date.now().toString(),
         previewUrl,
       });
-      
+
+      // Extract routes from plan for health check
+      const appFiles = validatedPlan.steps
+        .filter((s: any) => s.type === "file_write" && s.path?.endsWith(".tsx"))
+        .map((s: any) => s.path as string);
+      const routes = extractRoutesFromPlan(appFiles);
+
       const totalSteps = validatedPlan.steps.length;
       
       for (const step of validatedPlan.steps) {
@@ -195,11 +203,7 @@ export function createPromptWorker() {
             });
 
             try {
-              // Read generated files from sandbox
-              const appFiles = validatedPlan.steps
-                .filter((s: any) => s.type === "file_write" && s.path?.endsWith(".tsx"))
-                .map((s: any) => s.path as string);
-
+              // Read generated files from sandbox (using already extracted appFiles)
               const generatedPlan = {
                 summary: validatedPlan.summary,
                 estimatedTimeSeconds: validatedPlan.estimatedTimeSeconds,
@@ -318,65 +322,7 @@ export function createPromptWorker() {
         currentStep: "Verifying app health...",
       });
 
-      // Wait a bit for dev server to fully start
-      await new Promise(resolve => setTimeout(resolve, 5000));
-
-      let runtimeErrorDetected = false;
-      let runtimeErrorMessage = "";
-
-      try {
-        const healthCheckUrl = `http://localhost:${config.container.port}`;
-        const response = await fetch(healthCheckUrl, {
-          signal: AbortSignal.timeout(10000), // 10 second timeout
-        });
-
-        const html = await response.text();
-
-        if (response.status !== 200) {
-          runtimeErrorDetected = true;
-          runtimeErrorMessage = `HTTP ${response.status}: ${response.statusText}`;
-          logger.warn("sandbox.health_check_http_error", {
-            jobId,
-            status: response.status,
-            statusText: response.statusText,
-          });
-        } else {
-          // Check for common error patterns in HTML
-          const hasApplicationError = /Application error/i.test(html) || /Internal Server Error/i.test(html);
-          const hasHydrationError = /Hydration failed/i.test(html) || /Hydration error/i.test(html);
-          const hasUnhandledError = /Unhandled Runtime Error/i.test(html);
-
-          if (hasApplicationError || hasHydrationError || hasUnhandledError) {
-            runtimeErrorDetected = true;
-
-            // Extract error message from HTML for more context
-            const errorMatch = html.match(/Error: ([^\n<]+)/i) || html.match(/Unhandled Runtime Error[^\n]*\n([^\n<]+)/i);
-            runtimeErrorMessage = errorMatch?.[1] || "Runtime error detected in browser";
-
-            logger.warn("sandbox.health_check_runtime_errors", {
-              jobId,
-              hasApplicationError,
-              hasHydrationError,
-              hasUnhandledError,
-              extractedError: runtimeErrorMessage,
-            });
-          } else {
-            logger.info("sandbox.health_check_passed", {
-              jobId,
-              status: response.status,
-              message: "App is rendering successfully without errors",
-            });
-          }
-        }
-      } catch (healthCheckError) {
-        runtimeErrorDetected = true;
-        runtimeErrorMessage = healthCheckError instanceof Error ? healthCheckError.message : String(healthCheckError);
-        logger.error("sandbox.health_check_failed", {
-          jobId,
-          error: runtimeErrorMessage,
-          message: "Dev server may not be fully started or unreachable",
-        });
-      }
+      const { runtimeErrorDetected, runtimeErrorMessage } = await performHealthCheck(jobId, routes);
 
       // If runtime errors detected, attempt one fix (extending the build fix loop by 1)
       if (runtimeErrorDetected) {
