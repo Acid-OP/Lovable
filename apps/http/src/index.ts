@@ -8,7 +8,14 @@ import { config } from "./config.js";
 const app = express();
 const PORT = config.server.port;
 
-app.use(helmet());
+app.use((req, res, next) => {
+  // Skip helmet for subdomain requests (preview)
+  if (req.hostname !== 'localhost' && req.hostname.includes('.')) {
+    return next();
+  }
+  helmet()(req, res, next);
+});
+
 app.use(express.json());
 app.use(routes);
 
