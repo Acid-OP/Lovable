@@ -3,42 +3,32 @@ import { redis } from "@repo/redis";
 
 const PORT = parseInt(process.env.WS_PORT || "3002");
 const wss = new WebSocketServer({ port: PORT });
+
 const subscriber = redis.duplicate();
+const clientChannels = new Map<any, string>();
 
-wss.on("connection", (ws, req) => {
-  console.log("Client connected");
-  console.log("URL:", req.url);      
-  console.log("Headers:", req.headers);   
-
-  // Parse jobId from URL: ws://localhost:3002/?jobId=5
+wss.on("connection", async (ws, req) => {
   const url = new URL(req.url || "", `ws://localhost:${PORT}`);
   const jobId = url.searchParams.get("jobId");
-
-  console.log("JobId:", jobId);
 
   if (!jobId) {
     ws.close(1008, "Missing jobId");
     return;
   }
 
-  // Subscribe to Redis channel for this job
   const channel = `job:${jobId}`;
-  subscriber.subscribe(channel);
-  console.log(`Subscribed to ${channel}`);
+  await subscriber.subscribe(channel);
+  clientChannels.set(ws, channel);
 
   ws.on("close", () => {
-    console.log("Client disconnected");
+    clientChannels.delete(ws);
     subscriber.unsubscribe(channel);
   });
 });
 
-// Forward Redis messages to WebSocket clients
 subscriber.on("message", (channel: string, message: string) => {
-  console.log(`Redis [${channel}]:`, message);
-  
-  // Send to all connected clients (simple broadcast)
   wss.clients.forEach((client) => {
-    if (client.readyState === 1) { // WebSocket.OPEN
+    if (client.readyState === 1 && clientChannels.get(client) === channel) {
       client.send(message);
     }
   });
