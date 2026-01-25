@@ -1,4 +1,5 @@
 import * as IORedis from "ioredis";
+import { gracefulShutdown } from "./utils.js";
 
 const Redis = (IORedis as any).default || IORedis;
 
@@ -27,7 +28,6 @@ export const redis = new Redis({
         return true; 
       }
     }
-
     return false; 
   },
   commandTimeout: 5000, 
@@ -64,15 +64,5 @@ redis.on("end", () => {
   console.error("Redis: Connection ended. No more reconnection attempts.");
 });
 
-const gracefulShutdown = async () => {
-  console.log("Redis: Shutting down gracefully...");
-
-  try {
-    await redis.quit(); 
-    console.log("Redis: Disconnected successfully");
-  } catch (error) {
-    console.error("Redis: Error during shutdown:", error);
-  }
-};
 process.on("SIGTERM", gracefulShutdown);
 process.on("SIGINT", gracefulShutdown);
