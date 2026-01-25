@@ -5,16 +5,14 @@ import { config } from '../config.js';
 
 export const previewRouter = Router();
 
-// Proxy all preview traffic via subdomain (jobid.localhost:3001)
 previewRouter.use('/', async (req, res, next) => {
-  const hostname = req.hostname;  // e.g., "abc123.localhost"
-  const jobId = hostname.split('.')[0];  // e.g., "abc123"
+  const hostname = req.hostname;  
+  const jobId = hostname.split('.')[0];  
   
   console.log('hostname:', hostname);
   console.log('jobId:', jobId);
   console.log('path:', req.path);
 
-  // Skip if no subdomain (just "localhost" - let other routes handle)
   if (hostname === 'localhost' || jobId === 'localhost') {
     return next('route');
   }
@@ -29,7 +27,6 @@ previewRouter.use('/', async (req, res, next) => {
   
   next();
 }, createProxyMiddleware({
-  target: config.container.baseUrl,  // http://localhost:3003
+  target: config.container.baseUrl,  
   changeOrigin: true,
-  // No pathRewrite needed - path is already clean with subdomain approach
 }));

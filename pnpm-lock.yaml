@@ -149,13 +149,13 @@ importers:
 
   apps/websocket:
     dependencies:
+      '@repo/redis':
+        specifier: workspace:*
+        version: link:../../packages/redis
       ws:
         specifier: ^8.17.0
         version: 8.19.0
     devDependencies:
-      '@repo/redis':
-        specifier: workspace:*
-        version: link:../../packages/redis
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
