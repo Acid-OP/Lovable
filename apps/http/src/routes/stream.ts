@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { SSEManager } from "../services/SSEManager.js";
+import { logger } from "../utils/logger.js";
 
 export const streamRouter = Router();
 
@@ -25,7 +26,7 @@ streamRouter.get("/api/v1/stream/:jobId", async (req: Request, res: Response) =>
   res.write(`data: ${JSON.stringify({ status: "connected", jobId })}\n\n`);
 
   activeConnections++;
-  console.log(`Active connections: ${activeConnections}`);
+  logger.info(`Active connections: ${activeConnections}`);
 
   try {
     await SSEManager.addClient(jobId, res);
@@ -42,11 +43,11 @@ streamRouter.get("/api/v1/stream/:jobId", async (req: Request, res: Response) =>
       clearInterval(heartbeat);
       await SSEManager.removeClient(jobId, res);
       activeConnections--;
-      console.log(`Client disconnected. Active connections: ${activeConnections}`);
+      logger.info(`Client disconnected. Active connections: ${activeConnections}`);
       res.end();
     });
   } catch (error) {
-    console.error("SSE stream error:", error);
+    logger.error("SSE stream error:", error);
     activeConnections--;
     res.end();
   }

@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { redis } from '@repo/redis';
+import { logger } from '../utils/logger.js';
 
 type RedisClient = typeof redis;
 
@@ -31,14 +32,14 @@ export class SSEManagerClass {
     if (!this.subscribers.has(channel)) {
       await this.createSubscriber(channel);
     }
-    console.log(`Client added to ${channel}. Total clients: ${this.clients.get(channel)!.size}`);
+    logger.info(`Client added to ${channel}. Total clients: ${this.clients.get(channel)!.size}`);
   }
 
   private async createSubscriber(channel: string): Promise<void> {
     const subscriber = redis.duplicate();
 
     await subscriber.subscribe(channel);
-    console.log(`Subscribed to ${channel}`);
+    logger.info(`Subscribed to ${channel}`);
 
     subscriber.on('message', (ch: string, message: string) => {
       if (ch === channel) {
@@ -47,7 +48,7 @@ export class SSEManagerClass {
     });
 
     subscriber.on('error', (err: Error) => {
-      console.error(`Subscriber error for ${channel}:`, err.message);
+      logger.error(`Subscriber error for ${channel}:`, err.message);
     });
 
     this.subscribers.set(channel, subscriber);
@@ -60,7 +61,7 @@ export class SSEManagerClass {
     if (!clientSet) return;
 
     clientSet.delete(res);
-    console.log(`Client removed from ${channel}. Remaining: ${clientSet.size}`);
+    logger.info(`Client removed from ${channel}. Remaining: ${clientSet.size}`);
 
     // If no more clients, unsubscribe and cleanup
     if (clientSet.size === 0) {
@@ -79,7 +80,7 @@ export class SSEManagerClass {
       try {
         res.write(`data: ${message}\n\n`);
       } catch (error) {
-        console.error(`Failed to write to client on ${channel}:`, error);
+        logger.error(`Failed to write to client on ${channel}:`, error);
         deadClients.push(res);
       }
     });
@@ -90,7 +91,7 @@ export class SSEManagerClass {
     });
 
     if (deadClients.length > 0) {
-      console.log(`Removed ${deadClients.length} dead clients from ${channel}`);
+      logger.info(`Removed ${deadClients.length} dead clients from ${channel}`);
     }
   }
 
@@ -101,11 +102,11 @@ export class SSEManagerClass {
     await subscriber.unsubscribe(channel);
     await subscriber.quit();
     this.subscribers.delete(channel);
-    console.log(`Unsubscribed from ${channel}`);
+    logger.info(`Unsubscribed from ${channel}`);
   }
 
   public async shutdown(): Promise<void> {
-    console.log('Shutting down SSE Manager...');
+    logger.info('Shutting down SSE Manager...');
 
     // Notify all clients
     for (const clientSet of this.clients.values()) {
@@ -114,7 +115,7 @@ export class SSEManagerClass {
           res.write(`data: ${JSON.stringify({ status: 'server_shutdown' })}\n\n`);
           res.end();
         } catch (err) {
-          console.error('Error closing client:', err);
+          logger.error('Error closing client:', err);
         }
       });
     }
@@ -127,7 +128,7 @@ export class SSEManagerClass {
 
     this.clients.clear();
     this.subscribers.clear();
-    console.log('SSE Manager shutdown complete');
+    logger.info('SSE Manager shutdown complete');
   }
 }
 

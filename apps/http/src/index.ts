@@ -4,6 +4,7 @@ import helmet from "helmet";
 import routes from "./routes/index.js";
 import { config } from "./config.js";
 import { SSEManager } from "./services/SSEManager.js";
+import { logger } from "./utils/logger.js";
 
 const app = express();
 const PORT = config.server.port;
@@ -19,14 +20,14 @@ app.use(express.json());
 app.use(routes);
 
 const server = app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  logger.info(`Server running on http://localhost:${PORT}`);
 });
 
 const gracefulShutdown = async () => {
-  console.log('Shutting down HTTP server...');
+  logger.info('Shutting down HTTP server...');
 
   server.close(() => {
-    console.log('HTTP server closed');
+    logger.info('HTTP server closed');
   });
 
   await SSEManager.shutdown();
