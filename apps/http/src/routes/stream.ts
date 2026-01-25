@@ -1,7 +1,10 @@
 import { Router, Request, Response } from "express";
-import { redis } from "@repo/redis";
+import { SSEManager } from "../services/SSEManager.js";
 
 export const streamRouter = Router();
+
+let activeConnections = 0;
+const MAX_CONNECTIONS = 1000;
 
 streamRouter.get("/api/v1/stream/:jobId", async (req: Request, res: Response) => {
   const { jobId } = req.params;
@@ -10,36 +13,41 @@ streamRouter.get("/api/v1/stream/:jobId", async (req: Request, res: Response) =>
     return res.status(400).json({ error: "jobId is required" });
   }
 
-  // SSE headers
+  if (activeConnections >= MAX_CONNECTIONS) {
+    return res.status(503).json({ error: "Too many connections, try again later" });
+  }
+
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
+  res.setHeader("X-Accel-Buffering", "no");
 
   res.write(`data: ${JSON.stringify({ status: "connected", jobId })}\n\n`);
 
-  const subscriber = redis.duplicate();
-  const channel = `job:${jobId}`;
-  try {
-    await subscriber.subscribe(channel);
-    console.log(`Client subscribed to channel: ${channel}`);
+  activeConnections++;
+  console.log(`Active connections: ${activeConnections}`);
 
-    subscriber.on("message", (ch: string, message: string) => {
-      if (ch === channel) {
-        res.write(`data: ${message}\n\n`);
+  try {
+    await SSEManager.addClient(jobId, res);
+
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(`:heartbeat\n\n`);
+      } catch (err) {
+        clearInterval(heartbeat);
       }
-    });
+    }, 30000);
 
     req.on("close", async () => {
-      console.log(`Client disconnected from channel: ${channel}`);
-      await subscriber.unsubscribe(channel);
-      await subscriber.quit();
+      clearInterval(heartbeat);
+      await SSEManager.removeClient(jobId, res);
+      activeConnections--;
+      console.log(`Client disconnected. Active connections: ${activeConnections}`);
       res.end();
     });
   } catch (error) {
     console.error("SSE stream error:", error);
-    await subscriber.unsubscribe(channel);
-    await subscriber.quit();
+    activeConnections--;
     res.end();
   }
 });
