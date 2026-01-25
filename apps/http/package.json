@@ -10,6 +10,7 @@
   "dependencies": {
     "@repo/db": "workspace:*",
     "@repo/queue": "workspace:*",
+    "@repo/redis": "workspace:*",
     "@repo/session": "workspace:*",
     "dotenv": "^16.4.5",
     "express": "^5.2.1",
