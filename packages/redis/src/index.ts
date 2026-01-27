@@ -7,7 +7,8 @@ export const redis = new Redis({
   host: process.env.REDIS_HOST || "localhost",
   port: parseInt(process.env.REDIS_PORT || "6379"),
   connectTimeout: 10000, 
-  keepAlive: 30000, 
+  keepAlive: 30000,
+  maxRetriesPerRequest: null, 
 
   retryStrategy(times: number) {
     if (times > 10) {
@@ -25,12 +26,11 @@ export const redis = new Redis({
     for (const targetError of targetErrors) {
       if (err.message.includes(targetError)) {
         console.log(`Redis: Reconnecting due to error: ${targetError}`);
-        return true; 
+        return true;
       }
     }
-    return false; 
+    return false;
   },
-  commandTimeout: 5000, 
   lazyConnect: false,
   enableAutoPipelining: true,
 

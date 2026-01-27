@@ -23,25 +23,30 @@ export class QueueManager {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 
-  async pushToQueue(prompt: string) {
+  async pushToQueue(data: string | { prompt: string; previousJobId?: string }) {
     const clientId = this.createId();
+
+    // Support both string and object input for backwards compatibility
+    const promptData = typeof data === "string" ? { prompt: data } : data;
+
     const job = await this.queue.add(
       JOB_NAMES.PROCESS_PROMPT,
       {
         clientId,
-        prompt,
+        prompt: promptData.prompt,
+        previousJobId: promptData.previousJobId,
         timestamp: Date.now(),
       },
       {
-        // Retry failed jobs 
+        // Retry failed jobs
         attempts: 2,
         backoff: {
           type: "exponential",
-          delay: 3000, 
+          delay: 3000,
         },
         removeOnComplete: {
-          age: 3600, 
-          count: 100, 
+          age: 3600,
+          count: 100,
         },
         removeOnFail: {
           age: 86400,

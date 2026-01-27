@@ -14,6 +14,8 @@ import { parseErrorFiles } from "../planner/buildErrorParser.js";
 import { performHealthCheck } from "../planner/healthCheck.js";
 import { extractRoutesFromPlan } from "../planner/routeExtractor.js";
 import { config } from "../config.js";
+import { classifyPrompt } from "../classification/promptClassifier.js";
+import { getContextFromJob } from "../classification/conversationContext.js";
 import os from "os";
 
 const WORKER_CONCURRENCY = 3;
@@ -29,8 +31,41 @@ export function createPromptWorker() {
     QUEUE_NAMES.PROMPT_QUEUE,
     async (job: Job) => {
       const promptText = job.data?.prompt;
+      const previousJobId = job.data?.previousJobId;
       const jobId = job.id as string;
-      
+
+      // Classify prompt if there's a previous job
+      let promptType: "new" | "continuation" = "new";
+
+      if (previousJobId) {
+        const context = await getContextFromJob(previousJobId);
+
+        if (context.hasPreviousJob) {
+          const classification = await classifyPrompt(
+            promptText,
+            context.previousPrompt,
+            context.previousProjectSummary
+          );
+
+          promptType = classification.type;
+
+          logger.info("prompt.classified", {
+            jobId,
+            type: classification.type,
+            reasoning: classification.reasoning,
+            confidence: classification.confidence,
+            previousJobId,
+          });
+        }
+      }
+
+      // Store prompt and classification
+      await SessionManager.update(jobId, {
+        prompt: promptText,
+        previousJobId,
+        promptType,
+      });
+
       // Sanitize
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,

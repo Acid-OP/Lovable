@@ -23,4 +23,10 @@ export interface SessionData {
   containerId?: string;
   lastActivity?: string;
   previewUrl?: string;
+  // Conversation tracking
+  prompt?: string;
+  previousJobId?: string; 
+  projectId?: string; 
+  promptType?: "new" | "continuation";
+  projectSummary?: string; 
 }

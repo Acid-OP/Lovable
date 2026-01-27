@@ -8,11 +8,6 @@ export const previewRouter = Router();
 previewRouter.use('/', async (req, res, next) => {
   const hostname = req.hostname;  
   const jobId = hostname.split('.')[0];  
-  
-  console.log('hostname:', hostname);
-  console.log('jobId:', jobId);
-  console.log('path:', req.path);
-
   if (hostname === 'localhost' || jobId === 'localhost') {
     return next('route');
   }
