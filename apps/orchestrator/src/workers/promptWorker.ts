@@ -6,7 +6,7 @@ import { SandboxManager } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
 import * as cache from "../utils/cache.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
-import { enhancePrompt, generatePlan } from "../planner/index.js";
+import { enhancePrompt, generatePlan, generateIncrementalPlan } from "../planner/index.js";
 import { planValidator, frontendValidator } from "../validation/index.js";
 import { classifyBuildErrors } from "../planner/errorClassifier.js";
 import { routeAndHandleErrors, applyFixes } from "../planner/errorRouter.js";
@@ -75,17 +75,52 @@ export function createPromptWorker() {
       if (!validation.isValid) {
         throw new Error(validation.rejectionReason || "Prompt failed validation");
       }
-      // caching
-      const cacheKey = cache.buildKey(cache.CACHE_PREFIX.PLAN, validation.sanitizedPrompt);
-      const cachedData = await cache.get<{ plan: any; enhancedPrompt: string }>(cacheKey);
 
+      // Container setup - moved before plan generation for continuation prompts
+      const sandbox = SandboxManager.getInstance();
+      let containerId: string | undefined;
+      const previewUrl = `${config.api.baseUrl}/preview/${jobId}`;
+
+      // For continuation prompts, get container first (needed for incremental plan)
+      if (promptType === "continuation") {
+        logger.info("sandbox.continuation", { jobId, previousJobId });
+
+        const previousSession = await SessionManager.get(previousJobId!);
+
+        if (!previousSession?.containerId) {
+          throw new Error(`Cannot continue: previous job ${previousJobId} has no container`);
+        }
+
+        containerId = previousSession.containerId;
+
+        // Verify container is still alive
+        try {
+          await sandbox.exec(containerId, "echo 'container alive'");
+          logger.info("sandbox.reusing", { jobId, containerId, previousJobId });
+        } catch (error) {
+          throw new Error(`Cannot continue: container ${containerId} no longer exists. Please start a new project.`);
+        }
+
+        // Update lastActivity to keep container alive
+        await SessionManager.update(previousJobId!, {
+          lastActivity: Date.now().toString(),
+        });
+      }
+
+      // Plan generation - branching based on prompt type
       let validatedPlan: any;
       let enhancedPrompt: string;
       let fromCache = false;
       let planWarnings: string[] = [];
 
+      // Skip cache for continuation prompts (each has unique context)
+      const cacheKey = promptType === "new"
+        ? cache.buildKey(cache.CACHE_PREFIX.PLAN, validation.sanitizedPrompt)
+        : null;
+      const cachedData = cacheKey ? await cache.get<{ plan: any; enhancedPrompt: string }>(cacheKey) : null;
+
       if (cachedData) {
-        // Cached
+        // Cached (only for new prompts)
         logger.info("plan.cache.hit", { jobId, cacheKey });
         await SessionManager.update(jobId, {
           status: SESSION_STATUS.PROCESSING,
@@ -96,21 +131,47 @@ export function createPromptWorker() {
         enhancedPrompt = cachedData.enhancedPrompt;
         fromCache = true;
       } else {
-        logger.info("plan.cache.miss", { jobId, cacheKey });
+        logger.info("plan.cache.miss", { jobId, cacheKey: cacheKey || "N/A (continuation)" });
 
-        // Enhance
-        await SessionManager.update(jobId, {
-          status: SESSION_STATUS.PROCESSING,
-          currentStep: "Enhancing prompt",
-        });
-        enhancedPrompt = await enhancePrompt(validation.sanitizedPrompt);
+        let plan: any;
 
-        // Generate plan
-        await SessionManager.update(jobId, {
-          status: SESSION_STATUS.PROCESSING,
-          currentStep: "Generating plan",
-        });
-        const plan = await generatePlan(enhancedPrompt);
+        if (promptType === "new") {
+          // NEW PROJECT: Full plan generation
+          await SessionManager.update(jobId, {
+            status: SESSION_STATUS.PROCESSING,
+            currentStep: "Enhancing prompt",
+          });
+          enhancedPrompt = await enhancePrompt(validation.sanitizedPrompt);
+
+          await SessionManager.update(jobId, {
+            status: SESSION_STATUS.PROCESSING,
+            currentStep: "Generating plan",
+          });
+          plan = await generatePlan(enhancedPrompt);
+
+        } else {
+          // CONTINUATION: Incremental plan generation
+          await SessionManager.update(jobId, {
+            status: SESSION_STATUS.PROCESSING,
+            currentStep: "Analyzing existing code",
+          });
+
+          const context = await getContextFromJob(previousJobId!);
+
+          await SessionManager.update(jobId, {
+            status: SESSION_STATUS.PROCESSING,
+            currentStep: "Generating incremental plan",
+          });
+
+          plan = await generateIncrementalPlan(
+            promptText,
+            context.previousPrompt || "",
+            containerId!,
+            context.previousProjectSummary
+          );
+
+          enhancedPrompt = promptText; // No enhancement for continuation
+        }
 
         // Validate plan
         await SessionManager.update(jobId, {
@@ -145,21 +206,27 @@ export function createPromptWorker() {
         validatedPlan = planValidation.plan!;
         planWarnings = [...planValidation.warnings, ...uiValidation.warnings, ...uiValidation.suggestions];
       }
-      // sandbox
-      const sandbox = SandboxManager.getInstance();
-      
-      // Cleanup old container 
-      await sandbox.cleanupOldContainers();
-      
-      logger.info("sandbox.creating", { jobId });
-      const containerId = await sandbox.createContainer(jobId);
-      logger.info("sandbox.created", { jobId, containerId });
-      
-      await sandbox.startContainer(containerId);
-      logger.info("sandbox.started", { jobId, containerId });
-      
+
+      // Container creation for new prompts only (continuation already has container)
+      if (promptType === "new") {
+        logger.info("sandbox.new_project", { jobId });
+
+        await sandbox.cleanupOldContainers();
+
+        logger.info("sandbox.creating", { jobId });
+        containerId = await sandbox.createContainer(jobId);
+        logger.info("sandbox.created", { jobId, containerId });
+
+        await sandbox.startContainer(containerId);
+        logger.info("sandbox.started", { jobId, containerId });
+      }
+
+      // Ensure containerId is assigned
+      if (!containerId) {
+        throw new Error("Container ID not assigned - this should never happen");
+      }
+
       // Store container metadata in session
-      const previewUrl = `${config.api.baseUrl}/preview/${jobId}`;
       await SessionManager.update(jobId, {
         containerId,
         lastActivity: Date.now().toString(),
@@ -462,7 +529,7 @@ export function createPromptWorker() {
         }
       }
 
-      if (!fromCache) {
+      if (!fromCache && cacheKey) {
         await cache.set(
           cacheKey,
           { plan: validatedPlan, enhancedPrompt },

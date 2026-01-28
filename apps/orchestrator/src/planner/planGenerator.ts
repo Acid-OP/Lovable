@@ -177,3 +177,107 @@ export async function generatePlan(enhancedPrompt: string): Promise<Plan> {
   const plan = await givePromptToLLM(fullPrompt, PlanSchema);
   return plan as Plan;
 }
+
+const INCREMENTAL_PLAN_SYSTEM_PROMPT = `You are an expert software architect modifying an EXISTING Next.js application.
+
+CRITICAL RULES:
+1. You are modifying an EXISTING project - NOT creating from scratch
+2. Return ONLY the files that need to be CHANGED or ADDED
+3. DO NOT regenerate config files unless specifically needed (next.config.js, tsconfig.json, tailwind.config.ts, postcss.config.mjs)
+4. DO NOT regenerate layout files unless the user specifically requests layout changes
+5. DO NOT regenerate globals.css unless styling system changes
+6. Focus on MINIMAL changes to implement the requested feature
+7. Use the EXISTING code patterns and structure shown in the codebase
+8. Maintain consistency with existing code style and conventions
+9. All file paths must start with /workspace/
+10. Maximum 15 steps per plan (should be much fewer for small changes)
+
+UI QUALITY REQUIREMENTS (maintain existing standards):
+11. Keep the existing responsive design patterns
+12. Maintain existing semantic HTML structure
+13. Preserve accessibility attributes
+14. Follow existing styling conventions
+15. Use existing component patterns
+16. Maintain TypeScript typing standards
+
+PRE-INSTALLED PACKAGES (already available):
+- next@14.2.3, react@18, react-dom@18
+- tailwindcss@3, autoprefixer, postcss
+- typescript@5, @types/react, @types/node
+- lucide-react, clsx, tailwind-merge
+- framer-motion, zustand, zod, date-fns
+
+DO NOT install any new packages.
+
+STEP TYPES:
+- "file_write": Create or overwrite a file (USE THIS FOR EVERYTHING)
+- "file_delete": Delete a file (use sparingly)
+
+RESPONSE FORMAT:
+Return ONLY valid JSON matching this structure:
+{
+  "summary": "Brief description of the modification",
+  "estimatedTimeSeconds": 10,
+  "steps": [
+    {
+      "id": 1,
+      "type": "file_write",
+      "description": "Update Counter component to add reset button",
+      "path": "/workspace/app/components/Counter.tsx",
+      "content": "...complete updated file content..."
+    }
+  ]
+}
+
+IMPORTANT:
+- Return ONLY files that are being modified or added
+- Include complete file content (not diffs or patches)
+- Ensure modified files integrate properly with existing code
+- Verify imports/exports match existing patterns
+- Use the same code style as the existing codebase
+- DO NOT rewrite files that don't need changes`;
+
+export async function generateIncrementalPlan(
+  prompt: string,
+  previousPrompt: string,
+  containerId: string,
+  projectSummary?: string
+): Promise<Plan> {
+  const { SandboxManager } = await import("@repo/sandbox");
+  const sandbox = SandboxManager.getInstance();
+
+  // Read all TypeScript/TSX files from container
+  const findCommand = 'find /workspace -type f \\( -name "*.ts" -o -name "*.tsx" \\) ! -path "*/node_modules/*" ! -path "*/.next/*"';
+  const fileListResult = await sandbox.exec(containerId, findCommand);
+  const filePaths = fileListResult.output.trim().split('\n').filter(Boolean);
+
+  // Read all file contents
+  let codebaseContext = '';
+  for (const filePath of filePaths) {
+    try {
+      const content = await sandbox.readFile(containerId, filePath);
+      codebaseContext += `\n========================================\n`;
+      codebaseContext += `FILE: ${filePath}\n`;
+      codebaseContext += `========================================\n`;
+      codebaseContext += `${content}\n`;
+    } catch (error) {
+      // Skip files that can't be read
+      continue;
+    }
+  }
+
+  const fullPrompt = `${INCREMENTAL_PLAN_SYSTEM_PROMPT}
+
+EXISTING CODEBASE:
+${codebaseContext}
+
+${projectSummary ? `\nPREVIOUS PROJECT SUMMARY:\n${projectSummary}\n` : ''}
+
+PREVIOUS USER REQUEST: "${previousPrompt}"
+CURRENT USER REQUEST: "${prompt}"
+
+Generate an incremental plan with ONLY the files that need to be changed or added:`;
+
+  const plan = await givePromptToLLM(fullPrompt, PlanSchema);
+  return plan as Plan;
+}
