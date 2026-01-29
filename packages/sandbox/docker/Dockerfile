@@ -14,5 +14,9 @@ COPY package.json ./
 
 RUN pnpm install
 
+# Copy shadcn components into the image
+COPY components /workspace/components
+COPY lib /workspace/lib
+
 CMD ["tail", "-f", "/dev/null"]
 

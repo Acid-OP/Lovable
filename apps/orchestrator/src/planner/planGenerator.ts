@@ -135,13 +135,115 @@ PRE-INSTALLED PACKAGES (already available, do not install):
 - typescript@5, @types/react, @types/node
 - lucide-react, clsx, tailwind-merge
 - framer-motion, zustand, zod, date-fns
+- @radix-ui packages (dialog, select, separator, slot)
+- class-variance-authority
 
-CRITICAL: DO NOT use any packages outside this list. This includes:
-- NO @radix-ui packages
-- NO class-variance-authority
-- NO shadcn/ui components
-- NO other third-party UI libraries
-- Build all UI components using ONLY Tailwind CSS classes and native HTML elements
+AVAILABLE UI COMPONENTS (use these instead of building from scratch):
+
+All components are pre-installed in /workspace/components/ui/
+Import them using: import { ComponentName } from '@/components/ui/component-name'
+
+**Button** (@/components/ui/button):
+<Button variant="default|destructive|outline|secondary|ghost|link" size="default|sm|lg|icon">
+  Click Me
+</Button>
+
+**Card** (@/components/ui/card):
+<Card>
+  <CardHeader>
+    <CardTitle>Card Title</CardTitle>
+    <CardDescription>Card description text</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <p>Main card content goes here</p>
+  </CardContent>
+  <CardFooter>
+    <Button>Action</Button>
+  </CardFooter>
+</Card>
+
+**Input** (@/components/ui/input):
+<Input type="text|email|password|number" placeholder="Enter text..." />
+
+**Textarea** (@/components/ui/textarea):
+<Textarea placeholder="Enter longer text..." rows={4} />
+
+**Select** (@/components/ui/select):
+<Select>
+  <SelectTrigger>
+    <SelectValue placeholder="Select an option" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="option1">Option 1</SelectItem>
+    <SelectItem value="option2">Option 2</SelectItem>
+    <SelectItem value="option3">Option 3</SelectItem>
+  </SelectContent>
+</Select>
+
+**Dialog** (@/components/ui/dialog):
+<Dialog>
+  <DialogTrigger asChild>
+    <Button>Open Modal</Button>
+  </DialogTrigger>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Dialog Title</DialogTitle>
+      <DialogDescription>Dialog description goes here</DialogDescription>
+    </DialogHeader>
+    <div>Dialog content</div>
+    <DialogFooter>
+      <Button>Save</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+**Badge** (@/components/ui/badge):
+<Badge variant="default|secondary|destructive|outline">Badge Text</Badge>
+
+**Separator** (@/components/ui/separator):
+<Separator /> (for horizontal) or <Separator orientation="vertical" /> (for vertical)
+
+USAGE RULES FOR COMPONENTS:
+1. ALWAYS prefer these components over building custom ones with raw HTML
+2. Import from '@/components/ui/[component-name]' (e.g., '@/components/ui/button')
+3. Use the correct variant and size props as shown above
+4. Follow composition patterns (Dialog needs Trigger + Content, Card needs Header + Content)
+5. These components already have proper styling - do NOT add conflicting Tailwind classes
+6. For forms, use Input/Textarea components instead of raw <input>/<textarea>
+7. For buttons, use Button component instead of raw <button>
+8. For modals/popups, use Dialog component
+9. Components include built-in accessibility (aria labels, keyboard navigation)
+10. Components support dark mode automatically with dark: variants
+
+EXAMPLE USAGE:
+
+Good (uses shadcn components):
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
+<Card>
+  <CardHeader>
+    <CardTitle>Sign Up</CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    <Input type="email" placeholder="Email" />
+    <Input type="password" placeholder="Password" />
+    <Button className="w-full">Create Account</Button>
+  </CardContent>
+</Card>
+
+Bad (builds from scratch):
+<div className="bg-white rounded-lg shadow p-6">
+  <h3 className="text-xl font-bold">Sign Up</h3>
+  <div className="space-y-4">
+    <input type="email" className="w-full px-4 py-2..." />
+    <input type="password" className="w-full px-4 py-2..." />
+    <button className="w-full px-4 py-2 bg-blue-600...">Create Account</button>
+  </div>
+</div>
+
+DO NOT install any packages - everything is pre-installed in the Docker image.
 
 STEP TYPES:
 - "file_write": Create or overwrite a file (USE THIS FOR EVERYTHING)
@@ -294,6 +396,15 @@ PRE-INSTALLED PACKAGES (already available):
 - typescript@5, @types/react, @types/node
 - lucide-react, clsx, tailwind-merge
 - framer-motion, zustand, zod, date-fns
+- @radix-ui packages (dialog, select, separator, slot)
+- class-variance-authority
+
+AVAILABLE SHADCN COMPONENTS (use when adding new UI):
+Import from '@/components/ui/[component-name]'
+- Button, Card, Input, Textarea, Select, Dialog, Badge, Separator
+- These are pre-built, accessible components with proper styling
+- Use these instead of building from scratch when adding new features
+- Example: import { Button } from '@/components/ui/button';
 
 DO NOT install any new packages.
 
