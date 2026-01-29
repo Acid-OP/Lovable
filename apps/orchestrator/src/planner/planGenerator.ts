@@ -267,16 +267,12 @@ export async function generateIncrementalPlan(
   }
 
   const fullPrompt = `${INCREMENTAL_PLAN_SYSTEM_PROMPT}
-
-EXISTING CODEBASE:
-${codebaseContext}
-
-${projectSummary ? `\nPREVIOUS PROJECT SUMMARY:\n${projectSummary}\n` : ''}
-
-PREVIOUS USER REQUEST: "${previousPrompt}"
-CURRENT USER REQUEST: "${prompt}"
-
-Generate an incremental plan with ONLY the files that need to be changed or added:`;
+  EXISTING CODEBASE:
+  ${codebaseContext}
+  ${projectSummary ? `\nPREVIOUS PROJECT SUMMARY:\n${projectSummary}\n` : ''}
+  PREVIOUS USER REQUEST: "${previousPrompt}"
+  CURRENT USER REQUEST: "${prompt}"
+  Generate an incremental plan with ONLY the files that need to be changed or added:`;
 
   const plan = await givePromptToLLM(fullPrompt, PlanSchema);
   return plan as Plan;
