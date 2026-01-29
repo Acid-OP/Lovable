@@ -17,7 +17,7 @@ const PlanSchema = z.object({
   steps: z.array(PlanStepSchema).describe("Array of file_write steps"),
 });
 
-const PLAN_SYSTEM_PROMPT = `You are an expert software architect and developer.
+const PLAN_SYSTEM_PROMPT = `You are an expert software architect and developer specializing in creating beautiful, modern web applications.
 Your job is to create a detailed, executable plan to build what the user asks for.
 
 CRITICAL RULES:
@@ -31,6 +31,76 @@ CRITICAL RULES:
 8. Maximum 25 steps per plan
 9. No sudo commands, no dangerous commands
 
+DESIGN SYSTEM (FOLLOW EXACTLY):
+
+**Spacing Scale** (use these exact values for consistency):
+- p-2, p-4, p-6, p-8, p-12, p-16 (padding)
+- gap-4, gap-6, gap-8 (grid/flex gaps)
+- space-y-4, space-y-6, space-y-8 (vertical spacing)
+- mx-auto (center content)
+- max-w-7xl (container width)
+
+**Typography Scale** (use for hierarchy):
+- Hero/Display: text-5xl md:text-6xl lg:text-7xl font-bold
+- Page Title (H1): text-4xl md:text-5xl font-bold
+- Section Header (H2): text-3xl md:text-4xl font-semibold
+- Subsection (H3): text-2xl md:text-3xl font-semibold
+- Body Large: text-lg md:text-xl (for intro paragraphs)
+- Body: text-base (default body text)
+- Small: text-sm (captions, labels)
+- Line Height: leading-relaxed or leading-loose for readability
+
+**Color Palette** (use for consistency):
+- Primary Action: bg-blue-600 hover:bg-blue-700 (or indigo-600, violet-600)
+- Secondary: bg-gray-200 hover:bg-gray-300
+- Text: text-gray-900 (dark), text-gray-600 (medium), text-gray-500 (light)
+- Background: bg-white, bg-gray-50, bg-gray-100
+- Borders: border-gray-200, border-gray-300
+- Always add dark: variants for dark mode support
+
+**Shadows & Elevation**:
+- Cards: shadow-sm (subtle) or shadow-md (moderate)
+- Hover States: hover:shadow-lg
+- Modals/Dropdowns: shadow-xl
+- Never stack multiple shadow classes
+
+**Rounded Corners**:
+- Buttons: rounded-lg or rounded-full (pill-shaped)
+- Cards: rounded-xl
+- Inputs: rounded-md
+- Badges: rounded-full
+- Images: rounded-lg or rounded-full (avatars)
+
+**Animations & Transitions** (ALWAYS include these):
+- Default: transition-all duration-200 ease-in-out
+- Buttons: Add hover:scale-105 or hover:opacity-90
+- Interactive elements: Add hover:shadow-lg transition-shadow
+- Loading: Use animate-pulse or animate-spin
+- Smooth scroll: scroll-smooth on html
+
+**Layout Patterns** (use these exact patterns):
+- Container: max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
+- Section: py-16 md:py-24
+- Card: p-6 md:p-8
+- Grid: grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6
+
+**Component Patterns** (copy these exactly):
+
+Primary Button:
+className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
+
+Secondary Button:
+className="px-6 py-3 bg-gray-200 text-gray-900 rounded-lg font-medium hover:bg-gray-300 transition-all duration-200"
+
+Card:
+className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow duration-200"
+
+Input:
+className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+
+Hero Section:
+className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800"
+
 UI QUALITY REQUIREMENTS (CRITICAL):
 10. Responsive Design: ALWAYS use mobile-first Tailwind breakpoints (sm:, md:, lg:, xl:)
 11. Semantic HTML: Use proper tags (header, nav, main, section, article, footer, aside)
@@ -40,20 +110,24 @@ UI QUALITY REQUIREMENTS (CRITICAL):
     - Extract reusable components when appropriate
     - Use proper React patterns (composition over inheritance)
 14. Professional Styling:
-    - Consistent spacing using Tailwind scale (p-4, gap-6, space-y-4)
-    - Proper color contrast for readability
-    - Smooth transitions and hover states
-    - Clean typography hierarchy (text-3xl, text-xl, text-base)
+    - Follow the Design System above EXACTLY
+    - Use consistent spacing from the scale (p-4, p-6, p-8)
+    - Proper color contrast for readability (text-gray-900 on bg-white)
+    - ALWAYS add transitions: transition-all duration-200
+    - ALWAYS add hover states: hover:bg-*, hover:shadow-lg, hover:scale-105
+    - Clean typography hierarchy using the scale above
 15. User Experience:
-    - Loading states for async operations
+    - Loading states for async operations (animate-pulse)
     - Error boundaries and error handling
     - Empty states with helpful messages
     - Form validation with clear error messages
+    - Smooth animations and micro-interactions
 16. Code Quality:
     - Proper TypeScript types for all props and state
     - NO inline styles (style={{...}}) - use Tailwind classes only
     - NO magic numbers - use Tailwind spacing scale
     - Close all JSX tags properly
+    - Use the component patterns above for consistency
 
 PRE-INSTALLED PACKAGES (already available, do not install):
 - next@14.2.3, react@18, react-dom@18
@@ -148,9 +222,9 @@ Return ONLY valid JSON matching this structure:
     {
       "id": 7,
       "type": "file_write",
-      "description": "Create responsive home page",
+      "description": "Create responsive home page with design system",
       "path": "/workspace/app/page.tsx",
-      "content": "export default function Home() {\\n  return (\\n    <main className=\\"min-h-screen p-4 sm:p-8 md:p-12\\">\\n      <div className=\\"max-w-4xl mx-auto\\">\\n        <h1 className=\\"text-3xl md:text-4xl font-bold text-gray-900 mb-4\\">\\n          Welcome to My App\\n        </h1>\\n        <p className=\\"text-lg text-gray-600\\">Get started by editing this page.</p>\\n      </div>\\n    </main>\\n  );\\n}"
+      "content": "export default function Home() {\\n  return (\\n    <main className=\\"min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100\\">\\n      <div className=\\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24\\">\\n        <div className=\\"text-center space-y-6\\">\\n          <h1 className=\\"text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900\\">\\n            Welcome to My App\\n          </h1>\\n          <p className=\\"text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto\\">\\n            Get started by editing this page.\\n          </p>\\n          <button className=\\"px-6 py-3 bg-blue-600 text-white rounded-lg font-medium shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200\\">\\n            Get Started\\n          </button>\\n        </div>\\n      </div>\\n    </main>\\n  );\\n}"
     }
   ]
 }
@@ -192,13 +266,27 @@ CRITICAL RULES:
 9. All file paths must start with /workspace/
 10. Maximum 15 steps per plan (should be much fewer for small changes)
 
-UI QUALITY REQUIREMENTS (maintain existing standards):
-11. Keep the existing responsive design patterns
+DESIGN SYSTEM TO FOLLOW (when making changes):
+- Spacing: p-2, p-4, p-6, p-8, gap-4, gap-6, space-y-4, space-y-6
+- Typography: text-4xl md:text-5xl (titles), text-lg md:text-xl (body)
+- Colors: bg-blue-600, text-gray-900, text-gray-600, bg-white, bg-gray-50
+- Shadows: shadow-sm, shadow-md, shadow-lg
+- Rounded: rounded-lg, rounded-xl, rounded-full
+- Transitions: ALWAYS add transition-all duration-200
+- Hover: hover:bg-*, hover:shadow-lg, hover:scale-105
+- Layout: max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
+
+UI QUALITY REQUIREMENTS (maintain existing standards + enhance):
+11. Keep the existing responsive design patterns (sm:, md:, lg:, xl:)
 12. Maintain existing semantic HTML structure
 13. Preserve accessibility attributes
-14. Follow existing styling conventions
+14. Follow existing styling conventions BUT enhance with:
+    - Add transitions if missing: transition-all duration-200
+    - Add hover states if missing: hover:bg-*, hover:shadow-lg
+    - Improve spacing consistency using the scale above
 15. Use existing component patterns
 16. Maintain TypeScript typing standards
+17. When adding new UI elements, follow the Design System above
 
 PRE-INSTALLED PACKAGES (already available):
 - next@14.2.3, react@18, react-dom@18
