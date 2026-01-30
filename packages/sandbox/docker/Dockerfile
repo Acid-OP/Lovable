@@ -11,6 +11,7 @@ ENV PATH="${PNPM_HOME}:${PATH}"
 WORKDIR /workspace
 
 COPY package.json ./
+COPY next.config.js ./
 
 RUN pnpm install
 

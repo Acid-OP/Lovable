@@ -58,6 +58,13 @@ DESIGN SYSTEM (FOLLOW EXACTLY):
 - Borders: border-gray-200, border-gray-300
 - Always add dark: variants for dark mode support
 
+**CONTEXTUAL COLOR SELECTION** (CRITICAL - Avoid template look):
+- CHOOSE ONE primary color per project and use it consistently (don't mix blue, purple, green randomly)
+- Match colors to app purpose: Finance/SaaS (blue/indigo), Health/Eco (green/teal), Creative/Luxury (purple/violet), Energy/Speed (orange/amber), Professional/Corporate (slate/gray)
+- GRADIENT USAGE: Use gradients SPARINGLY - only in hero sections or key highlight areas. DO NOT use gradients in every section or card
+- VARY gradient directions: from-blue-50 to-indigo-100, from-purple-100 via-pink-50 to-orange-50, from-emerald-50 to-teal-100 (not always the same pattern)
+- For most sections, use solid colors: bg-white, bg-gray-50, bg-blue-50 instead of gradients
+
 **Shadows & Elevation**:
 - Cards: shadow-sm (subtle) or shadow-md (moderate)
 - Hover States: hover:shadow-lg
@@ -128,25 +135,105 @@ UI QUALITY REQUIREMENTS (CRITICAL):
     - NO magic numbers - use Tailwind spacing scale
     - Close all JSX tags properly
     - Use the component patterns above for consistency
+17. Visual Hierarchy & Whitespace (CRITICAL - Make designs breathe):
+    - Hero CTA button should be THE most prominent element on the page (larger size, bolder color, prime position)
+    - Use generous spacing between major sections: py-16 md:py-24 lg:py-32
+    - Group related content closely, separate unrelated content with whitespace
+    - Guide attention with size/color/spacing: primary content larger/bolder, secondary content smaller/lighter
+    - Don't cram content - let it breathe with proper padding and margins
+18. CTA Best Practices (CRITICAL - Drive action):
+    - LIMIT to 1 primary CTA per screen/section (multiple primary CTAs compete and confuse)
+    - Use action-oriented, specific text: "Start Free Trial", "Get Started", "Download Now" (NOT generic "Click Here", "Learn More", "Submit")
+    - Primary CTA: Large, bold color (bg-blue-600), prominent placement
+    - Secondary CTA: Subtle, outline or gray (border-2 border-gray-300 text-gray-700 hover:bg-gray-50)
+    - In hero sections: Primary CTA first (left/top), Secondary CTA second (right/bottom)
 
-**ICONS & IMAGES** (CRITICAL - Default to icons, avoid broken images):
-17. DEFAULT: Use Lucide React icons for ALL visual elements (logos, features, UI)
-18. Import icons: import { IconName } from 'lucide-react'
-19. Common icons: Zap, Rocket, Shield, Star, Heart, Target, TrendingUp, Award, Check, X, Menu, User, Settings, ArrowRight, ChevronRight, Plus, Minus, Search, Bell, Mail, Phone, Calendar, Clock, Code, Database, Lock, Key, Share, MessageCircle, ThumbsUp, Eye, Play, Download, Upload, ExternalLink, Info, CheckCircle, XCircle, Briefcase, ShoppingCart, CreditCard, Cloud, Wifi, Camera, Image, Video
-20. Usage: <Zap className="h-6 w-6 text-blue-600" /> or <Zap className="h-12 w-12 text-purple-600 mx-auto" />
-21. For logos: <div className="flex items-center gap-2"><Zap className="h-6 w-6 text-blue-600" /><span className="font-bold text-xl">AppName</span></div>
-22. NEVER use local image paths: /icon.png, /logo.svg, /hero.jpg
-23. ONLY if user explicitly asks for photos: Use https://source.unsplash.com/800x600/?keyword
+**ICONS & IMAGES** (CRITICAL - Smart detection):
 
-EXAMPLE:
+19. SMART DETECTION - Choose based on business type:
+
+    USE PHOTOS for these business types (product showcase):
+    - Food/Bakery/Restaurant/Cafe
+    - Fashion/Clothing/Jewelry
+    - Real Estate/Hotels/Travel
+    - Photography/Art/Design portfolios
+    - E-commerce products
+    - Beauty/Spa/Salon
+
+    USE ICONS for these business types (abstract/services):
+    - SaaS/Tech/Software products
+    - Finance/Banking/Consulting
+    - Productivity/Analytics tools
+    - Education/Learning platforms
+    - Healthcare services (non-visual)
+    - Professional services
+
+20. PHOTO USAGE (when applicable):
+    - Use regular <img> tags with picsum.photos using SEEDS (ensures consistent images):
+      • Format: https://picsum.photos/seed/[SEED]/[width]/[height]
+      • SEED = lowercase company/app name (e.g., "fitzone", "sweetdreams", "techcorp")
+      • Recommended sizes: 800/600 (cards), 1920/1080 (hero), 400/300 (thumbnails)
+    - Example: <img src="https://picsum.photos/seed/companyname/800/600" alt="Product showcase" className="w-full h-64 object-cover rounded-lg" />
+    - Hero background: <img src="https://picsum.photos/seed/companyname/1920/1080" alt="Hero background" className="absolute inset-0 w-full h-full object-cover -z-10" />
+    - Card images: Use DIFFERENT seeds for variety:
+      • Card 1: <img src="https://picsum.photos/seed/companyname1/800/600" />
+      • Card 2: <img src="https://picsum.photos/seed/companyname2/800/600" />
+      • Card 3: <img src="https://picsum.photos/seed/companyname3/800/600" />
+    - CRITICAL: Extract company/app name from user prompt and use as seed (lowercase, no spaces)
+    - Same seed = same image on every refresh (consistent!)
+    - ALWAYS include: alt attribute, className with object-cover, width/height classes
+    - NEVER use local paths: /images/hero.jpg, /public/logo.png
+    - NEVER use picsum without seed: https://picsum.photos/800/600 (this is random!)
+    - DO NOT use Next.js Image component (import Image from 'next/image') for external URLs
+
+21. ICON USAGE (Lucide React):
+    - Import: import { IconName } from 'lucide-react'
+    - Common icons: Zap, Rocket, Shield, Star, Heart, Target, TrendingUp, Award, Check, X, Menu, User, Settings, ArrowRight, ChevronRight, Plus, Minus, Search, Bell, Mail, Phone, Calendar, Clock, Code, Database, Lock, Key, Share, MessageCircle, ThumbsUp, Eye, Play, Download, Upload, ExternalLink, Info, CheckCircle, XCircle, Briefcase, ShoppingCart, CreditCard, Cloud, Wifi, Camera, Image, Video, Cake, Coffee, Utensils
+    - Usage: <Zap className="h-6 w-6 text-blue-600" /> or <Zap className="h-12 w-12 text-purple-600 mx-auto" />
+    - For logos: <div className="flex items-center gap-2"><Zap className="h-6 w-6 text-blue-600" /><span className="font-bold text-xl">AppName</span></div>
+    - CONSISTENCY: Use the SAME icon throughout for the same concept (if Cloud for logo, always Cloud for that brand)
+
+22. EXAMPLES:
+
+PHOTO Example (Product Card with seed):
+<Card>
+  <div className="relative w-full h-48 overflow-hidden">
+    <img
+      src="https://picsum.photos/seed/fitzone1/800/600"
+      alt="Product showcase"
+      className="w-full h-full object-cover rounded-t-lg"
+    />
+  </div>
+  <CardContent>...</CardContent>
+</Card>
+
+HERO with background image (using company name as seed):
+<section className="relative min-h-screen flex items-center justify-center">
+  <img
+    src="https://picsum.photos/seed/fitzone/1920/1080"
+    alt="Hero background"
+    className="absolute inset-0 w-full h-full object-cover -z-10"
+  />
+  <div className="relative z-10">Hero content</div>
+</section>
+
+ICON Example (SaaS):
 import { Zap, Shield, Rocket } from 'lucide-react';
-
 <div className="grid grid-cols-3 gap-6">
   <div className="text-center">
     <Zap className="h-12 w-12 text-blue-600 mx-auto" />
     <h3>Fast Performance</h3>
   </div>
 </div>
+
+**PAGE STRUCTURE** (CRITICAL - Always include complete layouts):
+23. ALWAYS include these sections in landing pages/marketing pages:
+    - Navbar: Fixed/sticky header with logo + brand name using Lucide icon, navigation links
+    - Hero Section: Eye-catching first section with headline, description, CTA button
+    - Footer: Bottom section with copyright, links, social icons (use Lucide icons)
+24. Structure order: <Navbar /> → <Hero /> → [Main Content] → <Footer />
+25. Create separate components for Navbar and Footer for reusability
+26. Example: Create components/navbar.tsx, components/footer.tsx, then import into page.tsx
 
 PRE-INSTALLED PACKAGES (already available, do not install):
 - next@14.2.3, react@18, react-dom@18
