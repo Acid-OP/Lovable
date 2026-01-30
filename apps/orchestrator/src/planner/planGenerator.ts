@@ -195,11 +195,11 @@ UI QUALITY REQUIREMENTS (CRITICAL):
 
 22. EXAMPLES:
 
-PHOTO Example (Product Card with seed):
+PHOTO Example (Product Card with seed - use ONLY for visual businesses):
 <Card>
   <div className="relative w-full h-48 overflow-hidden">
     <img
-      src="https://picsum.photos/seed/fitzone1/800/600"
+      src="https://picsum.photos/seed/companyname1/800/600"
       alt="Product showcase"
       className="w-full h-full object-cover rounded-t-lg"
     />
@@ -207,14 +207,13 @@ PHOTO Example (Product Card with seed):
   <CardContent>...</CardContent>
 </Card>
 
-HERO with background image (using company name as seed):
-<section className="relative min-h-screen flex items-center justify-center">
-  <img
-    src="https://picsum.photos/seed/fitzone/1920/1080"
-    alt="Hero background"
-    className="absolute inset-0 w-full h-full object-cover -z-10"
-  />
-  <div className="relative z-10">Hero content</div>
+HERO Example (DEFAULT - use gradients, NOT images):
+<section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+  <div className="max-w-7xl mx-auto px-4 text-center space-y-8">
+    <h1 className="text-6xl font-bold">Transform Your Business</h1>
+    <p className="text-xl text-gray-600">Subheading explaining value</p>
+    <Button size="lg">Get Started</Button>
+  </div>
 </section>
 
 ICON Example (SaaS):
@@ -234,6 +233,47 @@ import { Zap, Shield, Rocket } from 'lucide-react';
 24. Structure order: <Navbar /> → <Hero /> → [Main Content] → <Footer />
 25. Create separate components for Navbar and Footer for reusability
 26. Example: Create components/navbar.tsx, components/footer.tsx, then import into page.tsx
+
+**HERO SECTION BEST PRACTICES** (CRITICAL - Follow this structure):
+27. DEFAULT: Use gradients for hero backgrounds (NOT images):
+    - bg-gradient-to-br from-blue-50 to-indigo-100 (SaaS/Tech)
+    - bg-gradient-to-r from-orange-50 to-amber-100 (Energy/Fitness)
+    - bg-gradient-to-br from-purple-50 to-pink-100 (Creative)
+    - bg-gradient-to-r from-emerald-50 to-teal-100 (Health/Eco)
+28. Hero Structure (copy this pattern):
+    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900">
+          Main Headline (action-oriented, clear value)
+        </h1>
+        <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+          Subheading (explain what you do, who it's for, 1-2 sentences)
+        </p>
+        <Button size="lg" className="px-8 py-6 text-lg">
+          Primary CTA (action verb)
+        </Button>
+      </div>
+    </section>
+29. ONLY use hero background images for: Restaurants, Hotels, Real Estate, Photography (visual-heavy businesses)
+30. Hero text hierarchy: H1 (biggest) → Subheading (medium) → CTA (prominent button)
+
+**SHADCN COMPONENT USAGE** (CRITICAL - Use pre-installed components):
+31. ALWAYS prefer Shadcn UI components over custom ones:
+    - Button: import { Button } from '@/components/ui/button' (use for all buttons)
+    - Card: import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+    - Badge: import { Badge } from '@/components/ui/badge' (for tags, labels, status)
+    - Input: import { Input } from '@/components/ui/input' (for forms)
+    - Separator: import { Separator } from '@/components/ui/separator' (for dividers)
+32. Example usage:
+    <Card>
+      <CardHeader>
+        <CardTitle>Feature Title</CardTitle>
+      </CardHeader>
+      <CardContent>Content here</CardContent>
+    </Card>
+33. Use Badge for categories, tags, status indicators:
+    <Badge variant="default">New</Badge>
+    <Badge variant="secondary">Popular</Badge>
 
 PRE-INSTALLED PACKAGES (already available, do not install):
 - next@14.2.3, react@18, react-dom@18
