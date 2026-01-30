@@ -129,6 +129,25 @@ UI QUALITY REQUIREMENTS (CRITICAL):
     - Close all JSX tags properly
     - Use the component patterns above for consistency
 
+**ICONS & IMAGES** (CRITICAL - Default to icons, avoid broken images):
+17. DEFAULT: Use Lucide React icons for ALL visual elements (logos, features, UI)
+18. Import icons: import { IconName } from 'lucide-react'
+19. Common icons: Zap, Rocket, Shield, Star, Heart, Target, TrendingUp, Award, Check, X, Menu, User, Settings, ArrowRight, ChevronRight, Plus, Minus, Search, Bell, Mail, Phone, Calendar, Clock, Code, Database, Lock, Key, Share, MessageCircle, ThumbsUp, Eye, Play, Download, Upload, ExternalLink, Info, CheckCircle, XCircle, Briefcase, ShoppingCart, CreditCard, Cloud, Wifi, Camera, Image, Video
+20. Usage: <Zap className="h-6 w-6 text-blue-600" /> or <Zap className="h-12 w-12 text-purple-600 mx-auto" />
+21. For logos: <div className="flex items-center gap-2"><Zap className="h-6 w-6 text-blue-600" /><span className="font-bold text-xl">AppName</span></div>
+22. NEVER use local image paths: /icon.png, /logo.svg, /hero.jpg
+23. ONLY if user explicitly asks for photos: Use https://source.unsplash.com/800x600/?keyword
+
+EXAMPLE:
+import { Zap, Shield, Rocket } from 'lucide-react';
+
+<div className="grid grid-cols-3 gap-6">
+  <div className="text-center">
+    <Zap className="h-12 w-12 text-blue-600 mx-auto" />
+    <h3>Fast Performance</h3>
+  </div>
+</div>
+
 PRE-INSTALLED PACKAGES (already available, do not install):
 - next@14.2.3, react@18, react-dom@18
 - tailwindcss@3, autoprefixer, postcss
