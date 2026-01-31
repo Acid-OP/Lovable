@@ -14,7 +14,7 @@ interface RouteCheckResult {
 
 async function checkSingleRoute(
   jobId: string,
-  route: string
+  route: string,
 ): Promise<RouteCheckResult> {
   try {
     const url = `http://localhost:${config.container.port}${route}`;
@@ -33,14 +33,19 @@ async function checkSingleRoute(
     }
 
     // Check for common error patterns in HTML
-    const hasApplicationError = /Application error/i.test(html) || /Internal Server Error/i.test(html);
-    const hasHydrationError = /Hydration failed/i.test(html) || /Hydration error/i.test(html);
+    const hasApplicationError =
+      /Application error/i.test(html) || /Internal Server Error/i.test(html);
+    const hasHydrationError =
+      /Hydration failed/i.test(html) || /Hydration error/i.test(html);
     const hasUnhandledError = /Unhandled Runtime Error/i.test(html);
 
     if (hasApplicationError || hasHydrationError || hasUnhandledError) {
       // Extract error message from HTML for more context
-      const errorMatch = html.match(/Error: ([^\n<]+)/i) || html.match(/Unhandled Runtime Error[^\n]*\n([^\n<]+)/i);
-      const errorMessage = errorMatch?.[1] || "Runtime error detected in browser";
+      const errorMatch =
+        html.match(/Error: ([^\n<]+)/i) ||
+        html.match(/Unhandled Runtime Error[^\n]*\n([^\n<]+)/i);
+      const errorMessage =
+        errorMatch?.[1] || "Runtime error detected in browser";
 
       return {
         route,
@@ -65,14 +70,14 @@ async function checkSingleRoute(
 
 export async function performHealthCheck(
   jobId: string,
-  routes: string[]
+  routes: string[],
 ): Promise<HealthCheckResult> {
   // Wait a bit for dev server to fully start
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise((resolve) => setTimeout(resolve, 5000));
 
   // Ensure root route is included
-  if (!routes.includes('/')) {
-    routes = ['/', ...routes];
+  if (!routes.includes("/")) {
+    routes = ["/", ...routes];
   }
 
   // Step 1: Check root first (most important)
@@ -81,7 +86,7 @@ export async function performHealthCheck(
     route: "/",
   });
 
-  const rootResult = await checkSingleRoute(jobId, '/');
+  const rootResult = await checkSingleRoute(jobId, "/");
 
   if (rootResult.hasError) {
     logger.error("sandbox.health_check_root_failed", {
@@ -102,7 +107,7 @@ export async function performHealthCheck(
   });
 
   // Step 2: Check other routes in parallel
-  const otherRoutes = routes.filter(r => r !== '/');
+  const otherRoutes = routes.filter((r) => r !== "/");
 
   if (otherRoutes.length === 0) {
     // Only root route exists
@@ -119,15 +124,15 @@ export async function performHealthCheck(
   });
 
   const otherResults = await Promise.all(
-    otherRoutes.map(route => checkSingleRoute(jobId, route))
+    otherRoutes.map((route) => checkSingleRoute(jobId, route)),
   );
 
   // Collect all errors
-  const failedRoutes = otherResults.filter(r => r.hasError);
+  const failedRoutes = otherResults.filter((r) => r.hasError);
 
   if (failedRoutes.length > 0) {
     const errorSummary = failedRoutes
-      .map(r => `${r.route}: ${r.errorMessage}`)
+      .map((r) => `${r.route}: ${r.errorMessage}`)
       .join("; ");
 
     logger.warn("sandbox.health_check_routes_failed", {

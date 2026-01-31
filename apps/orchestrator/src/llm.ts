@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export async function givePromptToLLM<T>(
   prompt: string,
-  schema: z.ZodType<T>
+  schema: z.ZodType<T>,
 ): Promise<T> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {

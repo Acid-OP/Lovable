@@ -16,4 +16,3 @@ export interface Plan {
   steps: PlanStep[];
   estimatedTimeSeconds: number;
 }
-

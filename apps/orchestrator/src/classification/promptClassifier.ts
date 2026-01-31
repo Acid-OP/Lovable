@@ -5,7 +5,9 @@ import { PROMPT_TYPE } from "../types/prompt.js";
 
 // Zod schema for classification result
 const ClassificationSchema = z.object({
-  type: z.enum([PROMPT_TYPE.NEW, PROMPT_TYPE.CONTINUATION]).describe("Whether this is a new project or continuation"),
+  type: z
+    .enum([PROMPT_TYPE.NEW, PROMPT_TYPE.CONTINUATION])
+    .describe("Whether this is a new project or continuation"),
   reasoning: z.string().describe("Brief explanation of the classification"),
   confidence: z.number().describe("Confidence level between 0.0 and 1.0"),
 });
@@ -52,9 +54,8 @@ Return a JSON object with:
 export async function classifyPrompt(
   currentPrompt: string,
   previousPrompt?: string,
-  previousProjectSummary?: string
+  previousProjectSummary?: string,
 ): Promise<ClassificationResult> {
-
   // No previous context? Must be new
   if (!previousPrompt) {
     return {
@@ -88,7 +89,6 @@ Classify this prompt:`;
     });
 
     return result;
-
   } catch (error) {
     logger.error("prompt.classification.failed", {
       error: error instanceof Error ? error.message : String(error),

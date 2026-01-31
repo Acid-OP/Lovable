@@ -1,4 +1,4 @@
-export type RiskLevel = 'low' | 'medium' | 'high';
+export type RiskLevel = "low" | "medium" | "high";
 
 export interface SanitizationResult {
   isValid: boolean;
@@ -14,4 +14,3 @@ export interface PromptJobData {
   userId?: string;
   metadata?: Record<string, any>;
 }
-

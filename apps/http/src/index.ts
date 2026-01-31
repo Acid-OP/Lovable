@@ -10,7 +10,7 @@ const app = express();
 const PORT = config.server.port;
 
 app.use((req, res, next) => {
-  if (req.hostname !== 'localhost' && req.hostname.includes('.')) {
+  if (req.hostname !== "localhost" && req.hostname.includes(".")) {
     return next();
   }
   helmet()(req, res, next);
@@ -24,10 +24,10 @@ const server = app.listen(PORT, () => {
 });
 
 const gracefulShutdown = async () => {
-  logger.info('Shutting down HTTP server...');
+  logger.info("Shutting down HTTP server...");
 
   server.close(() => {
-    logger.info('HTTP server closed');
+    logger.info("HTTP server closed");
   });
 
   await SSEManager.shutdown();
@@ -35,5 +35,5 @@ const gracefulShutdown = async () => {
   process.exit(0);
 };
 
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);
+process.on("SIGINT", gracefulShutdown);

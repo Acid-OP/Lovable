@@ -71,7 +71,9 @@ export class PlanValidator {
     }
 
     if (plan.steps.length > MAX_STEPS) {
-      result.errors.push(`Too many steps: ${plan.steps.length} (max ${MAX_STEPS})`);
+      result.errors.push(
+        `Too many steps: ${plan.steps.length} (max ${MAX_STEPS})`,
+      );
       result.valid = false;
     }
 
@@ -102,7 +104,7 @@ export class PlanValidator {
 
       if (!step.type || !STEP_TYPES.includes(step.type)) {
         result.errors.push(
-          `Step ${stepNum}: Invalid "type" (must be ${STEP_TYPES.join(", ")})`
+          `Step ${stepNum}: Invalid "type" (must be ${STEP_TYPES.join(", ")})`,
         );
         result.valid = false;
       }
@@ -125,7 +127,7 @@ export class PlanValidator {
   private validateCommandStep(
     step: PlanStep,
     stepNum: number,
-    result: ValidationResult
+    result: ValidationResult,
   ): void {
     if (!step.command || typeof step.command !== "string") {
       result.errors.push(`Step ${stepNum}: Missing or invalid "command"`);
@@ -135,21 +137,21 @@ export class PlanValidator {
 
     if (step.command.length > MAX_COMMAND_LENGTH) {
       result.errors.push(
-        `Step ${stepNum}: Command too long (${step.command.length} chars, max ${MAX_COMMAND_LENGTH})`
+        `Step ${stepNum}: Command too long (${step.command.length} chars, max ${MAX_COMMAND_LENGTH})`,
       );
       result.valid = false;
     }
 
     if (!step.workingDirectory) {
       result.warnings.push(
-        `Step ${stepNum}: No workingDirectory, defaulting to /workspace`
+        `Step ${stepNum}: No workingDirectory, defaulting to /workspace`,
       );
       step.workingDirectory = "/workspace";
     }
 
     if (!step.workingDirectory.startsWith("/workspace")) {
       result.errors.push(
-        `Step ${stepNum}: workingDirectory must be inside /workspace`
+        `Step ${stepNum}: workingDirectory must be inside /workspace`,
       );
       result.valid = false;
     }
@@ -158,7 +160,7 @@ export class PlanValidator {
   private validateFileWriteStep(
     step: PlanStep,
     stepNum: number,
-    result: ValidationResult
+    result: ValidationResult,
   ): void {
     if (!step.path || typeof step.path !== "string") {
       result.errors.push(`Step ${stepNum}: Missing "path"`);
@@ -172,7 +174,7 @@ export class PlanValidator {
 
     if (step.content && step.content.length > MAX_FILE_CONTENT_LENGTH) {
       result.errors.push(
-        `Step ${stepNum}: File content too long (${step.content.length} chars, max ${MAX_FILE_CONTENT_LENGTH})`
+        `Step ${stepNum}: File content too long (${step.content.length} chars, max ${MAX_FILE_CONTENT_LENGTH})`,
       );
       result.valid = false;
     }
@@ -186,7 +188,7 @@ export class PlanValidator {
   private validateFileDeleteStep(
     step: PlanStep,
     stepNum: number,
-    result: ValidationResult
+    result: ValidationResult,
   ): void {
     if (!step.path || typeof step.path !== "string") {
       result.errors.push(`Step ${stepNum}: Missing "path"`);
@@ -206,7 +208,7 @@ export class PlanValidator {
 
   private validateCommandSafety(
     steps: PlanStep[],
-    result: ValidationResult
+    result: ValidationResult,
   ): void {
     steps.forEach((step, index) => {
       if (step.type !== "command" || !step.command) return;
@@ -223,14 +225,12 @@ export class PlanValidator {
 
       if (command.includes(";")) {
         result.warnings.push(
-          `Step ${stepNum}: Command uses semicolon chaining, ensure it's safe`
+          `Step ${stepNum}: Command uses semicolon chaining, ensure it's safe`,
         );
       }
 
       if (command.includes(">") && !command.includes(">>")) {
-        result.warnings.push(
-          `Step ${stepNum}: Command uses redirect operator`
-        );
+        result.warnings.push(`Step ${stepNum}: Command uses redirect operator`);
       }
     });
   }
@@ -253,7 +253,7 @@ export class PlanValidator {
           cmd.includes("pnpm add")
         ) {
           result.warnings.push(
-            `Step ${index + 1}: Package install command detected - packages are pre-installed in sandbox`
+            `Step ${index + 1}: Package install command detected - packages are pre-installed in sandbox`,
           );
         }
 
@@ -264,7 +264,7 @@ export class PlanValidator {
           cmd.includes("npx create-")
         ) {
           result.warnings.push(
-            `Step ${index + 1}: CLI scaffolding detected - use file_write steps instead for faster execution`
+            `Step ${index + 1}: CLI scaffolding detected - use file_write steps instead for faster execution`,
           );
         }
       }
@@ -272,16 +272,18 @@ export class PlanValidator {
 
     // Check for duplicate file paths
     const filePaths = steps
-      .filter((step) => step.type === "file_write" || step.type === "file_delete")
+      .filter(
+        (step) => step.type === "file_write" || step.type === "file_delete",
+      )
       .map((step) => step.path);
 
     const duplicates = filePaths.filter(
-      (path, index) => filePaths.indexOf(path) !== index
+      (path, index) => filePaths.indexOf(path) !== index,
     );
 
     if (duplicates.length > 0) {
       result.warnings.push(
-        `Duplicate file operations on: ${[...new Set(duplicates)].join(", ")}`
+        `Duplicate file operations on: ${[...new Set(duplicates)].join(", ")}`,
       );
     }
 
@@ -290,26 +292,39 @@ export class PlanValidator {
     const hasPageFile = filePaths.some((p) => p?.includes("page.tsx"));
 
     if (!hasLayoutFile) {
-      result.warnings.push("No layout.tsx file in plan - Next.js App Router requires app/layout.tsx");
+      result.warnings.push(
+        "No layout.tsx file in plan - Next.js App Router requires app/layout.tsx",
+      );
     }
     if (!hasPageFile) {
-      result.warnings.push("No page.tsx file in plan - Next.js requires at least one page");
+      result.warnings.push(
+        "No page.tsx file in plan - Next.js requires at least one page",
+      );
     }
 
     // Validate Next.js routing conventions
     this.validateRoutingConventions(steps, result);
   }
 
-  private validateRoutingConventions(steps: PlanStep[], result: ValidationResult): void {
+  private validateRoutingConventions(
+    steps: PlanStep[],
+    result: ValidationResult,
+  ): void {
     const appFiles = steps
-      .filter((step) => step.type === "file_write" && step.path?.includes("/app/"))
+      .filter(
+        (step) => step.type === "file_write" && step.path?.includes("/app/"),
+      )
       .map((step) => ({ path: step.path || "", stepId: step.id }));
 
     appFiles.forEach(({ path, stepId }) => {
       // Check for incorrect route file naming (e.g., home.tsx instead of page.tsx)
-      if (path.match(/\/(home|about|contact|dashboard|profile|settings|blog|products|services)\.tsx$/i)) {
+      if (
+        path.match(
+          /\/(home|about|contact|dashboard|profile|settings|blog|products|services)\.tsx$/i,
+        )
+      ) {
         result.errors.push(
-          `Step ${stepId}: Invalid route file "${path}" - Next.js routes must use page.tsx inside a directory (e.g., /app/about/page.tsx instead of /app/about.tsx)`
+          `Step ${stepId}: Invalid route file "${path}" - Next.js routes must use page.tsx inside a directory (e.g., /app/about/page.tsx instead of /app/about.tsx)`,
         );
         result.valid = false;
       }
@@ -317,7 +332,7 @@ export class PlanValidator {
       // Check for wrong file extensions in app directory
       if (path.match(/\/app\/.*\.(js|jsx)$/)) {
         result.warnings.push(
-          `Step ${stepId}: File "${path}" uses .js/.jsx extension - prefer .ts/.tsx for TypeScript`
+          `Step ${stepId}: File "${path}" uses .js/.jsx extension - prefer .ts/.tsx for TypeScript`,
         );
       }
 
@@ -327,7 +342,7 @@ export class PlanValidator {
         const paramName = dynamicRouteMatch[1];
         if (paramName && (paramName.includes(" ") || paramName.includes("-"))) {
           result.errors.push(
-            `Step ${stepId}: Invalid dynamic route parameter "[${paramName}]" in "${path}" - use camelCase without spaces/hyphens (e.g., [userId] not [user-id])`
+            `Step ${stepId}: Invalid dynamic route parameter "[${paramName}]" in "${path}" - use camelCase without spaces/hyphens (e.g., [userId] not [user-id])`,
           );
           result.valid = false;
         }
@@ -338,17 +353,27 @@ export class PlanValidator {
       const groupName = routeGroupMatch?.[1];
       if (groupName && (groupName.includes(" ") || groupName.match(/[A-Z]/))) {
         result.warnings.push(
-          `Step ${stepId}: Route group "(${groupName})" in "${path}" should use lowercase-kebab-case`
+          `Step ${stepId}: Route group "(${groupName})" in "${path}" should use lowercase-kebab-case`,
         );
       }
 
       // Check for proper page/layout file structure
-      if (path.includes("/app/") && !path.match(/\/(page|layout|loading|error|not-found|template|default|route)\.tsx$/)) {
+      if (
+        path.includes("/app/") &&
+        !path.match(
+          /\/(page|layout|loading|error|not-found|template|default|route)\.tsx$/,
+        )
+      ) {
         const fileName = path.split("/").pop() || "";
         // Allow files starting with underscore or in components/api/lib directories
-        if (!fileName.startsWith("_") && !path.includes("/components/") && !path.includes("/api/") && !path.includes("/lib/")) {
+        if (
+          !fileName.startsWith("_") &&
+          !path.includes("/components/") &&
+          !path.includes("/api/") &&
+          !path.includes("/lib/")
+        ) {
           result.warnings.push(
-            `Step ${stepId}: File "${fileName}" in app directory is not a special Next.js file - consider moving to /app/components or /lib`
+            `Step ${stepId}: File "${fileName}" in app directory is not a special Next.js file - consider moving to /app/components or /lib`,
           );
         }
       }
@@ -357,7 +382,10 @@ export class PlanValidator {
     // Check for conflicting routes
     const routes = appFiles
       .filter(({ path }) => path.endsWith("/page.tsx"))
-      .map(({ path }) => path.replace("/workspace/app", "").replace("/page.tsx", "") || "/");
+      .map(
+        ({ path }) =>
+          path.replace("/workspace/app", "").replace("/page.tsx", "") || "/",
+      );
 
     const routeConflicts = this.findRouteConflicts(routes);
     routeConflicts.forEach((conflict) => {
@@ -369,7 +397,9 @@ export class PlanValidator {
     const conflicts: string[] = [];
     const normalizedRoutes = routes.map((r) => ({
       original: r,
-      normalized: r.replace(/\/\[([^\]]+)\]/g, "/:param").replace(/\/\([^)]+\)/g, ""),
+      normalized: r
+        .replace(/\/\[([^\]]+)\]/g, "/:param")
+        .replace(/\/\([^)]+\)/g, ""),
     }));
 
     for (let i = 0; i < normalizedRoutes.length; i++) {

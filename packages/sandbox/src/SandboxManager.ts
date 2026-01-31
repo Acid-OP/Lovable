@@ -1,5 +1,9 @@
 import { dockerRequest } from "./dockerClient.js";
-import { DEFAULT_IMAGE, CONTAINER_CONFIG, DOCKER_NETWORK } from "./constants.js";
+import {
+  DEFAULT_IMAGE,
+  CONTAINER_CONFIG,
+  DOCKER_NETWORK,
+} from "./constants.js";
 
 export interface ExecResult {
   exitCode: number;
@@ -31,19 +35,24 @@ export class SandboxManager {
       });
       const containers: DockerContainer[] = JSON.parse(response.data);
       const sandboxContainers = containers.filter((c) =>
-        c.Names.some((name) => name.startsWith("/sandbox-"))
+        c.Names.some((name) => name.startsWith("/sandbox-")),
       );
 
       for (const container of sandboxContainers) {
         await this.destroy(container.Id);
-        console.log(`Cleaned up old sandbox container: ${container.Id.slice(0, 12)}`);
+        console.log(
+          `Cleaned up old sandbox container: ${container.Id.slice(0, 12)}`,
+        );
       }
     } catch (error) {
       console.warn("Failed to cleanup old containers:", error);
     }
   }
 
-  public async createContainer(jobId: string, exposePort?: number): Promise<string> {
+  public async createContainer(
+    jobId: string,
+    exposePort?: number,
+  ): Promise<string> {
     const containerName = `sandbox-${jobId}`;
 
     const body = {
@@ -97,7 +106,11 @@ export class SandboxManager {
     }
   }
 
-  public async exec(containerId: string, command: string, workingDir?: string): Promise<ExecResult> {
+  public async exec(
+    containerId: string,
+    command: string,
+    workingDir?: string,
+  ): Promise<ExecResult> {
     // creating exec
     const createResponse = await dockerRequest({
       path: `/containers/${containerId}/exec`,
@@ -142,38 +155,53 @@ export class SandboxManager {
     return { exitCode, output };
   }
 
-  public async writeFile(containerId: string, filePath: string, content: string): Promise<void> {
+  public async writeFile(
+    containerId: string,
+    filePath: string,
+    content: string,
+  ): Promise<void> {
     const base64Content = Buffer.from(content).toString("base64");
     const command = `mkdir -p "$(dirname '${filePath}')" && echo '${base64Content}' | base64 -d > '${filePath}'`;
 
     await this.exec(containerId, command);
   }
 
-  public async deleteFile(containerId: string, filePath: string): Promise<void> {
+  public async deleteFile(
+    containerId: string,
+    filePath: string,
+  ): Promise<void> {
     await this.exec(containerId, `rm -f '${filePath}'`);
   }
 
-  public async readFile(containerId: string, filePath: string): Promise<string> {
+  public async readFile(
+    containerId: string,
+    filePath: string,
+  ): Promise<string> {
     try {
       const result = await this.exec(containerId, `cat '${filePath}'`);
       return result.output;
     } catch {
-      return ""; 
+      return "";
     }
   }
 
-  public async runBuild(containerId: string): Promise<{ success: boolean; errors: string }> {
+  public async runBuild(
+    containerId: string,
+  ): Promise<{ success: boolean; errors: string }> {
     try {
       await this.exec(containerId, "cd /workspace && pnpm build 2>&1");
       return { success: true, errors: "" };
     } catch (error) {
-      return { success: false, errors: error instanceof Error ? error.message : String(error) };
+      return {
+        success: false,
+        errors: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 
   public async startDevServer(containerId: string): Promise<void> {
     const command = `cd /workspace && nohup pnpm exec next dev -H 0.0.0.0 -p 3000 > /tmp/dev.log 2>&1 &`;
-    
+
     await dockerRequest({
       path: `/containers/${containerId}/exec`,
       method: "POST",

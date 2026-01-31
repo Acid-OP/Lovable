@@ -586,18 +586,19 @@ export async function generateIncrementalPlan(
   prompt: string,
   previousPrompt: string,
   containerId: string,
-  projectSummary?: string
+  projectSummary?: string,
 ): Promise<Plan> {
   const { SandboxManager } = await import("@repo/sandbox");
   const sandbox = SandboxManager.getInstance();
 
   // Read all TypeScript/TSX files from container
-  const findCommand = 'find /workspace -type f \\( -name "*.ts" -o -name "*.tsx" \\) ! -path "*/node_modules/*" ! -path "*/.next/*"';
+  const findCommand =
+    'find /workspace -type f \\( -name "*.ts" -o -name "*.tsx" \\) ! -path "*/node_modules/*" ! -path "*/.next/*"';
   const fileListResult = await sandbox.exec(containerId, findCommand);
-  const filePaths = fileListResult.output.trim().split('\n').filter(Boolean);
+  const filePaths = fileListResult.output.trim().split("\n").filter(Boolean);
 
   // Read all file contents
-  let codebaseContext = '';
+  let codebaseContext = "";
   for (const filePath of filePaths) {
     try {
       const content = await sandbox.readFile(containerId, filePath);
@@ -614,7 +615,7 @@ export async function generateIncrementalPlan(
   const fullPrompt = `${INCREMENTAL_PLAN_SYSTEM_PROMPT}
   EXISTING CODEBASE:
   ${codebaseContext}
-  ${projectSummary ? `\nPREVIOUS PROJECT SUMMARY:\n${projectSummary}\n` : ''}
+  ${projectSummary ? `\nPREVIOUS PROJECT SUMMARY:\n${projectSummary}\n` : ""}
   PREVIOUS USER REQUEST: "${previousPrompt}"
   CURRENT USER REQUEST: "${prompt}"
   Generate an incremental plan with ONLY the files that need to be changed or added:`;

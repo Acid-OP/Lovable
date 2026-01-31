@@ -5,4 +5,3 @@ export const QUEUE_NAMES = {
 export const JOB_NAMES = {
   PROCESS_PROMPT: "process-prompt",
 } as const;
-

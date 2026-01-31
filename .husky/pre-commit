@@ -1,0 +1,33 @@
+#!/bin/sh
+
+echo "🔍 Running pre-commit checks..."
+echo ""
+
+# 1. Lint-staged - auto-format and fix staged files FIRST (fast)
+echo "🚀 Auto-formatting staged files..."
+pnpm exec lint-staged || {
+  echo "❌ Lint-staged failed."
+  exit 1
+}
+echo "✅ Staged files formatted"
+echo ""
+
+# 2. Type checking - catches type errors across entire codebase
+echo "📝 Type checking..."
+pnpm run check-types || {
+  echo "❌ Type check failed. Fix type errors before committing."
+  exit 1
+}
+echo "✅ Type check passed"
+echo ""
+
+# 3. Linting - checks code quality and style
+echo "🎨 Linting codebase..."
+pnpm run lint || {
+  echo "❌ Lint check failed. Fix linting errors before committing."
+  exit 1
+}
+echo "✅ Lint check passed"
+echo ""
+
+echo "✨ All pre-commit checks passed! Creating commit..."

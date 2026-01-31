@@ -81,13 +81,15 @@ function buildFixPrompt(fileErrors: FileError[]): string {
   return prompt;
 }
 
-export async function generateFixes(fileErrors: FileError[]): Promise<FileFix[]> {
+export async function generateFixes(
+  fileErrors: FileError[],
+): Promise<FileFix[]> {
   if (fileErrors.length === 0) {
     return [];
   }
 
   const prompt = buildFixPrompt(fileErrors);
   const result = await givePromptToLLM(prompt, FixResponseSchema);
-  
+
   return result.fixes || [];
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { SITE_CONFIG } from '@/lib/constants';
+import { SITE_CONFIG } from "@/lib/constants";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -14,7 +14,8 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Haven - Design with ease",
-  description: "Design smarter with AI that understands you. So you can take a breath.",
+  description:
+    "Design smarter with AI that understands you. So you can take a breath.",
 };
 
 export default function RootLayout({
@@ -25,11 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link
-          rel="preload"
-          as="image"
-          href={SITE_CONFIG.heroImage}
-        />
+        <link rel="preload" as="image" href={SITE_CONFIG.heroImage} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {children}

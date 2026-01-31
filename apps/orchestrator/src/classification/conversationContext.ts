@@ -11,7 +11,7 @@ export interface ConversationContext {
  * Get context from a specific previous job for classification
  */
 export async function getContextFromJob(
-  previousJobId: string
+  previousJobId: string,
 ): Promise<ConversationContext> {
   try {
     const session = await SessionManager.get(previousJobId);

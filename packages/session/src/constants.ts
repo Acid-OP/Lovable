@@ -8,7 +8,8 @@ export const SESSION_STATUS = {
   FAILED: "failed",
 } as const;
 
-export type SessionStatus = (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS];
+export type SessionStatus =
+  (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS];
 
 export interface SessionData {
   jobId?: string;
@@ -25,8 +26,8 @@ export interface SessionData {
   previewUrl?: string;
   // Conversation tracking
   prompt?: string;
-  previousJobId?: string; 
-  projectId?: string; 
+  previousJobId?: string;
+  projectId?: string;
   promptType?: "new" | "continuation";
-  projectSummary?: string; 
+  projectSummary?: string;
 }

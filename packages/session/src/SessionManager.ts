@@ -1,8 +1,13 @@
 import { redis } from "@repo/redis";
-import { SESSION_PREFIX, CHANNEL_PREFIX, SESSION_STATUS, SessionData } from "./constants.js";
+import {
+  SESSION_PREFIX,
+  CHANNEL_PREFIX,
+  SESSION_STATUS,
+  SessionData,
+} from "./constants.js";
 
 // Session expir
-const SESSION_TTL_SECONDS = 60 * 60 * 2; 
+const SESSION_TTL_SECONDS = 60 * 60 * 2;
 
 class SessionManagerClass {
   private getKey(jobId: string) {
@@ -31,7 +36,9 @@ class SessionManagerClass {
     const flatData: Record<string, string> = {};
     for (const [field, value] of Object.entries(data)) {
       if (value !== undefined) {
-        flatData[field] = Array.isArray(value) ? JSON.stringify(value) : String(value);
+        flatData[field] = Array.isArray(value)
+          ? JSON.stringify(value)
+          : String(value);
       }
     }
     if (Object.keys(flatData).length > 0) {
@@ -45,7 +52,11 @@ class SessionManagerClass {
     const data = await redis.hgetall(this.getKey(jobId));
     if (!data || Object.keys(data).length === 0) return null;
     if (data.errors) {
-      try { data.errors = JSON.parse(data.errors); } catch { data.errors = [data.errors]; }
+      try {
+        data.errors = JSON.parse(data.errors);
+      } catch {
+        data.errors = [data.errors];
+      }
     }
     return data as SessionData;
   }

@@ -6,7 +6,11 @@ import { SandboxManager } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
 import * as cache from "../utils/cache.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
-import { enhancePrompt, generatePlan, generateIncrementalPlan } from "../planner/index.js";
+import {
+  enhancePrompt,
+  generatePlan,
+  generateIncrementalPlan,
+} from "../planner/index.js";
 import { planValidator, frontendValidator } from "../validation/index.js";
 import type { Plan, PlanStep } from "../planner/types.js";
 import { PROMPT_TYPE, type PromptType } from "../types/prompt.js";
@@ -46,7 +50,7 @@ export function createPromptWorker() {
           const classification = await classifyPrompt(
             promptText,
             context.previousPrompt,
-            context.previousProjectSummary
+            context.previousProjectSummary,
           );
 
           promptType = classification.type;
@@ -75,7 +79,9 @@ export function createPromptWorker() {
       });
       const validation = await sanitizePrompt(promptText);
       if (!validation.isValid) {
-        throw new Error(validation.rejectionReason || "Prompt failed validation");
+        throw new Error(
+          validation.rejectionReason || "Prompt failed validation",
+        );
       }
 
       // Container setup - moved before plan generation for continuation prompts
@@ -90,7 +96,9 @@ export function createPromptWorker() {
         const previousSession = await SessionManager.get(previousJobId!);
 
         if (!previousSession?.containerId) {
-          throw new Error(`Cannot continue: previous job ${previousJobId} has no container`);
+          throw new Error(
+            `Cannot continue: previous job ${previousJobId} has no container`,
+          );
         }
 
         containerId = previousSession.containerId;
@@ -100,7 +108,9 @@ export function createPromptWorker() {
           await sandbox.exec(containerId, "echo 'container alive'");
           logger.info("sandbox.reusing", { jobId, containerId, previousJobId });
         } catch (error) {
-          throw new Error(`Cannot continue: container ${containerId} no longer exists. Please start a new project.`);
+          throw new Error(
+            `Cannot continue: container ${containerId} no longer exists. Please start a new project.`,
+          );
         }
 
         // Update lastActivity to keep container alive
@@ -116,10 +126,13 @@ export function createPromptWorker() {
       let planWarnings: string[] = [];
 
       // Skip cache for continuation prompts (each has unique context)
-      const cacheKey = promptType === PROMPT_TYPE.NEW
-        ? cache.buildKey(cache.CACHE_PREFIX.PLAN, validation.sanitizedPrompt)
+      const cacheKey =
+        promptType === PROMPT_TYPE.NEW
+          ? cache.buildKey(cache.CACHE_PREFIX.PLAN, validation.sanitizedPrompt)
+          : null;
+      const cachedData = cacheKey
+        ? await cache.get<{ plan: Plan; enhancedPrompt: string }>(cacheKey)
         : null;
-      const cachedData = cacheKey ? await cache.get<{ plan: Plan; enhancedPrompt: string }>(cacheKey) : null;
 
       if (cachedData) {
         // Cached (only for new prompts)
@@ -133,7 +146,10 @@ export function createPromptWorker() {
         enhancedPrompt = cachedData.enhancedPrompt;
         fromCache = true;
       } else {
-        logger.info("plan.cache.miss", { jobId, cacheKey: cacheKey || "N/A (continuation)" });
+        logger.info("plan.cache.miss", {
+          jobId,
+          cacheKey: cacheKey || "N/A (continuation)",
+        });
 
         let plan: Plan;
 
@@ -150,7 +166,6 @@ export function createPromptWorker() {
             currentStep: "Generating plan",
           });
           plan = await generatePlan(enhancedPrompt);
-
         } else {
           // CONTINUATION: Incremental plan generation
           await SessionManager.update(jobId, {
@@ -169,7 +184,7 @@ export function createPromptWorker() {
             promptText,
             context.previousPrompt || "",
             containerId!,
-            context.previousProjectSummary
+            context.previousProjectSummary,
           );
 
           enhancedPrompt = promptText; // No enhancement for continuation
@@ -193,7 +208,7 @@ export function createPromptWorker() {
 
         if (!planValidation.valid) {
           throw new Error(
-            `Plan validation failed: ${planValidation.errors.join(", ")}`
+            `Plan validation failed: ${planValidation.errors.join(", ")}`,
           );
         }
 
@@ -206,7 +221,11 @@ export function createPromptWorker() {
         });
 
         validatedPlan = planValidation.plan!;
-        planWarnings = [...planValidation.warnings, ...uiValidation.warnings, ...uiValidation.suggestions];
+        planWarnings = [
+          ...planValidation.warnings,
+          ...uiValidation.warnings,
+          ...uiValidation.suggestions,
+        ];
       }
 
       // Container creation for new prompts only (continuation already has container)
@@ -237,12 +256,14 @@ export function createPromptWorker() {
 
       // Extract routes from plan for health check
       const appFiles = validatedPlan.steps
-        .filter((s: PlanStep) => s.type === "file_write" && s.path?.endsWith(".tsx"))
+        .filter(
+          (s: PlanStep) => s.type === "file_write" && s.path?.endsWith(".tsx"),
+        )
         .map((s: PlanStep) => s.path as string);
       const routes = extractRoutesFromPlan(appFiles);
 
       const totalSteps = validatedPlan.steps.length;
-      
+
       for (const step of validatedPlan.steps) {
         logger.info("step.executing", {
           jobId,
@@ -257,7 +278,11 @@ export function createPromptWorker() {
         });
 
         if (step.type === "command" && step.command) {
-          const result = await sandbox.exec(containerId, step.command, step.workingDirectory);
+          const result = await sandbox.exec(
+            containerId,
+            step.command,
+            step.workingDirectory,
+          );
           logger.info("step.command.completed", {
             jobId,
             stepId: step.id,
@@ -290,14 +315,21 @@ export function createPromptWorker() {
 
       while (!buildSuccess && fixAttempts < MAX_FIX_RETRIES) {
         await SessionManager.update(jobId, {
-          currentStep: fixAttempts === 0 ? "Building project..." : `Fixing errors (attempt ${fixAttempts})...`,
+          currentStep:
+            fixAttempts === 0
+              ? "Building project..."
+              : `Fixing errors (attempt ${fixAttempts})...`,
         });
 
         const buildResult = await sandbox.runBuild(containerId);
 
         if (buildResult.success) {
           buildSuccess = true;
-          logger.info("sandbox.build_success", { jobId, containerId, attempts: fixAttempts });
+          logger.info("sandbox.build_success", {
+            jobId,
+            containerId,
+            attempts: fixAttempts,
+          });
 
           // Post-build UI validation on actual generated files
           if (fixAttempts > 0) {
@@ -321,32 +353,45 @@ export function createPromptWorker() {
                       path,
                       content,
                     };
-                  })
+                  }),
                 ),
               };
 
-              const postBuildValidation = frontendValidator.validate(generatedPlan);
+              const postBuildValidation =
+                frontendValidator.validate(generatedPlan);
 
-              if (postBuildValidation.warnings.length > 0 || postBuildValidation.suggestions.length > 0) {
+              if (
+                postBuildValidation.warnings.length > 0 ||
+                postBuildValidation.suggestions.length > 0
+              ) {
                 logger.warn("sandbox.post_build_ui_issues", {
                   jobId,
                   warnings: postBuildValidation.warnings,
                   suggestions: postBuildValidation.suggestions,
                 });
               } else {
-                logger.info("sandbox.post_build_ui_quality_maintained", { jobId });
+                logger.info("sandbox.post_build_ui_quality_maintained", {
+                  jobId,
+                });
               }
             } catch (validationError) {
               logger.error("sandbox.post_build_validation_failed", {
                 jobId,
-                error: validationError instanceof Error ? validationError.message : String(validationError),
+                error:
+                  validationError instanceof Error
+                    ? validationError.message
+                    : String(validationError),
               });
             }
           }
         } else {
           lastBuildErrors = buildResult.errors;
           fixAttempts++;
-          logger.warn("sandbox.build_failed", { jobId, containerId, attempt: fixAttempts });
+          logger.warn("sandbox.build_failed", {
+            jobId,
+            containerId,
+            attempt: fixAttempts,
+          });
 
           if (fixAttempts < MAX_FIX_RETRIES) {
             // Parse errors from build output
@@ -359,17 +404,20 @@ export function createPromptWorker() {
               jobId,
               attempt: fixAttempts,
               totalErrors: classifiedErrors.length,
-              byType: classifiedErrors.reduce((acc, err) => {
-                acc[err.type] = (acc[err.type] || 0) + 1;
-                return acc;
-              }, {} as Record<string, number>),
+              byType: classifiedErrors.reduce(
+                (acc, err) => {
+                  acc[err.type] = (acc[err.type] || 0) + 1;
+                  return acc;
+                },
+                {} as Record<string, number>,
+              ),
             });
 
             //Route errors to appropriate handlers
             const handlingResult = await routeAndHandleErrors(
               containerId,
               classifiedErrors,
-              jobId
+              jobId,
             );
 
             logger.info("sandbox.errors_handled", {
@@ -396,7 +444,10 @@ export function createPromptWorker() {
             }
 
             // If config errors, abort immediately
-            if (!handlingResult.success && handlingResult.failedErrors.some(e => e.type === 'config')) {
+            if (
+              !handlingResult.success &&
+              handlingResult.failedErrors.some((e) => e.type === "config")
+            ) {
               logger.error("sandbox.config_error_abort", {
                 jobId,
                 message: handlingResult.message,
@@ -408,25 +459,30 @@ export function createPromptWorker() {
       }
 
       if (!buildSuccess) {
-        logger.error("sandbox.build_failed_after_retries", { 
-          jobId, 
-          containerId, 
+        logger.error("sandbox.build_failed_after_retries", {
+          jobId,
+          containerId,
           attempts: fixAttempts,
-          errors: lastBuildErrors.slice(0, 500), 
+          errors: lastBuildErrors.slice(0, 500),
         });
       }
 
       // Start dev server for preview
       logger.info("sandbox.starting_dev_server", { jobId, containerId });
       await sandbox.startDevServer(containerId);
-      logger.info("sandbox.dev_server_started", { jobId, containerId, previewUrl: `http://localhost:${config.container.port}` });
+      logger.info("sandbox.dev_server_started", {
+        jobId,
+        containerId,
+        previewUrl: `http://localhost:${config.container.port}`,
+      });
 
       // Health check: Verify dev server is responding and app renders without errors
       await SessionManager.update(jobId, {
         currentStep: "Verifying app health...",
       });
 
-      const { runtimeErrorDetected, runtimeErrorMessage } = await performHealthCheck(jobId, routes);
+      const { runtimeErrorDetected, runtimeErrorMessage } =
+        await performHealthCheck(jobId, routes);
 
       // If runtime errors detected, attempt one fix (extending the build fix loop by 1)
       if (runtimeErrorDetected) {
@@ -444,7 +500,7 @@ export function createPromptWorker() {
         const runtimeErrorMap = new Map<string, string>();
         runtimeErrorMap.set(
           "Runtime Error",
-          `Application runtime error detected:\n${runtimeErrorMessage}\n\nCommon causes:\n- Missing 'use client' directive in components using hooks/events\n- Missing imports (especially for framer-motion, lucide-react)\n- Incorrect component structure (server/client mismatch)\n- Type errors not caught at build time`
+          `Application runtime error detected:\n${runtimeErrorMessage}\n\nCommon causes:\n- Missing 'use client' directive in components using hooks/events\n- Missing imports (especially for framer-motion, lucide-react)\n- Incorrect component structure (server/client mismatch)\n- Type errors not caught at build time`,
         );
 
         // Use existing error classification and handling pipeline
@@ -452,7 +508,7 @@ export function createPromptWorker() {
         const runtimeHandlingResult = await routeAndHandleErrors(
           containerId,
           runtimeClassifiedErrors,
-          jobId
+          jobId,
         );
 
         logger.info("sandbox.runtime_errors_handled", {
@@ -463,7 +519,10 @@ export function createPromptWorker() {
         });
 
         // Apply LLM-generated fixes if any
-        if (runtimeHandlingResult.fixes && runtimeHandlingResult.fixes.length > 0) {
+        if (
+          runtimeHandlingResult.fixes &&
+          runtimeHandlingResult.fixes.length > 0
+        ) {
           await applyFixes(containerId, runtimeHandlingResult.fixes, jobId);
 
           // Rebuild after runtime fixes
@@ -478,14 +537,16 @@ export function createPromptWorker() {
               jobId,
               errors: rebuildResult.errors.slice(0, 500),
             });
-            throw new Error(`Rebuild failed after runtime fix: ${rebuildResult.errors.slice(0, 200)}`);
+            throw new Error(
+              `Rebuild failed after runtime fix: ${rebuildResult.errors.slice(0, 200)}`,
+            );
           }
 
           logger.info("sandbox.rebuild_success_after_runtime_fix", { jobId });
 
           // Restart dev server (rebuild stops the old one)
           await sandbox.startDevServer(containerId);
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          await new Promise((resolve) => setTimeout(resolve, 5000));
 
           // Re-run health check to verify fix worked
           try {
@@ -508,7 +569,9 @@ export function createPromptWorker() {
                 status: recheckResponse.status,
                 message: "Runtime errors still present after fix attempt",
               });
-              throw new Error(`Runtime errors persist after fix: ${runtimeErrorMessage}`);
+              throw new Error(
+                `Runtime errors persist after fix: ${runtimeErrorMessage}`,
+              );
             } else {
               logger.info("sandbox.runtime_fix_successful", {
                 jobId,
@@ -518,16 +581,23 @@ export function createPromptWorker() {
           } catch (recheckError) {
             logger.error("sandbox.health_recheck_failed", {
               jobId,
-              error: recheckError instanceof Error ? recheckError.message : String(recheckError),
+              error:
+                recheckError instanceof Error
+                  ? recheckError.message
+                  : String(recheckError),
             });
-            throw new Error(`Health check failed after runtime fix: ${recheckError instanceof Error ? recheckError.message : String(recheckError)}`);
+            throw new Error(
+              `Health check failed after runtime fix: ${recheckError instanceof Error ? recheckError.message : String(recheckError)}`,
+            );
           }
         } else {
           logger.error("sandbox.no_runtime_fixes_generated", {
             jobId,
             message: "LLM did not generate fixes for runtime errors",
           });
-          throw new Error(`Runtime errors detected but could not generate fixes: ${runtimeErrorMessage}`);
+          throw new Error(
+            `Runtime errors detected but could not generate fixes: ${runtimeErrorMessage}`,
+          );
         }
       }
 
@@ -535,7 +605,7 @@ export function createPromptWorker() {
         await cache.set(
           cacheKey,
           { plan: validatedPlan, enhancedPrompt },
-          cache.CACHE_TTL.PLAN
+          cache.CACHE_TTL.PLAN,
         );
         logger.info("plan.cache.stored", { jobId, cacheKey });
       }
@@ -553,7 +623,7 @@ export function createPromptWorker() {
     {
       connection: redis,
       concurrency: WORKER_CONCURRENCY,
-    }
+    },
   );
 
   worker.on("ready", async () => {
@@ -569,14 +639,16 @@ export function createPromptWorker() {
   worker.on("completed", async (job: Job) => {
     const jobId = job.id as string;
     const durationMs =
-      job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : undefined;
-    
+      job.finishedOn && job.processedOn
+        ? job.finishedOn - job.processedOn
+        : undefined;
+
     await SessionManager.update(jobId, {
       status: SESSION_STATUS.COMPLETED,
       currentStep: "Done",
       result: JSON.stringify(job.returnvalue),
     });
-    
+
     logger.info("job.completed", {
       queue: QUEUE_NAMES.PROMPT_QUEUE,
       jobId: job.id,
@@ -594,7 +666,7 @@ export function createPromptWorker() {
         errors: [err.message],
       });
     }
-    
+
     logger.error("job.failed", {
       queue: QUEUE_NAMES.PROMPT_QUEUE,
       jobId: job?.id,
@@ -627,4 +699,3 @@ export function createPromptWorker() {
 
   return worker;
 }
-

@@ -9,4 +9,3 @@ export const CONTAINER_CONFIG = {
   MEMORY_LIMIT: 512 * 1024 * 1024,
   WORKING_DIR: "/workspace",
 };
-

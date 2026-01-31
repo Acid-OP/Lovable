@@ -1,6 +1,6 @@
-import { Response } from 'express';
-import { redis } from '@repo/redis';
-import { logger } from '../utils/logger.js';
+import { Response } from "express";
+import { redis } from "@repo/redis";
+import { logger } from "../utils/logger.js";
 
 type RedisClient = typeof redis;
 
@@ -32,7 +32,9 @@ export class SSEManagerClass {
     if (!this.subscribers.has(channel)) {
       await this.createSubscriber(channel);
     }
-    logger.info(`Client added to ${channel}. Total clients: ${this.clients.get(channel)!.size}`);
+    logger.info(
+      `Client added to ${channel}. Total clients: ${this.clients.get(channel)!.size}`,
+    );
   }
 
   private async createSubscriber(channel: string): Promise<void> {
@@ -41,13 +43,13 @@ export class SSEManagerClass {
     await subscriber.subscribe(channel);
     logger.info(`Subscribed to ${channel}`);
 
-    subscriber.on('message', (ch: string, message: string) => {
+    subscriber.on("message", (ch: string, message: string) => {
       if (ch === channel) {
         this.broadcast(channel, message);
       }
     });
 
-    subscriber.on('error', (err: Error) => {
+    subscriber.on("error", (err: Error) => {
       logger.error(`Subscriber error for ${channel}:`, err.message);
     });
 
@@ -106,16 +108,18 @@ export class SSEManagerClass {
   }
 
   public async shutdown(): Promise<void> {
-    logger.info('Shutting down SSE Manager...');
+    logger.info("Shutting down SSE Manager...");
 
     // Notify all clients
     for (const clientSet of this.clients.values()) {
       clientSet.forEach((res) => {
         try {
-          res.write(`data: ${JSON.stringify({ status: 'server_shutdown' })}\n\n`);
+          res.write(
+            `data: ${JSON.stringify({ status: "server_shutdown" })}\n\n`,
+          );
           res.end();
         } catch (err) {
-          logger.error('Error closing client:', err);
+          logger.error("Error closing client:", err);
         }
       });
     }
@@ -128,7 +132,7 @@ export class SSEManagerClass {
 
     this.clients.clear();
     this.subscribers.clear();
-    logger.info('SSE Manager shutdown complete');
+    logger.info("SSE Manager shutdown complete");
   }
 }
 

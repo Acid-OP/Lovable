@@ -4,7 +4,7 @@ interface HeroBackgroundProps {
 
 export default function HeroBackground({ imageUrl }: HeroBackgroundProps) {
   return (
-    <div 
+    <div
       className="absolute inset-0 bg-cover bg-center bg-no-repeat"
       style={{
         backgroundImage: `url('${imageUrl}')`,
@@ -15,4 +15,3 @@ export default function HeroBackground({ imageUrl }: HeroBackgroundProps) {
     </div>
   );
 }
-

@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 interface PlanStep {
   id: number;
-  type: 'file_write';
+  type: "file_write";
   description: string;
   path: string;
   content: string;
@@ -15,17 +15,17 @@ interface Plan {
 }
 
 export async function POST() {
-  await new Promise(resolve => setTimeout(resolve, 800));
+  await new Promise((resolve) => setTimeout(resolve, 800));
 
   const plan: Plan = {
-    summary: 'Counter app with React, TypeScript, and Tailwind CSS',
+    summary: "Counter app with React, TypeScript, and Tailwind CSS",
     estimatedTimeSeconds: 10,
     steps: [
       {
         id: 1,
-        type: 'file_write',
-        description: 'Create counter component',
-        path: 'app/page.tsx',
+        type: "file_write",
+        description: "Create counter component",
+        path: "app/page.tsx",
         content: `'use client'
         import { useState } from 'react';
 
@@ -66,9 +66,9 @@ export async function POST() {
       },
       {
         id: 2,
-        type: 'file_write',
-        description: 'Add custom counter styles',
-        path: 'app/counter.css',
+        type: "file_write",
+        description: "Add custom counter styles",
+        path: "app/counter.css",
         content: `/* Counter Custom Styles */
 
         .counter-container {
@@ -107,9 +107,9 @@ export async function POST() {
       },
       {
         id: 3,
-        type: 'file_write',
-        description: 'Add global styles',
-        path: 'app/globals.css',
+        type: "file_write",
+        description: "Add global styles",
+        path: "app/globals.css",
         content: `@tailwind base;
         @tailwind components;
         @tailwind utilities;
@@ -133,14 +133,14 @@ export async function POST() {
 
 export async function GET() {
   return NextResponse.json({
-    summary: 'Test endpoint working',
+    summary: "Test endpoint working",
     estimatedTimeSeconds: 1,
     steps: [
       {
         id: 1,
-        type: 'file_write',
-        description: 'Quick test file',
-        path: 'test.tsx',
+        type: "file_write",
+        description: "Quick test file",
+        path: "test.tsx",
         content: '// API is working\nconsole.log("Hello World");',
       },
     ],

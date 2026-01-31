@@ -1,13 +1,13 @@
 export enum ErrorType {
-  DEPENDENCY = 'dependency',
-  IMPORT = 'import',
-  SYNTAX = 'syntax',
-  TYPE = 'type',
-  RUNTIME = 'runtime',
-  HYDRATION = 'hydration',
-  ROUTING = 'routing',
-  CONFIG = 'config',
-  UNKNOWN = 'unknown',
+  DEPENDENCY = "dependency",
+  IMPORT = "import",
+  SYNTAX = "syntax",
+  TYPE = "type",
+  RUNTIME = "runtime",
+  HYDRATION = "hydration",
+  ROUTING = "routing",
+  CONFIG = "config",
+  UNKNOWN = "unknown",
 }
 
 export interface ClassifiedError {
@@ -37,7 +37,7 @@ export interface ErrorDetails {
 
   // General
   message: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  severity: "critical" | "high" | "medium" | "low";
 }
 
 const ERROR_PATTERNS = {
@@ -51,9 +51,9 @@ const ERROR_PATTERNS = {
   ],
 
   import: [
-    /import.*=>/,  // Wrong arrow syntax in import
-    /import.*from\s*$/i,  // Missing import path
-    /export.*=>/,  // Wrong arrow syntax in export
+    /import.*=>/, // Wrong arrow syntax in import
+    /import.*from\s*$/i, // Missing import path
+    /export.*=>/, // Wrong arrow syntax in export
     /Unexpected token.*import/i,
     /Invalid or unexpected token.*import/i,
     /SyntaxError.*import/i,
@@ -78,7 +78,7 @@ const ERROR_PATTERNS = {
     /Type ['"].*['"] has no properties in common/i,
     /Argument of type ['"].*['"] is not assignable/i,
     /Object is possibly ['"].*['"]/i,
-    /TS\d{4}:/,  // TypeScript error codes
+    /TS\d{4}:/, // TypeScript error codes
   ],
 
   config: [
@@ -120,7 +120,10 @@ const ERROR_PATTERNS = {
   ],
 };
 
-export function classifyError(errorMessage: string, filePath?: string): ClassifiedError {
+export function classifyError(
+  errorMessage: string,
+  filePath?: string,
+): ClassifiedError {
   const trimmedError = errorMessage.trim();
 
   // Check for dependency errors
@@ -135,7 +138,7 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
         details: {
           missingPackage: packageName,
           message: `Missing package: ${packageName}`,
-          severity: 'critical',
+          severity: "critical",
         },
       };
     }
@@ -149,8 +152,8 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
         originalError: errorMessage,
         filePath,
         details: {
-          message: 'Import/export syntax error',
-          severity: 'critical',
+          message: "Import/export syntax error",
+          severity: "critical",
         },
       };
     }
@@ -165,11 +168,12 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
         originalError: errorMessage,
         filePath,
         details: {
-          syntaxIssue: trimmedError.split('\n')[0],
+          syntaxIssue: trimmedError.split("\n")[0],
           line: lineMatch && lineMatch[1] ? parseInt(lineMatch[1]) : undefined,
-          column: lineMatch && lineMatch[2] ? parseInt(lineMatch[2]) : undefined,
-          message: 'Syntax error',
-          severity: 'critical',
+          column:
+            lineMatch && lineMatch[2] ? parseInt(lineMatch[2]) : undefined,
+          message: "Syntax error",
+          severity: "critical",
         },
       };
     }
@@ -184,8 +188,8 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
         filePath,
         details: {
           typeError: trimmedError,
-          message: 'Type error',
-          severity: 'high',
+          message: "Type error",
+          severity: "high",
         },
       };
     }
@@ -199,8 +203,8 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
         originalError: errorMessage,
         filePath,
         details: {
-          message: 'Configuration error',
-          severity: 'critical',
+          message: "Configuration error",
+          severity: "critical",
         },
       };
     }
@@ -214,8 +218,8 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
         originalError: errorMessage,
         filePath,
         details: {
-          message: 'Hydration mismatch between server and client',
-          severity: 'high',
+          message: "Hydration mismatch between server and client",
+          severity: "high",
         },
       };
     }
@@ -229,8 +233,8 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
         originalError: errorMessage,
         filePath,
         details: {
-          message: 'Next.js routing error',
-          severity: 'high',
+          message: "Next.js routing error",
+          severity: "high",
         },
       };
     }
@@ -244,8 +248,8 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
         originalError: errorMessage,
         filePath,
         details: {
-          message: 'Runtime error',
-          severity: 'high',
+          message: "Runtime error",
+          severity: "high",
         },
       };
     }
@@ -257,14 +261,14 @@ export function classifyError(errorMessage: string, filePath?: string): Classifi
     originalError: errorMessage,
     filePath,
     details: {
-      message: 'Unclassified error',
-      severity: 'medium',
+      message: "Unclassified error",
+      severity: "medium",
     },
   };
 }
 
 export function classifyBuildErrors(
-  errorMap: Map<string, string>
+  errorMap: Map<string, string>,
 ): ClassifiedError[] {
   const classified: ClassifiedError[] = [];
 
@@ -279,7 +283,7 @@ export function classifyBuildErrors(
 }
 
 export function groupErrorsByType(
-  errors: ClassifiedError[]
+  errors: ClassifiedError[],
 ): Map<ErrorType, ClassifiedError[]> {
   const grouped = new Map<ErrorType, ClassifiedError[]>();
 
@@ -307,9 +311,9 @@ export function extractMissingPackages(errors: ClassifiedError[]): string[] {
 export function requiresLLMFix(errorType: ErrorType): boolean {
   switch (errorType) {
     case ErrorType.DEPENDENCY:
-      return false;  // Auto-install
+      return false; // Auto-install
     case ErrorType.CONFIG:
-      return false;  // Should abort instead
+      return false; // Should abort instead
     case ErrorType.IMPORT:
     case ErrorType.SYNTAX:
     case ErrorType.TYPE:
@@ -317,7 +321,7 @@ export function requiresLLMFix(errorType: ErrorType): boolean {
     case ErrorType.ROUTING:
     case ErrorType.RUNTIME:
     case ErrorType.UNKNOWN:
-      return true;  // Send to LLM for fixing
+      return true; // Send to LLM for fixing
     default:
       return true;
   }

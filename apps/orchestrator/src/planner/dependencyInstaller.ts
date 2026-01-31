@@ -9,25 +9,25 @@ export interface InstallResult {
 }
 
 function normalizePackageName(packageName: string): string {
-  let normalized = packageName.replace(/\.(js|ts|jsx|tsx|mjs|cjs)$/, '');
+  let normalized = packageName.replace(/\.(js|ts|jsx|tsx|mjs|cjs)$/, "");
 
   // Handle relative/absolute paths - these are not npm packages
-  if (normalized.startsWith('.') || normalized.startsWith('/')) {
-    return '';
+  if (normalized.startsWith(".") || normalized.startsWith("/")) {
+    return "";
   }
 
   // Extract package name from scoped packages (@org/package/subpath -> @org/package)
-  if (normalized.startsWith('@')) {
-    const parts = normalized.split('/');
+  if (normalized.startsWith("@")) {
+    const parts = normalized.split("/");
     if (parts.length >= 2) {
       return `${parts[0]}/${parts[1]}`;
     }
-    return ''; // Invalid scoped package
+    return ""; // Invalid scoped package
   }
 
   // Extract base package name (lodash/get -> lodash)
-  const parts = normalized.split('/');
-  return parts[0] || '';
+  const parts = normalized.split("/");
+  return parts[0] || "";
 }
 
 function filterValidPackages(packages: string[]): string[] {
@@ -38,7 +38,19 @@ function filterValidPackages(packages: string[]): string[] {
 
     // Skip empty, relative paths, and built-in Node.js modules
     if (!normalized) continue;
-    if (['fs', 'path', 'http', 'https', 'crypto', 'stream', 'util', 'os', 'events'].includes(normalized)) {
+    if (
+      [
+        "fs",
+        "path",
+        "http",
+        "https",
+        "crypto",
+        "stream",
+        "util",
+        "os",
+        "events",
+      ].includes(normalized)
+    ) {
       continue;
     }
 
@@ -52,26 +64,29 @@ function filterValidPackages(packages: string[]): string[] {
 export async function autoInstallPackages(
   containerId: string,
   packageNames: string[],
-  jobId: string
+  jobId: string,
 ): Promise<InstallResult> {
   const sandbox = SandboxManager.getInstance();
   const result: InstallResult = {
     success: false,
     installedPackages: [],
     failedPackages: [],
-    output: '',
+    output: "",
   };
 
   // Filter and normalize package names
   const validPackages = filterValidPackages(packageNames);
 
   if (validPackages.length === 0) {
-    logger.info("dependency.no_valid_packages", { jobId, providedPackages: packageNames });
+    logger.info("dependency.no_valid_packages", {
+      jobId,
+      providedPackages: packageNames,
+    });
     return {
       success: true,
       installedPackages: [],
       failedPackages: [],
-      output: 'No valid packages to install',
+      output: "No valid packages to install",
     };
   }
 
@@ -83,7 +98,7 @@ export async function autoInstallPackages(
   });
 
   try {
-    const installCommand = `cd /workspace && pnpm add ${validPackages.join(' ')} 2>&1`;
+    const installCommand = `cd /workspace && pnpm add ${validPackages.join(" ")} 2>&1`;
 
     logger.info("dependency.running_command", {
       jobId,
@@ -96,7 +111,7 @@ export async function autoInstallPackages(
     result.output = installOutput;
 
     // Check if installation was successful
-    if (installOutput.includes('ERR!') || installOutput.includes('error')) {
+    if (installOutput.includes("ERR!") || installOutput.includes("error")) {
       // Parse which packages failed
       for (const pkg of validPackages) {
         if (installOutput.includes(`${pkg}`)) {
@@ -141,7 +156,7 @@ export async function autoInstallPackages(
 
 export async function isPackageInstalled(
   containerId: string,
-  packageName: string
+  packageName: string,
 ): Promise<boolean> {
   const sandbox = SandboxManager.getInstance();
 
@@ -153,19 +168,19 @@ export async function isPackageInstalled(
     const checkCommand = `cd /workspace && test -d node_modules/${normalized} && echo "exists" || echo "missing"`;
     const execResult = await sandbox.exec(containerId, checkCommand);
 
-    return execResult.output.trim() === 'exists';
+    return execResult.output.trim() === "exists";
   } catch (error) {
     return false;
   }
 }
 
 export async function getInstalledPackages(
-  containerId: string
+  containerId: string,
 ): Promise<string[]> {
   const sandbox = SandboxManager.getInstance();
 
   try {
-    const command = 'cd /workspace && pnpm list --depth=0 --json 2>&1';
+    const command = "cd /workspace && pnpm list --depth=0 --json 2>&1";
     const execResult = await sandbox.exec(containerId, command);
 
     // Parse pnpm output

@@ -13,4 +13,3 @@ router.use("/api/v1/prompt", promptRouter);
 router.use(streamRouter);
 router.use(previewRouter);
 export default router;
-

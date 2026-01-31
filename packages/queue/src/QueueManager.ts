@@ -20,7 +20,10 @@ export class QueueManager {
   }
 
   createId() {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    return (
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15)
+    );
   }
 
   async pushToQueue(data: string | { prompt: string; previousJobId?: string }) {
@@ -52,7 +55,7 @@ export class QueueManager {
           age: 86400,
           count: 50,
         },
-      }
+      },
     );
     return { jobId: job.id, clientId };
   }

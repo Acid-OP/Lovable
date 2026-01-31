@@ -3,4 +3,4 @@ export const PROMPT_TYPE = {
   CONTINUATION: "continuation",
 } as const;
 
-export type PromptType = typeof PROMPT_TYPE[keyof typeof PROMPT_TYPE];
+export type PromptType = (typeof PROMPT_TYPE)[keyof typeof PROMPT_TYPE];

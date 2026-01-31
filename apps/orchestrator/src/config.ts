@@ -9,12 +9,11 @@ export const config = {
 
   // API endpoints
   api: {
-    baseUrl: process.env.API_BASE_URL || 'http://localhost:3001',
+    baseUrl: process.env.API_BASE_URL || "http://localhost:3001",
   },
 
   // Container settings
   container: {
-    port: parseInt(process.env.CONTAINER_PORT || '3003'),
+    port: parseInt(process.env.CONTAINER_PORT || "3003"),
   },
 };
-

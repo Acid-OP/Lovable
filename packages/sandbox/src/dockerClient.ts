@@ -13,7 +13,7 @@ interface DockerResponse {
 }
 
 export async function dockerRequest(
-  options: DockerRequestOptions
+  options: DockerRequestOptions,
 ): Promise<DockerResponse> {
   return new Promise((resolve, reject) => {
     const reqOptions: http.RequestOptions = {
@@ -49,4 +49,3 @@ export async function dockerRequest(
     req.end();
   });
 }
-

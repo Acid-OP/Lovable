@@ -1,4 +1,3 @@
-
 import { SandboxManager } from "@repo/sandbox";
 
 export interface FileError {
@@ -17,19 +16,22 @@ export function parseErrorFiles(buildOutput: string): Map<string, string> {
   for (const line of lines) {
     // Match standard format: ./path/file.tsx:line:col or path/file.tsx:line:col
     const standardMatch = line.match(
-      /^\.?\/?(?:workspace\/)?([a-zA-Z0-9_\-\/\.]+\.(?:tsx?|jsx?|css|json)):(\d+):?(\d+)?/
-    );
-    
-    // Match SWC error format: ./path/file.tsx (without line number on same line)
-    const swcFileMatch = line.match(
-      /^\.\/([a-zA-Z0-9_\-\/\.]+\.(?:tsx?|jsx?|css|json))$/
+      /^\.?\/?(?:workspace\/)?([a-zA-Z0-9_\-\/\.]+\.(?:tsx?|jsx?|css|json)):(\d+):?(\d+)?/,
     );
 
-    if (standardMatch) { 
+    // Match SWC error format: ./path/file.tsx (without line number on same line)
+    const swcFileMatch = line.match(
+      /^\.\/([a-zA-Z0-9_\-\/\.]+\.(?:tsx?|jsx?|css|json))$/,
+    );
+
+    if (standardMatch) {
       if (currentFile && currentError) {
         const existingError = errorMap.get(currentFile);
         if (existingError) {
-          errorMap.set(currentFile, existingError + "\n\n" + currentError.trim());
+          errorMap.set(
+            currentFile,
+            existingError + "\n\n" + currentError.trim(),
+          );
         } else {
           errorMap.set(currentFile, currentError.trim());
         }
@@ -41,7 +43,10 @@ export function parseErrorFiles(buildOutput: string): Map<string, string> {
       if (currentFile && currentError) {
         const existingError = errorMap.get(currentFile);
         if (existingError) {
-          errorMap.set(currentFile, existingError + "\n\n" + currentError.trim());
+          errorMap.set(
+            currentFile,
+            existingError + "\n\n" + currentError.trim(),
+          );
         } else {
           errorMap.set(currentFile, currentError.trim());
         }
@@ -68,7 +73,7 @@ export function parseErrorFiles(buildOutput: string): Map<string, string> {
 
 export async function getFileErrors(
   containerId: string,
-  buildOutput: string
+  buildOutput: string,
 ): Promise<FileError[]> {
   const sandbox = SandboxManager.getInstance();
   const errorMap = parseErrorFiles(buildOutput);
@@ -85,4 +90,3 @@ export async function getFileErrors(
 
   return fileErrors;
 }
-

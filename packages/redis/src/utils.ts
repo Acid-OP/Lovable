@@ -4,7 +4,7 @@ export const gracefulShutdown = async () => {
   console.log("Redis: Shutting down gracefully...");
 
   try {
-    await redis.quit(); 
+    await redis.quit();
     console.log("Redis: Disconnected successfully");
   } catch (error) {
     console.error("Redis: Error during shutdown:", error);

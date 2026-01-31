@@ -26,7 +26,7 @@ export interface ErrorHandlingResult {
 export async function routeAndHandleErrors(
   containerId: string,
   classifiedErrors: ClassifiedError[],
-  jobId: string
+  jobId: string,
 ): Promise<ErrorHandlingResult> {
   const result: ErrorHandlingResult = {
     success: false,
@@ -35,14 +35,14 @@ export async function routeAndHandleErrors(
     autoFixedErrors: [],
     failedErrors: [],
     shouldRetryBuild: false,
-    message: '',
+    message: "",
   };
 
   if (classifiedErrors.length === 0) {
     return {
       ...result,
       success: true,
-      message: 'No errors to handle',
+      message: "No errors to handle",
     };
   }
 
@@ -73,7 +73,11 @@ export async function routeAndHandleErrors(
       count: packages.length,
     });
 
-    const installResult = await autoInstallPackages(containerId, packages, jobId);
+    const installResult = await autoInstallPackages(
+      containerId,
+      packages,
+      jobId,
+    );
     result.installResult = installResult;
 
     if (installResult.success) {
@@ -102,7 +106,7 @@ export async function routeAndHandleErrors(
     logger.error("error_router.config_errors_detected", {
       jobId,
       count: configErrors.length,
-      errors: configErrors.map(e => e.details.message),
+      errors: configErrors.map((e) => e.details.message),
     });
 
     result.failedErrors.push(...configErrors);
@@ -123,7 +127,7 @@ export async function routeAndHandleErrors(
     logger.info("error_router.preparing_llm_fixes", {
       jobId,
       count: errorsNeedingLLM.length,
-      types: Array.from(new Set(errorsNeedingLLM.map(e => e.type))),
+      types: Array.from(new Set(errorsNeedingLLM.map((e) => e.type))),
     });
 
     // Convert ClassifiedError to FileError format for LLM
@@ -141,7 +145,7 @@ export async function routeAndHandleErrors(
       logger.info("error_router.llm_fixes_generated", {
         jobId,
         fixCount: fixes.length,
-        files: fixes.map(f => f.path),
+        files: fixes.map((f) => f.path),
       });
     } catch (error) {
       logger.error("error_router.llm_fix_failed", {
@@ -167,7 +171,7 @@ export async function routeAndHandleErrors(
 
 async function convertToFileErrors(
   containerId: string,
-  classifiedErrors: ClassifiedError[]
+  classifiedErrors: ClassifiedError[],
 ): Promise<FileError[]> {
   const sandbox = SandboxManager.getInstance();
   const fileErrors: FileError[] = [];
@@ -189,7 +193,8 @@ async function convertToFileErrors(
     } catch (readError) {
       logger.error("error_router.file_read_failed", {
         path: error.filePath,
-        error: readError instanceof Error ? readError.message : String(readError),
+        error:
+          readError instanceof Error ? readError.message : String(readError),
       });
     }
   }
@@ -200,7 +205,7 @@ async function convertToFileErrors(
 export async function applyFixes(
   containerId: string,
   fixes: FileFix[],
-  jobId: string
+  jobId: string,
 ): Promise<void> {
   const sandbox = SandboxManager.getInstance();
 
@@ -226,15 +231,15 @@ export async function applyFixes(
 
 export function prioritizeErrors(errors: ClassifiedError[]): ClassifiedError[] {
   const priority: Record<ErrorType, number> = {
-    [ErrorType.DEPENDENCY]: 1,  // Fix first (fastest)
-    [ErrorType.CONFIG]: 2,      // Check early (may need to abort)
-    [ErrorType.SYNTAX]: 3,      // Fix before type errors
-    [ErrorType.IMPORT]: 4,      // Fix before type errors
-    [ErrorType.TYPE]: 5,        // Fix after syntax/imports
-    [ErrorType.HYDRATION]: 6,   // React hydration errors
-    [ErrorType.ROUTING]: 7,     // Next.js routing errors
-    [ErrorType.RUNTIME]: 8,     // Runtime errors
-    [ErrorType.UNKNOWN]: 9,     // Fix last
+    [ErrorType.DEPENDENCY]: 1, // Fix first (fastest)
+    [ErrorType.CONFIG]: 2, // Check early (may need to abort)
+    [ErrorType.SYNTAX]: 3, // Fix before type errors
+    [ErrorType.IMPORT]: 4, // Fix before type errors
+    [ErrorType.TYPE]: 5, // Fix after syntax/imports
+    [ErrorType.HYDRATION]: 6, // React hydration errors
+    [ErrorType.ROUTING]: 7, // Next.js routing errors
+    [ErrorType.RUNTIME]: 8, // Runtime errors
+    [ErrorType.UNKNOWN]: 9, // Fix last
   };
 
   return [...errors].sort((a, b) => {

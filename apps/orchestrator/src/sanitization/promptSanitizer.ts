@@ -7,7 +7,9 @@ const SANITIZATION_CONFIG = {
   enableLogging: true,
 };
 
-export async function sanitizePrompt(prompt: string): Promise<SanitizationResult> {
+export async function sanitizePrompt(
+  prompt: string,
+): Promise<SanitizationResult> {
   const warnings: string[] = [];
   let riskLevel: RiskLevel = "low";
 
@@ -40,7 +42,7 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
 
   if (sanitized.length > SANITIZATION_CONFIG.maxLength) {
     warnings.push(
-      `Truncated from ${sanitized.length} to ${SANITIZATION_CONFIG.maxLength} chars`
+      `Truncated from ${sanitized.length} to ${SANITIZATION_CONFIG.maxLength} chars`,
     );
     sanitized = sanitized.substring(0, SANITIZATION_CONFIG.maxLength);
   }
@@ -81,8 +83,8 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     /new\s+(instructions?|rules?|prompts?)/gi,
     /forget\s+(everything|all|previous)/gi,
     /system\s*:\s*/gi,
-    /\[INST\]/gi, 
-    /\<\|im_start\|\>/gi, 
+    /\[INST\]/gi,
+    /\<\|im_start\|\>/gi,
   ];
 
   promptInjection.forEach((pattern) => {
@@ -93,7 +95,8 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     }
   });
 
-  const specialCharCount = (sanitized.match(/[^a-zA-Z0-9\s.,!?-]/g) || []).length;
+  const specialCharCount = (sanitized.match(/[^a-zA-Z0-9\s.,!?-]/g) || [])
+    .length;
   const specialCharRatio = specialCharCount / sanitized.length;
 
   if (specialCharRatio > 0.3) {
@@ -105,7 +108,7 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
   if (repeatedPattern.test(sanitized)) {
     warnings.push("Excessive character repetition detected");
     sanitized = sanitized.replace(repeatedPattern, (match: string) =>
-      match.charAt(0).repeat(5)
+      match.charAt(0).repeat(5),
     );
   }
 
@@ -129,7 +132,9 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
         // Check for localhost/internal IPs
         if (
           parsedUrl.hostname === "localhost" ||
-          /^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(parsedUrl.hostname)
+          /^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(
+            parsedUrl.hostname,
+          )
         ) {
           warnings.push("Internal/localhost URL detected");
           sanitized = sanitized.replace(url, "[INTERNAL_URL_REMOVED]");
@@ -170,4 +175,3 @@ export async function sanitizePrompt(prompt: string): Promise<SanitizationResult
     riskLevel,
   };
 }
-
