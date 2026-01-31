@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { SessionManager } from '@repo/session';
-import { config } from '../config.js';
 
 export const previewRouter = Router();
 
@@ -21,13 +20,13 @@ previewRouter.use('/', async (req, res, next) => {
   }
 
   // Store jobId in req for proxy to use
-  (req as any).jobId = jobId;
+  req.jobId = jobId;
   next();
 }, createProxyMiddleware({
   target: 'http://placeholder',  // Will be overridden by router
   changeOrigin: true,
   router: (req) => {
-    const jobId = (req as any).jobId;
+    const jobId = req.jobId;
     // Use Docker DNS to resolve container by name
     const target = `http://sandbox-${jobId}:3000`;
     console.log(`Routing ${req.hostname} to ${target}`);

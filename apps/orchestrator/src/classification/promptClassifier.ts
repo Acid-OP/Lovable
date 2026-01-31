@@ -1,10 +1,11 @@
 import { givePromptToLLM } from "../llm.js";
 import { logger } from "../utils/logger.js";
 import { z } from "zod";
+import { PROMPT_TYPE } from "../types/prompt.js";
 
 // Zod schema for classification result
 const ClassificationSchema = z.object({
-  type: z.enum(["new", "continuation"]).describe("Whether this is a new project or continuation"),
+  type: z.enum([PROMPT_TYPE.NEW, PROMPT_TYPE.CONTINUATION]).describe("Whether this is a new project or continuation"),
   reasoning: z.string().describe("Brief explanation of the classification"),
   confidence: z.number().describe("Confidence level between 0.0 and 1.0"),
 });
@@ -57,7 +58,7 @@ export async function classifyPrompt(
   // No previous context? Must be new
   if (!previousPrompt) {
     return {
-      type: "new",
+      type: PROMPT_TYPE.NEW,
       reasoning: "No previous prompt in session",
       confidence: 1.0,
     };
@@ -95,7 +96,7 @@ Classify this prompt:`;
 
     // Safe fallback: treat as new project
     return {
-      type: "new",
+      type: PROMPT_TYPE.NEW,
       reasoning: "Classification failed, defaulting to new project",
       confidence: 0.5,
     };

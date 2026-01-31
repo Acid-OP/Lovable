@@ -6,6 +6,11 @@ export interface ExecResult {
   output: string;
 }
 
+interface DockerContainer {
+  Id: string;
+  Names: string[];
+}
+
 export class SandboxManager {
   private static instance: SandboxManager;
 
@@ -24,9 +29,9 @@ export class SandboxManager {
         path: `/containers/json?all=true`,
         method: "GET",
       });
-      const containers = JSON.parse(response.data);
-      const sandboxContainers = containers.filter((c: any) =>
-        c.Names.some((name: string) => name.startsWith("/sandbox-"))
+      const containers: DockerContainer[] = JSON.parse(response.data);
+      const sandboxContainers = containers.filter((c) =>
+        c.Names.some((name) => name.startsWith("/sandbox-"))
       );
 
       for (const container of sandboxContainers) {
@@ -161,8 +166,8 @@ export class SandboxManager {
     try {
       await this.exec(containerId, "cd /workspace && pnpm build 2>&1");
       return { success: true, errors: "" };
-    } catch (error: any) {
-      return { success: false, errors: error.message || String(error) };
+    } catch (error) {
+      return { success: false, errors: error instanceof Error ? error.message : String(error) };
     }
   }
 

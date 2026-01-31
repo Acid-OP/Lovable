@@ -8,6 +8,8 @@ import * as cache from "../utils/cache.js";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
 import { enhancePrompt, generatePlan, generateIncrementalPlan } from "../planner/index.js";
 import { planValidator, frontendValidator } from "../validation/index.js";
+import type { Plan, PlanStep } from "../planner/types.js";
+import { PROMPT_TYPE, type PromptType } from "../types/prompt.js";
 import { classifyBuildErrors } from "../planner/errorClassifier.js";
 import { routeAndHandleErrors, applyFixes } from "../planner/errorRouter.js";
 import { parseErrorFiles } from "../planner/buildErrorParser.js";
@@ -35,7 +37,7 @@ export function createPromptWorker() {
       const jobId = job.id as string;
 
       // Classify prompt if there's a previous job
-      let promptType: "new" | "continuation" = "new";
+      let promptType: PromptType = PROMPT_TYPE.NEW;
 
       if (previousJobId) {
         const context = await getContextFromJob(previousJobId);
@@ -82,7 +84,7 @@ export function createPromptWorker() {
       const previewUrl = `${config.api.baseUrl}/preview/${jobId}`;
 
       // For continuation prompts, get container first (needed for incremental plan)
-      if (promptType === "continuation") {
+      if (promptType === PROMPT_TYPE.CONTINUATION) {
         logger.info("sandbox.continuation", { jobId, previousJobId });
 
         const previousSession = await SessionManager.get(previousJobId!);
@@ -108,16 +110,16 @@ export function createPromptWorker() {
       }
 
       // Plan generation - branching based on prompt type
-      let validatedPlan: any;
+      let validatedPlan: Plan;
       let enhancedPrompt: string;
       let fromCache = false;
       let planWarnings: string[] = [];
 
       // Skip cache for continuation prompts (each has unique context)
-      const cacheKey = promptType === "new"
+      const cacheKey = promptType === PROMPT_TYPE.NEW
         ? cache.buildKey(cache.CACHE_PREFIX.PLAN, validation.sanitizedPrompt)
         : null;
-      const cachedData = cacheKey ? await cache.get<{ plan: any; enhancedPrompt: string }>(cacheKey) : null;
+      const cachedData = cacheKey ? await cache.get<{ plan: Plan; enhancedPrompt: string }>(cacheKey) : null;
 
       if (cachedData) {
         // Cached (only for new prompts)
@@ -133,9 +135,9 @@ export function createPromptWorker() {
       } else {
         logger.info("plan.cache.miss", { jobId, cacheKey: cacheKey || "N/A (continuation)" });
 
-        let plan: any;
+        let plan: Plan;
 
-        if (promptType === "new") {
+        if (promptType === PROMPT_TYPE.NEW) {
           // NEW PROJECT: Full plan generation
           await SessionManager.update(jobId, {
             status: SESSION_STATUS.PROCESSING,
@@ -208,7 +210,7 @@ export function createPromptWorker() {
       }
 
       // Container creation for new prompts only (continuation already has container)
-      if (promptType === "new") {
+      if (promptType === PROMPT_TYPE.NEW) {
         logger.info("sandbox.new_project", { jobId });
 
         await sandbox.cleanupOldContainers();
@@ -235,8 +237,8 @@ export function createPromptWorker() {
 
       // Extract routes from plan for health check
       const appFiles = validatedPlan.steps
-        .filter((s: any) => s.type === "file_write" && s.path?.endsWith(".tsx"))
-        .map((s: any) => s.path as string);
+        .filter((s: PlanStep) => s.type === "file_write" && s.path?.endsWith(".tsx"))
+        .map((s: PlanStep) => s.path as string);
       const routes = extractRoutesFromPlan(appFiles);
 
       const totalSteps = validatedPlan.steps.length;
