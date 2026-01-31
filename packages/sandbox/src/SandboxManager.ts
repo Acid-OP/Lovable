@@ -1,5 +1,5 @@
 import { dockerRequest } from "./dockerClient.js";
-import { DEFAULT_IMAGE, CONTAINER_CONFIG } from "./constants.js";
+import { DEFAULT_IMAGE, CONTAINER_CONFIG, DOCKER_NETWORK } from "./constants.js";
 
 export interface ExecResult {
   exitCode: number;
@@ -40,7 +40,6 @@ export class SandboxManager {
 
   public async createContainer(jobId: string, exposePort?: number): Promise<string> {
     const containerName = `sandbox-${jobId}`;
-    const hostPort = exposePort || 3003;
 
     const body = {
       Image: DEFAULT_IMAGE,
@@ -52,9 +51,18 @@ export class SandboxManager {
       },
       HostConfig: {
         Memory: CONTAINER_CONFIG.MEMORY_LIMIT,
-        PortBindings: {
-          "3000/tcp": [{ HostPort: String(hostPort) }],
+        // No PortBindings - using Docker network instead
+      },
+      NetworkingConfig: {
+        EndpointsConfig: {
+          [DOCKER_NETWORK]: {
+            Aliases: [containerName],
+          },
         },
+      },
+      Labels: {
+        jobId: jobId,
+        type: "sandbox",
       },
     };
 

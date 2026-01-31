@@ -6,8 +6,8 @@ import { config } from '../config.js';
 export const previewRouter = Router();
 
 previewRouter.use('/', async (req, res, next) => {
-  const hostname = req.hostname;  
-  const jobId = hostname.split('.')[0];  
+  const hostname = req.hostname;
+  const jobId = hostname.split('.')[0];
   if (hostname === 'localhost' || jobId === 'localhost') {
     return next('route');
   }
@@ -19,9 +19,18 @@ previewRouter.use('/', async (req, res, next) => {
   } catch (error) {
     console.error(`Failed to update activity for ${jobId}:`, error);
   }
-  
+
+  // Store jobId in req for proxy to use
+  (req as any).jobId = jobId;
   next();
 }, createProxyMiddleware({
-  target: config.container.baseUrl,  
+  target: 'http://placeholder',  // Will be overridden by router
   changeOrigin: true,
+  router: (req) => {
+    const jobId = (req as any).jobId;
+    // Use Docker DNS to resolve container by name
+    const target = `http://sandbox-${jobId}:3000`;
+    console.log(`Routing ${req.hostname} to ${target}`);
+    return target;
+  },
 }));

@@ -1,0 +1,39 @@
+FROM node:20-slim
+
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Set pnpm store directory
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="${PNPM_HOME}:${PATH}"
+
+# Create app directory
+WORKDIR /app
+
+# Copy root package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy all workspace packages
+COPY packages ./packages
+COPY apps/http ./apps/http
+
+# Install dependencies for entire monorepo
+RUN pnpm install --frozen-lockfile
+
+# Build all dependencies
+RUN pnpm --filter @repo/db build
+RUN pnpm --filter @repo/queue build
+RUN pnpm --filter @repo/redis build
+RUN pnpm --filter @repo/session build
+
+# Build HTTP server
+RUN pnpm --filter http build
+
+# Change to HTTP app directory
+WORKDIR /app/apps/http
+
+# Expose port
+EXPOSE 3001
+
+# Start the server
+CMD ["pnpm", "start"]
