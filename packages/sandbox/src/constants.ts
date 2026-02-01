@@ -3,7 +3,8 @@ export const DOCKER_SOCKET =
 
 export const DEFAULT_IMAGE = process.env.SANDBOX_IMAGE || "lovable-sandbox";
 
-export const DOCKER_NETWORK = process.env.DOCKER_NETWORK || "lovable-network";
+export const DOCKER_NETWORK =
+  process.env.DOCKER_NETWORK || "lovable_sandbox-network";
 
 export const CONTAINER_CONFIG = {
   MEMORY_LIMIT: 512 * 1024 * 1024,

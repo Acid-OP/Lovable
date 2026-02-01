@@ -7,7 +7,8 @@ services:
     ports:
       - "3001:3001"
     networks:
-      - lovable-network
+      - backend-network
+      - sandbox-network
     environment:
       - PORT=3001
       - CONTAINER_PORT=3003
@@ -18,6 +19,29 @@ services:
       - LLM_TEMPERATURE=${LLM_TEMPERATURE}
       - LLM_MAX_TOKENS=${LLM_MAX_TOKENS}
       - LLM_TOP_P=${LLM_TOP_P}
+      - DOCKER_NETWORK=lovable_sandbox-network
+    env_file:
+      - .env
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Docker/docker.orchestrator
+    container_name: lovable-orchestrator
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - REDIS_HOST=host.docker.internal
+      - REDIS_PORT=6379
+      - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS}
+      - LLM_TOP_P=${LLM_TOP_P}
+      - DOCKER_NETWORK=lovable_sandbox-network
+      - DOCKER_SOCKET=/var/run/docker.sock
     env_file:
       - .env
     restart: unless-stopped
@@ -25,5 +49,9 @@ services:
       - "host.docker.internal:host-gateway"
 
 networks:
-  lovable-network:
-    external: true
+  backend-network:
+    driver: bridge
+    internal: false
+  sandbox-network:
+    driver: bridge
+    internal: true
