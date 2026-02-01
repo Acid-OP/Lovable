@@ -62,7 +62,3 @@ redis.on("close", () => {
 redis.on("end", () => {
   console.error("Redis: Connection ended. No more reconnection attempts.");
 });
-
-// Note: SIGTERM/SIGINT handlers removed
-// Redis is independent - connection closes automatically when process exits
-// Graceful shutdown handled by cleanup worker which needs Redis connection

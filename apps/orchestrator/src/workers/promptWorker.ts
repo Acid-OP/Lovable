@@ -126,13 +126,28 @@ export function createPromptWorker() {
       let planWarnings: string[] = [];
 
       // Skip cache for continuation prompts (each has unique context)
-      const cacheKey =
+      // Also skip cache on retry - if plan failed before, regenerate it
+      let cacheKey =
         promptType === PROMPT_TYPE.NEW
           ? cache.buildKey(cache.CACHE_PREFIX.PLAN, validation.sanitizedPrompt)
           : null;
-      const cachedData = cacheKey
-        ? await cache.get<{ plan: Plan; enhancedPrompt: string }>(cacheKey)
-        : null;
+
+      let cachedData = null;
+
+      // If this is a retry (attemptsMade > 1), invalidate cache and regenerate plan
+      if (job.attemptsMade > 1 && cacheKey) {
+        logger.info("plan.cache.invalidate_on_retry", {
+          jobId,
+          attempt: job.attemptsMade,
+          cacheKey,
+        });
+        await cache.del(cacheKey);
+        cachedData = null;
+      } else {
+        cachedData = cacheKey
+          ? await cache.get<{ plan: Plan; enhancedPrompt: string }>(cacheKey)
+          : null;
+      }
 
       if (cachedData) {
         // Cached (only for new prompts)

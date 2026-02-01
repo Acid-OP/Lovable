@@ -69,6 +69,32 @@ export class SandboxManager {
   ): Promise<string> {
     const containerName = `sandbox-${jobId}`;
 
+    // Check if container with this name already exists (from failed previous attempt)
+    // If it does, destroy it before creating new one to avoid name conflict
+    try {
+      // Check if container exists (don't need response data, just checking if request succeeds)
+      await dockerRequest({
+        path: `/containers/${containerName}/json`,
+        method: "GET",
+      });
+      // Container exists! Destroy it before creating new one
+      console.log(
+        `Container ${containerName} already exists (from previous attempt), removing it...`,
+      );
+      await dockerRequest({
+        path: `/containers/${containerName}?force=true`,
+        method: "DELETE",
+      });
+      console.log(`Removed existing container ${containerName}`);
+    } catch (error: any) {
+      if (error.statusCode !== 404) {
+        console.warn(
+          `Error checking for existing container ${containerName}:`,
+          error,
+        );
+      }
+    }
+
     const body = {
       Image: DEFAULT_IMAGE,
       Cmd: ["/bin/sh"],
