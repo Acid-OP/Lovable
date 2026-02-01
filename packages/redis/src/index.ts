@@ -1,5 +1,4 @@
 import * as IORedis from "ioredis";
-import { gracefulShutdown } from "./utils.js";
 
 const Redis = (IORedis as any).default || IORedis;
 
@@ -64,5 +63,6 @@ redis.on("end", () => {
   console.error("Redis: Connection ended. No more reconnection attempts.");
 });
 
-process.on("SIGTERM", gracefulShutdown);
-process.on("SIGINT", gracefulShutdown);
+// Note: SIGTERM/SIGINT handlers removed
+// Redis is independent - connection closes automatically when process exits
+// Graceful shutdown handled by cleanup worker which needs Redis connection

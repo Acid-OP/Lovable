@@ -12,6 +12,7 @@
     "@repo/queue": "workspace:*",
     "@repo/redis": "workspace:*",
     "@repo/session": "workspace:*",
+    "axios": "^1.7.9",
     "dotenv": "^16.4.5",
     "express": "^5.2.1",
     "helmet": "^8.1.0",

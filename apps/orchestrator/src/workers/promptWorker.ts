@@ -17,11 +17,11 @@ import { PROMPT_TYPE, type PromptType } from "../types/prompt.js";
 import { classifyBuildErrors } from "../planner/errorClassifier.js";
 import { routeAndHandleErrors, applyFixes } from "../planner/errorRouter.js";
 import { parseErrorFiles } from "../planner/buildErrorParser.js";
-import { performHealthCheck } from "../planner/healthCheck.js";
 import { extractRoutesFromPlan } from "../planner/routeExtractor.js";
 import { config } from "../config.js";
 import { classifyPrompt } from "../classification/promptClassifier.js";
 import { getContextFromJob } from "../classification/conversationContext.js";
+import axios from "axios";
 import os from "os";
 
 const WORKER_CONCURRENCY = 3;
@@ -226,13 +226,21 @@ export function createPromptWorker() {
           ...uiValidation.warnings,
           ...uiValidation.suggestions,
         ];
+
+        // Cache the validated plan immediately (even if job fails later, plan can be reused on retry)
+        if (!fromCache && cacheKey) {
+          await cache.set(
+            cacheKey,
+            { plan: validatedPlan, enhancedPrompt },
+            cache.CACHE_TTL.PLAN,
+          );
+          logger.info("plan.cache.stored", { jobId, cacheKey });
+        }
       }
 
       // Container creation for new prompts only (continuation already has container)
       if (promptType === PROMPT_TYPE.NEW) {
         logger.info("sandbox.new_project", { jobId });
-
-        await sandbox.cleanupOldContainers();
 
         logger.info("sandbox.creating", { jobId });
         containerId = await sandbox.createContainer(jobId);
@@ -476,13 +484,33 @@ export function createPromptWorker() {
         previewUrl: `http://localhost:${config.container.port}`,
       });
 
+      // Wait for dev server to be ready (Next.js needs time to initialize)
+      logger.info("sandbox.waiting_for_dev_server", {
+        jobId,
+        waitTimeMs: 5000,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
       // Health check: Verify dev server is responding and app renders without errors
       await SessionManager.update(jobId, {
         currentStep: "Verifying app health...",
       });
 
+      // Call HTTP server's health check endpoint (HTTP has network access to containers)
+      logger.info("sandbox.health_check_via_http", { jobId });
+      const healthCheckResponse = await axios.post(
+        `${config.api.httpServiceUrl}/internal/health-check`,
+        {
+          jobId,
+          routes,
+        },
+        {
+          timeout: 15000,
+        },
+      );
+
       const { runtimeErrorDetected, runtimeErrorMessage } =
-        await performHealthCheck(jobId, routes);
+        healthCheckResponse.data;
 
       // If runtime errors detected, attempt one fix (extending the build fix loop by 1)
       if (runtimeErrorDetected) {
@@ -550,27 +578,28 @@ export function createPromptWorker() {
 
           // Re-run health check to verify fix worked
           try {
-            const healthCheckUrl = `http://localhost:${config.container.port}`;
-            const recheckResponse = await fetch(healthCheckUrl, {
-              signal: AbortSignal.timeout(10000),
-            });
+            logger.info("sandbox.health_recheck_via_http", { jobId });
+            const recheckResponse = await axios.post(
+              `${config.api.httpServiceUrl}/internal/health-check`,
+              {
+                jobId,
+                routes,
+              },
+              {
+                timeout: 15000,
+              },
+            );
 
-            const recheckHtml = await recheckResponse.text();
-
-            const stillHasErrors =
-              recheckResponse.status !== 200 ||
-              /Application error/i.test(recheckHtml) ||
-              /Hydration failed/i.test(recheckHtml) ||
-              /Unhandled Runtime Error/i.test(recheckHtml);
+            const stillHasErrors = recheckResponse.data.runtimeErrorDetected;
 
             if (stillHasErrors) {
               logger.error("sandbox.runtime_errors_persist_after_fix", {
                 jobId,
-                status: recheckResponse.status,
                 message: "Runtime errors still present after fix attempt",
+                error: recheckResponse.data.runtimeErrorMessage,
               });
               throw new Error(
-                `Runtime errors persist after fix: ${runtimeErrorMessage}`,
+                `Runtime errors persist after fix: ${recheckResponse.data.runtimeErrorMessage}`,
               );
             } else {
               logger.info("sandbox.runtime_fix_successful", {
@@ -599,15 +628,6 @@ export function createPromptWorker() {
             `Runtime errors detected but could not generate fixes: ${runtimeErrorMessage}`,
           );
         }
-      }
-
-      if (!fromCache && cacheKey) {
-        await cache.set(
-          cacheKey,
-          { plan: validatedPlan, enhancedPrompt },
-          cache.CACHE_TTL.PLAN,
-        );
-        logger.info("plan.cache.stored", { jobId, cacheKey });
       }
 
       return {

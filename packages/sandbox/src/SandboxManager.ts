@@ -39,10 +39,24 @@ export class SandboxManager {
       );
 
       for (const container of sandboxContainers) {
-        await this.destroy(container.Id);
-        console.log(
-          `Cleaned up old sandbox container: ${container.Id.slice(0, 12)}`,
-        );
+        // Inspect container to check if it's running
+        const inspectResponse = await dockerRequest({
+          path: `/containers/${container.Id}/json`,
+          method: "GET",
+        });
+        const containerInfo = JSON.parse(inspectResponse.data);
+
+        // Only cleanup stopped/exited containers, never touch running ones
+        if (containerInfo.State?.Running === false) {
+          await this.destroy(container.Id);
+          console.log(
+            `Cleaned up stopped sandbox container: ${container.Id.slice(0, 12)}`,
+          );
+        } else {
+          console.log(
+            `Skipping running sandbox container: ${container.Id.slice(0, 12)}`,
+          );
+        }
       }
     } catch (error) {
       console.warn("Failed to cleanup old containers:", error);

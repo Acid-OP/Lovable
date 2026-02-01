@@ -19,6 +19,7 @@
     "@repo/sandbox": "workspace:*",
     "@repo/session": "workspace:*",
     "ai": "^5.0.116",
+    "axios": "^1.7.9",
     "bullmq": "^5.10.1",
     "dotenv": "^16.4.5",
     "winston": "^3.19.0",

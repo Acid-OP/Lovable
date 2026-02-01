@@ -10,6 +10,10 @@ export const config = {
   // API endpoints
   api: {
     baseUrl: process.env.API_BASE_URL || "http://localhost:3001",
+    // HTTP service URL for internal API calls (health check, etc.)
+    // Uses host.docker.internal in Docker, can be configured for production
+    httpServiceUrl:
+      process.env.HTTP_SERVICE_URL || "http://host.docker.internal:3001",
   },
 
   // Container settings

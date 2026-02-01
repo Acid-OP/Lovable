@@ -20,10 +20,10 @@ COPY apps/http ./apps/http
 # Install dependencies for entire monorepo
 RUN pnpm install --frozen-lockfile
 
-# Build all dependencies
+# Build all dependencies in correct order
 RUN pnpm --filter @repo/db build
-RUN pnpm --filter @repo/queue build
 RUN pnpm --filter @repo/redis build
+RUN pnpm --filter @repo/queue build
 RUN pnpm --filter @repo/session build
 
 # Build HTTP server

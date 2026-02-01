@@ -17,10 +17,10 @@ COPY apps/orchestrator ./apps/orchestrator
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build dependencies first
+# Build dependencies first in correct order
 RUN pnpm --filter @repo/db build
-RUN pnpm --filter @repo/queue build
 RUN pnpm --filter @repo/redis build
+RUN pnpm --filter @repo/queue build
 RUN pnpm --filter @repo/session build
 RUN pnpm --filter @repo/sandbox build
 

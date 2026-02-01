@@ -36,6 +36,7 @@ services:
     environment:
       - REDIS_HOST=host.docker.internal
       - REDIS_PORT=6379
+      - HTTP_SERVICE_URL=http://host.docker.internal:3001
       - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
       - LLM_TEMPERATURE=${LLM_TEMPERATURE}
       - LLM_MAX_TOKENS=${LLM_MAX_TOKENS}
@@ -54,4 +55,4 @@ networks:
     internal: false
   sandbox-network:
     driver: bridge
-    internal: true
+    internal: false
