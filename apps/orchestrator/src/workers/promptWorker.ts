@@ -40,7 +40,7 @@ export function createPromptWorker() {
       const previousJobId = job.data?.previousJobId;
       const jobId = job.id as string;
 
-      // Classify prompt if there's a previous job
+      // Step 1: Classify prompt type (NEW or CONTINUATION)
       let promptType: PromptType = PROMPT_TYPE.NEW;
 
       if (previousJobId) {
@@ -72,7 +72,7 @@ export function createPromptWorker() {
         promptType,
       });
 
-      // Sanitize
+      // Step 2: Sanitize and validate prompt
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
         currentStep: "Sanitizing prompt",
@@ -84,24 +84,22 @@ export function createPromptWorker() {
         );
       }
 
-      // Container setup - moved before plan generation for continuation prompts
+      // Step 3: Setup container (reuse for iterations, create new for first prompts)
       const sandbox = SandboxManager.getInstance();
       let containerId: string | undefined;
       const previewUrl = `${config.api.baseUrl}/preview/${jobId}`;
 
-      // Check if session already has a container (for iterations)
       const currentSession = await SessionManager.get(jobId);
 
       if (
         promptType === PROMPT_TYPE.CONTINUATION &&
         currentSession?.containerId
       ) {
-        // Iteration: Reuse existing container
         logger.info("sandbox.continuation", { jobId, previousJobId });
 
         containerId = currentSession.containerId;
 
-        // Verify container is still alive
+        // Verify container still exists
         try {
           await sandbox.exec(containerId, "echo 'container alive'");
           logger.info("sandbox.reusing", { jobId, containerId });
@@ -111,13 +109,12 @@ export function createPromptWorker() {
           );
         }
 
-        // Update lastActivity to keep container alive
         await SessionManager.update(jobId, {
           lastActivity: Date.now().toString(),
         });
       }
 
-      // Plan generation - branching based on prompt type
+      // Step 4: Generate and validate plan (full for NEW, incremental for CONTINUATION)
       let validatedPlan: Plan;
       let enhancedPrompt: string;
       let fromCache = false;
@@ -251,7 +248,7 @@ export function createPromptWorker() {
         }
       }
 
-      // Container creation for new prompts only (continuation already has container)
+      // Step 5: Create container for new prompts (continuation already has one)
       if (promptType === PROMPT_TYPE.NEW) {
         logger.info("sandbox.new_project", { jobId });
 
@@ -275,7 +272,7 @@ export function createPromptWorker() {
         previewUrl,
       });
 
-      // Extract routes from plan for health check
+      // Step 6: Execute plan steps (write files, run commands)
       const appFiles = validatedPlan.steps
         .filter(
           (s: PlanStep) => s.type === "file_write" && s.path?.endsWith(".tsx"),
@@ -329,7 +326,7 @@ export function createPromptWorker() {
           });
         }
       }
-      // Build and fix errors loop
+      // Step 7: Build project and auto-fix errors (retry up to MAX_FIX_RETRIES)
       let buildSuccess = false;
       let fixAttempts = 0;
       let lastBuildErrors = "";
@@ -488,7 +485,7 @@ export function createPromptWorker() {
         });
       }
 
-      // Start dev server for preview
+      // Step 8: Start dev server and run health checks
       logger.info("sandbox.starting_dev_server", { jobId, containerId });
       await sandbox.startDevServer(containerId);
       logger.info("sandbox.dev_server_started", {

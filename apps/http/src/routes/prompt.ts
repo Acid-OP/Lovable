@@ -11,20 +11,18 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
-    // For iterations, reuse the previous jobId to keep container name consistent
+    // For iterations, reuse jobId to keep same container
     const isIteration = !!previousJobId;
     const jobId = isIteration ? previousJobId : undefined;
 
-    // Push to queue with metadata
     const result = await QueueManager.getInstance().pushToQueue({
       prompt,
-      previousJobId, // Optional: for iterative prompting
-      jobId, // Reuse jobId for iterations
+      previousJobId,
+      jobId,
     });
 
-    // For iterations, update existing session; for new prompts, create new session
+    // Update existing session for iterations, create new for first prompts
     if (isIteration) {
-      // Get current session to preserve history
       const currentSession = await SessionManager.get(result.jobId as string);
       const iterationCount = (currentSession?.iterationCount || 0) + 1;
 
@@ -50,12 +48,10 @@ router.post("/", async (req, res) => {
     });
   } catch (e) {
     console.error("Error enqueueing prompt:", e);
-    return res
-      .status(500)
-      .json({
-        error: "Failed to enqueue prompt",
-        details: e instanceof Error ? e.message : String(e),
-      });
+    return res.status(500).json({
+      error: "Failed to enqueue prompt",
+      details: e instanceof Error ? e.message : String(e),
+    });
   }
 });
 
