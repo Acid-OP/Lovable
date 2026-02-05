@@ -55,6 +55,7 @@ export async function classifyPrompt(
   currentPrompt: string,
   previousPrompt?: string,
   previousProjectSummary?: string,
+  jobId?: string,
 ): Promise<ClassificationResult> {
   // No previous context? Must be new
   if (!previousPrompt) {
@@ -80,7 +81,11 @@ Current user request: "${currentPrompt}"
 
 Classify this prompt:`;
 
-    const result = await givePromptToLLM(fullPrompt, ClassificationSchema);
+    const result = await givePromptToLLM(
+      fullPrompt,
+      ClassificationSchema,
+      jobId,
+    );
 
     logger.info("prompt.classification.complete", {
       type: result.type,

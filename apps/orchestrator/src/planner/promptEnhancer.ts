@@ -47,7 +47,10 @@ ENHANCEMENT RULES:
 
 Return an enhanced version that is specific, actionable, and includes design details.`;
 
-export async function enhancePrompt(userPrompt: string): Promise<string> {
+export async function enhancePrompt(
+  userPrompt: string,
+  jobId?: string,
+): Promise<string> {
   const enhancerPrompt = `${ENHANCER_SYSTEM_PROMPT}
 
 Original user prompt: "${userPrompt}"
@@ -55,7 +58,11 @@ Original user prompt: "${userPrompt}"
 Return the enhanced, more specific version of this prompt.`;
 
   try {
-    const result = await givePromptToLLM(enhancerPrompt, EnhancedPromptSchema);
+    const result = await givePromptToLLM(
+      enhancerPrompt,
+      EnhancedPromptSchema,
+      jobId,
+    );
     return result.enhancedPrompt || userPrompt;
   } catch {
     return userPrompt;

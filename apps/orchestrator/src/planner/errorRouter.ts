@@ -135,7 +135,7 @@ export async function routeAndHandleErrors(
 
     try {
       // Generate fixes using Gemini
-      const fixes = await generateFixes(fileErrors);
+      const fixes = await generateFixes(fileErrors, jobId);
 
       result.fixes = fixes;
       result.llmFixedErrors.push(...errorsNeedingLLM);

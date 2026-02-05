@@ -51,6 +51,7 @@ export function createPromptWorker() {
             promptText,
             context.previousPrompt,
             context.previousProjectSummary,
+            jobId,
           );
 
           promptType = classification.type;
@@ -169,13 +170,16 @@ export function createPromptWorker() {
             status: SESSION_STATUS.PROCESSING,
             currentStep: "Enhancing prompt",
           });
-          enhancedPrompt = await enhancePrompt(validation.sanitizedPrompt);
+          enhancedPrompt = await enhancePrompt(
+            validation.sanitizedPrompt,
+            jobId,
+          );
 
           await SessionManager.update(jobId, {
             status: SESSION_STATUS.PROCESSING,
             currentStep: "Generating plan",
           });
-          plan = await generatePlan(enhancedPrompt);
+          plan = await generatePlan(enhancedPrompt, jobId);
         } else {
           // CONTINUATION: Incremental plan generation
           await SessionManager.update(jobId, {
@@ -195,6 +199,7 @@ export function createPromptWorker() {
             context.previousPrompt || "",
             containerId!,
             context.previousProjectSummary,
+            jobId,
           );
 
           enhancedPrompt = promptText; // No enhancement for continuation

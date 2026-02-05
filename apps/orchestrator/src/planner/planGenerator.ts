@@ -493,10 +493,13 @@ IMPORTANT:
 - Ensure all JSX tags are properly closed
 - Validate string escaping (especially apostrophes in JSX)`;
 
-export async function generatePlan(enhancedPrompt: string): Promise<Plan> {
+export async function generatePlan(
+  enhancedPrompt: string,
+  jobId?: string,
+): Promise<Plan> {
   const fullPrompt = `${PLAN_SYSTEM_PROMPT}\n\nUSER REQUEST: ${enhancedPrompt}\n\nGenerate the plan:`;
 
-  const plan = await givePromptToLLM(fullPrompt, PlanSchema);
+  const plan = await givePromptToLLM(fullPrompt, PlanSchema, jobId);
   return plan as Plan;
 }
 
@@ -587,6 +590,7 @@ export async function generateIncrementalPlan(
   previousPrompt: string,
   containerId: string,
   projectSummary?: string,
+  jobId?: string,
 ): Promise<Plan> {
   const { SandboxManager } = await import("@repo/sandbox");
   const sandbox = SandboxManager.getInstance();
@@ -620,6 +624,6 @@ export async function generateIncrementalPlan(
   CURRENT USER REQUEST: "${prompt}"
   Generate an incremental plan with ONLY the files that need to be changed or added:`;
 
-  const plan = await givePromptToLLM(fullPrompt, PlanSchema);
+  const plan = await givePromptToLLM(fullPrompt, PlanSchema, jobId);
   return plan as Plan;
 }

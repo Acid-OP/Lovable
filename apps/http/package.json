@@ -10,6 +10,7 @@
   "dependencies": {
     "@repo/db": "workspace:*",
     "@repo/queue": "workspace:*",
+    "@repo/quota": "workspace:*",
     "@repo/redis": "workspace:*",
     "@repo/session": "workspace:*",
     "axios": "^1.7.9",

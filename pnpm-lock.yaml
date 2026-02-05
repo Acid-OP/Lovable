@@ -32,6 +32,9 @@ importers:
       '@repo/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@repo/quota':
+        specifier: workspace:*
+        version: link:../../packages/quota
       '@repo/redis':
         specifier: workspace:*
         version: link:../../packages/redis
@@ -81,6 +84,9 @@ importers:
       '@repo/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@repo/quota':
+        specifier: workspace:*
+        version: link:../../packages/quota
       '@repo/redis':
         specifier: workspace:*
         version: link:../../packages/redis
@@ -240,6 +246,16 @@ importers:
       bullmq:
         specifier: ^5.30.0
         version: 5.65.1
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+
+  packages/quota:
+    dependencies:
+      '@repo/redis':
+        specifier: workspace:*
+        version: link:../redis
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
