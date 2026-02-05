@@ -30,4 +30,5 @@ export interface SessionData {
   projectId?: string;
   promptType?: "new" | "continuation";
   projectSummary?: string;
+  iterationCount?: number;
 }

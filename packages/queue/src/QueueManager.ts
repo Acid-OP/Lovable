@@ -26,11 +26,48 @@ export class QueueManager {
     );
   }
 
-  async pushToQueue(data: string | { prompt: string; previousJobId?: string }) {
+  async pushToQueue(
+    data: string | { prompt: string; previousJobId?: string; jobId?: string },
+  ) {
     const clientId = this.createId();
 
     // Support both string and object input for backwards compatibility
     const promptData = typeof data === "string" ? { prompt: data } : data;
+
+    // Always use custom jobId format (never let BullMQ auto-generate integers)
+    // For new prompts: generate "job-{randomId}"
+    // For iterations: reuse the provided jobId
+    const jobId = promptData.jobId || `job-${this.createId()}`;
+
+    const jobOptions: any = {
+      jobId, // Always set custom jobId to avoid integer IDs
+      // Retry failed jobs
+      attempts: 2,
+      backoff: {
+        type: "exponential",
+        delay: 3000,
+      },
+      removeOnComplete: {
+        age: 3600,
+        count: 100,
+      },
+      removeOnFail: {
+        age: 86400,
+        count: 50,
+      },
+    };
+
+    // If reusing jobId (iteration), remove old job first
+    if (promptData.jobId) {
+      try {
+        const oldJob = await this.queue.getJob(promptData.jobId);
+        if (oldJob) {
+          await oldJob.remove();
+        }
+      } catch (error) {
+        // Job doesn't exist or already removed, continue
+      }
+    }
 
     const job = await this.queue.add(
       JOB_NAMES.PROCESS_PROMPT,
@@ -40,22 +77,7 @@ export class QueueManager {
         previousJobId: promptData.previousJobId,
         timestamp: Date.now(),
       },
-      {
-        // Retry failed jobs
-        attempts: 2,
-        backoff: {
-          type: "exponential",
-          delay: 3000,
-        },
-        removeOnComplete: {
-          age: 3600,
-          count: 100,
-        },
-        removeOnFail: {
-          age: 86400,
-          count: 50,
-        },
-      },
+      jobOptions,
     );
     return { jobId: job.id, clientId };
   }

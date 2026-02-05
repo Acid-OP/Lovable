@@ -89,24 +89,22 @@ export function createPromptWorker() {
       let containerId: string | undefined;
       const previewUrl = `${config.api.baseUrl}/preview/${jobId}`;
 
-      // For continuation prompts, get container first (needed for incremental plan)
-      if (promptType === PROMPT_TYPE.CONTINUATION) {
+      // Check if session already has a container (for iterations)
+      const currentSession = await SessionManager.get(jobId);
+
+      if (
+        promptType === PROMPT_TYPE.CONTINUATION &&
+        currentSession?.containerId
+      ) {
+        // Iteration: Reuse existing container
         logger.info("sandbox.continuation", { jobId, previousJobId });
 
-        const previousSession = await SessionManager.get(previousJobId!);
-
-        if (!previousSession?.containerId) {
-          throw new Error(
-            `Cannot continue: previous job ${previousJobId} has no container`,
-          );
-        }
-
-        containerId = previousSession.containerId;
+        containerId = currentSession.containerId;
 
         // Verify container is still alive
         try {
           await sandbox.exec(containerId, "echo 'container alive'");
-          logger.info("sandbox.reusing", { jobId, containerId, previousJobId });
+          logger.info("sandbox.reusing", { jobId, containerId });
         } catch (error) {
           throw new Error(
             `Cannot continue: container ${containerId} no longer exists. Please start a new project.`,
@@ -114,7 +112,7 @@ export function createPromptWorker() {
         }
 
         // Update lastActivity to keep container alive
-        await SessionManager.update(previousJobId!, {
+        await SessionManager.update(jobId, {
           lastActivity: Date.now().toString(),
         });
       }

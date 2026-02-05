@@ -1,1 +1,1 @@
-{"root":["./src/config.ts","./src/index.ts","./src/routes/index.ts","./src/routes/preview.ts","./src/routes/prompt.ts","./src/routes/stream.ts","./src/services/ssemanager.ts","./src/types/express.d.ts","./src/utils/logger.ts"],"version":"5.9.2"}
+{"root":["./src/config.ts","./src/index.ts","./src/routes/healthcheck.ts","./src/routes/index.ts","./src/routes/preview.ts","./src/routes/prompt.ts","./src/routes/stream.ts","./src/services/ssemanager.ts","./src/types/express.d.ts","./src/utils/logger.ts"],"version":"5.9.2"}
