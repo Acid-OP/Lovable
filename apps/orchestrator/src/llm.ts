@@ -15,7 +15,7 @@ export async function givePromptToLLM<T>(
 
   // LLM parameters from env (with defaults)
   const temperature = parseFloat(process.env.LLM_TEMPERATURE || "0.7");
-  const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || "8000");
+  const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || "3000");
   const topP = parseFloat(process.env.LLM_TOP_P || "0.9");
 
   const { object, usage } = await generateObject({
@@ -23,7 +23,7 @@ export async function givePromptToLLM<T>(
     prompt: prompt,
     schema: schema,
     temperature, // 0.7 = balanced creativity
-    maxTokens, // 8000 = allow long code files
+    maxTokens, // 3000 = allow long code files
     topP, // 0.9 = nucleus sampling (good variety)
   });
 
