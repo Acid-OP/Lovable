@@ -1,6 +1,7 @@
-import { givePromptToLLM } from "../llm.js";
+import { givePromptToLLM, givePromptToLLMWithCache } from "../llm.js";
 import { Plan } from "./types.js";
 import { z } from "zod";
+import { CACHE_KEYS } from "../llm/constants.js";
 
 // Zod schema for structured output (guarantees valid JSON)
 const PlanStepSchema = z.object({
@@ -497,9 +498,17 @@ export async function generatePlan(
   enhancedPrompt: string,
   jobId?: string,
 ): Promise<Plan> {
-  const fullPrompt = `${PLAN_SYSTEM_PROMPT}\n\nUSER REQUEST: ${enhancedPrompt}\n\nGenerate the plan:`;
+  // Use cached system prompt for 75% cost savings on system prompt tokens
+  const userPrompt = `USER REQUEST: ${enhancedPrompt}\n\nGenerate the plan:`;
 
-  const plan = await givePromptToLLM(fullPrompt, PlanSchema, jobId);
+  const plan = await givePromptToLLMWithCache(
+    CACHE_KEYS.PLAN_SYSTEM_PROMPT, // Cache key
+    PLAN_SYSTEM_PROMPT, // System prompt (cached)
+    userPrompt, // User request (not cached)
+    PlanSchema,
+    jobId,
+  );
+
   return plan as Plan;
 }
 
@@ -636,14 +645,21 @@ export async function generateIncrementalPlan(
     estimatedTokens,
   });
 
-  const fullPrompt = `${INCREMENTAL_PLAN_SYSTEM_PROMPT}
-  EXISTING CODEBASE:
-  ${codebaseContext}
-  ${projectSummary ? `\nPREVIOUS PROJECT SUMMARY:\n${projectSummary}\n` : ""}
-  PREVIOUS USER REQUEST: "${previousPrompt}"
-  CURRENT USER REQUEST: "${prompt}"
-  Generate an incremental plan with ONLY the files that need to be changed or added:`;
+  // Use cached system prompt for 75% cost savings on system prompt tokens
+  const userPrompt = `EXISTING CODEBASE:
+${codebaseContext}
+${projectSummary ? `\nPREVIOUS PROJECT SUMMARY:\n${projectSummary}\n` : ""}
+PREVIOUS USER REQUEST: "${previousPrompt}"
+CURRENT USER REQUEST: "${prompt}"
+Generate an incremental plan with ONLY the files that need to be changed or added:`;
 
-  const plan = await givePromptToLLM(fullPrompt, PlanSchema, jobId);
+  const plan = await givePromptToLLMWithCache(
+    CACHE_KEYS.INCREMENTAL_PLAN_SYSTEM_PROMPT, // Cache key
+    INCREMENTAL_PLAN_SYSTEM_PROMPT, // System prompt (cached)
+    userPrompt, // User request + codebase (not cached)
+    PlanSchema,
+    jobId,
+  );
+
   return plan as Plan;
 }

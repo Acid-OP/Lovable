@@ -2,12 +2,11 @@
 export const config = {
   // Cleanup worker settings
   cleanup: {
-    idleTimeout: 30 * 60 * 1000, // 30 minutes
-    checkInterval: 5 * 60 * 1000, // 5 minutes
-    maxContainerAge: 2 * 60 * 60 * 1000, // 2 hours
+    idleTimeout: 30 * 60 * 1000,
+    checkInterval: 5 * 60 * 1000,
+    maxContainerAge: 2 * 60 * 60 * 1000,
   },
 
-  // API endpoints
   api: {
     baseUrl: process.env.API_BASE_URL || "http://localhost:3001",
     // HTTP service URL for internal API calls (health check, etc.)
