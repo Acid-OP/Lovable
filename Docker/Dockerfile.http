@@ -1,0 +1,38 @@
+# Start with Node.js base image
+FROM node:20-slim
+
+# Install pnpm package manager globally
+RUN npm install -g pnpm
+
+# Set working directory to /app
+WORKDIR /app
+
+# Copy workspace config files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy all shared packages
+COPY packages ./packages
+# Copy http app code
+COPY apps/http ./apps/http
+
+# Install all dependencies
+RUN pnpm install --frozen-lockfile
+
+# Build all dependency packages
+RUN pnpm --filter @repo/db build && \
+    pnpm --filter @repo/redis build && \
+    pnpm --filter @repo/cache build && \
+    pnpm --filter @repo/queue build && \
+    pnpm --filter @repo/quota build && \
+    pnpm --filter @repo/session build
+
+# Build http server app
+RUN pnpm --filter http build
+
+# Set working directory to http app
+WORKDIR /app/apps/http
+
+# Expose port 3001 for HTTP server
+EXPOSE 3001
+
+# Start HTTP server application
+CMD ["pnpm", "start"]

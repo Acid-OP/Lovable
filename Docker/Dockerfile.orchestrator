@@ -1,0 +1,36 @@
+# Start with Node.js base image
+FROM node:20-slim
+
+# Install pnpm package manager globally
+RUN npm install -g pnpm
+
+# Set working directory to /app
+WORKDIR /app
+
+# Copy workspace config files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy all shared packages
+COPY packages ./packages
+# Copy orchestrator app code
+COPY apps/orchestrator ./apps/orchestrator
+
+# Install all dependencies
+RUN pnpm install --frozen-lockfile
+
+# Build all dependency packages
+RUN pnpm --filter @repo/db build && \
+    pnpm --filter @repo/redis build && \
+    pnpm --filter @repo/cache build && \
+    pnpm --filter @repo/queue build && \
+    pnpm --filter @repo/quota build && \
+    pnpm --filter @repo/session build && \
+    pnpm --filter @repo/sandbox build
+
+# Build orchestrator app
+RUN pnpm --filter orchestrator build
+
+# Set working directory to orchestrator app
+WORKDIR /app/apps/orchestrator
+
+# Start orchestrator application
+CMD ["node", "./dist/index.js"]

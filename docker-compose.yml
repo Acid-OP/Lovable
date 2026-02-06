@@ -2,7 +2,7 @@ services:
   http:
     build:
       context: .
-      dockerfile: Docker/docker.http
+      dockerfile: Docker/Dockerfile.http
     container_name: lovable-http
     ports:
       - "3001:3001"
@@ -29,7 +29,7 @@ services:
   orchestrator:
     build:
       context: .
-      dockerfile: Docker/docker.orchestrator
+      dockerfile: Docker/Dockerfile.orchestrator
     container_name: lovable-orchestrator
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
