@@ -4,7 +4,7 @@ import { QUEUE_NAMES } from "@repo/queue";
 import { SessionManager, SESSION_STATUS } from "@repo/session";
 import { SandboxManager } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
-import * as cache from "../utils/cache.js";
+import * as cache from "@repo/cache";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
 import {
   enhancePrompt,

@@ -1,6 +1,6 @@
 import { GoogleAICacheManager } from "@google/generative-ai/server";
 import { redis } from "@repo/redis";
-import { hash } from "../utils/cache.js";
+import { hash } from "@repo/cache";
 import {
   PROMPT_CACHE_PREFIX,
   CACHE_TTL_SECONDS,

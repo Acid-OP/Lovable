@@ -1,0 +1,19 @@
+{
+  "name": "@repo/cache",
+  "version": "1.0.0",
+  "description": "Shared Redis caching utilities",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@repo/redis": "workspace:*"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.0.0"
+  }
+}
