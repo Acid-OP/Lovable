@@ -55,6 +55,9 @@ export class PromptCacheManager {
   }
 
   private async createGeminiCache(systemPrompt: string): Promise<string> {
+    // DISABLED: Google AI free tier doesn't support prompt caching
+    // Uncomment when using paid tier for 75% cost savings on cached tokens
+    /*
     try {
       const cache = await this.cacheManager.create({
         model: GEMINI_MODEL,
@@ -79,6 +82,11 @@ export class PromptCacheManager {
       });
       throw error;
     }
+    */
+
+    // Return empty string to skip caching
+    logger.info("prompt_cache.disabled", { reason: "free_tier_limitation" });
+    return "";
   }
 
   async getOrCreateCache(

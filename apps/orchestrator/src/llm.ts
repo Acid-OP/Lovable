@@ -60,6 +60,12 @@ export async function givePromptToLLMWithCache<T>(
   const cacheManager = PromptCacheManager.getInstance();
   const cacheId = await cacheManager.getOrCreateCache(cacheKey, systemPrompt);
 
+  // If caching is disabled (empty cacheId), combine prompts and use regular call
+  if (!cacheId) {
+    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+    return givePromptToLLM(fullPrompt, schema, jobId);
+  }
+
   // Call LLM with cached content
   // The cached system prompt is referenced by ID, only user prompt is sent
   const modelWithCache = google("gemini-2.5-flash") as any;
