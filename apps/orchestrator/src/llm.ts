@@ -34,19 +34,6 @@ export async function givePromptToLLM<T>(
   return object;
 }
 
-/**
- * Call LLM with cached system prompt for cost optimization
- *
- * Caches the static system prompt to reduce costs by 75% on cached tokens.
- * First call creates cache with Gemini, subsequent calls reference it.
- *
- * @param cacheKey - Unique identifier for this system prompt cache
- * @param systemPrompt - The system prompt to cache (static, doesn't change)
- * @param userPrompt - The user's request/message (dynamic, changes every time)
- * @param schema - Zod schema for structured output
- * @param jobId - Optional job ID for tracking
- * @returns Structured LLM response
- */
 export async function givePromptToLLMWithCache<T>(
   cacheKey: string,
   systemPrompt: string,
