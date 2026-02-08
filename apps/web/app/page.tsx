@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -155,7 +156,7 @@ export default function Home() {
 
         <div className="relative text-center max-w-[900px] mx-auto">
           {/* Badge */}
-          {/* <div className="flex items-center justify-center mb-4 sm:mb-6">
+          <div className="flex items-center justify-center mb-4 sm:mb-6">
             <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-orange-50 border border-orange-200 rounded-full">
               <div className="w-4 h-4 sm:w-5 sm:h-5 bg-[#FF6600] flex items-center justify-center text-white font-bold text-[10px] sm:text-[11px] rounded-sm">
                 Y
@@ -164,7 +165,7 @@ export default function Home() {
                 Not Backed by Y Combinator
               </span>
             </div>
-          </div> */}
+          </div>
 
           {/* Headline */}
           <h1 className="text-[36px] sm:text-[48px] lg:text-[72px] font-medium text-[#000000] leading-[1.1] tracking-tight mb-4 sm:mb-6 px-4">
@@ -179,10 +180,13 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4">
-            <button className="w-full sm:w-auto px-8 py-3.5 bg-black text-white text-[15px] font-medium rounded-full hover:bg-gray-800 transition-colors">
-              Start Building Free
-            </button>
-            <button className="w-full sm:w-auto px-8 py-3.5 bg-white text-black text-[15px] font-medium rounded-full border border-gray-300 hover:border-gray-400 transition-colors">
+            <Link
+              href="/editor"
+              className="w-full sm:w-auto px-8 py-3.5 bg-black text-white text-[15px] font-medium rounded-full hover:bg-gray-900 hover:scale-105 transition-all duration-200 cursor-pointer text-center"
+            >
+              Start Building
+            </Link>
+            <button className="w-full sm:w-auto px-8 py-3.5 bg-white text-black text-[15px] font-medium rounded-full border border-gray-300 hover:border-black hover:scale-105 transition-all duration-200 cursor-pointer">
               See Live Demo
             </button>
           </div>

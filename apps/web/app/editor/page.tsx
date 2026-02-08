@@ -1,122 +1,138 @@
 "use client";
 
-import useMonacoModel from "@/lib/hooks/useMonacoModels";
-import Editor from "@monaco-editor/react";
-import type { Monaco } from "@monaco-editor/react";
-import type { editor } from "monaco-editor";
 import { useState } from "react";
-
-interface PlanStep {
-  id: number;
-  type: "file_write";
-  description: string;
-  path: string;
-  content: string;
-}
-
-interface Plan {
-  summary: string;
-  estimatedTimeSeconds: number;
-  steps: PlanStep[];
-}
+import Link from "next/link";
 
 export default function EditorPage() {
-  const {
-    handleEditorDidMount,
-    createModel,
-    switchToFile,
-    clearAllModels,
-    getFilenameFromPath,
-    getLanguageFromPath,
-  } = useMonacoModel();
-
-  const [activeFile, setActiveFile] = useState("");
-  const [files, setFiles] = useState<string[]>([]);
+  const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
-    handleEditorDidMount(editor, monaco);
-  }
-
-  const handleTabClick = (filename: string) => {
-    switchToFile(filename);
-    setActiveFile(filename);
-  };
-
   const handleGenerate = async () => {
-    try {
-      setIsGenerating(true);
+    if (!prompt.trim()) return;
 
-      const response = await fetch("/api/generate", { method: "POST" });
-      const plan: Plan = await response.json();
-
-      clearAllModels();
-
-      const newFilenames: string[] = [];
-
-      plan.steps.forEach((step) => {
-        const filename = getFilenameFromPath(step.path);
-        const language = getLanguageFromPath(step.path);
-
-        createModel(filename, step.content, language);
-        newFilenames.push(filename);
-      });
-
-      setFiles(newFilenames);
-
-      if (newFilenames.length > 0) {
-        const firstFile = newFilenames[0]!;
-        switchToFile(firstFile);
-        setActiveFile(firstFile);
-      }
-    } catch (error) {
-      console.error("Generation failed:", error);
-    } finally {
-      setIsGenerating(false);
-    }
+    setIsGenerating(true);
+    // TODO: Connect to API
+    setTimeout(() => setIsGenerating(false), 2000);
   };
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="flex gap-1 p-2 bg-gray-900 border-b border-gray-700">
-        {files.map((file) => (
-          <button
-            key={file}
-            onClick={() => handleTabClick(file)}
-            className={`px-4 py-2 rounded-t transition ${
-              activeFile === file
-                ? "bg-gray-800 text-blue-400 border-b-2 border-blue-400"
-                : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
-            }`}
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-30" />
+
+      {/* Navbar */}
+      <nav className="relative bg-white">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2.5">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]"
+              >
+                <line x1="6" x2="6" y1="3" y2="15" />
+                <circle cx="18" cy="6" r="3" />
+                <circle cx="6" cy="18" r="3" />
+                <path d="M18 9a9 9 0 0 1-9 9" />
+              </svg>
+              <span className="text-[15px] sm:text-[17px] font-medium text-[#000000] tracking-tight">
+                Bolt
+              </span>
+            </Link>
+
+            {/* Profile */}
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black flex items-center justify-center text-white font-semibold text-[13px] sm:text-[14px] cursor-pointer hover:bg-gray-800 transition-colors">
+              U
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="relative max-w-[1000px] mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16">
+        {/* Hero Section */}
+        <div className="flex items-center justify-center gap-3 sm:gap-4 mb-16 sm:mb-24 lg:mb-32">
+          {/* Logo */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-black flex-shrink-0"
           >
-            {file}
-          </button>
-        ))}
-      </div>
+            <line x1="6" x2="6" y1="3" y2="15" />
+            <circle cx="18" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <path d="M18 9a9 9 0 0 1-9 9" />
+          </svg>
 
-      <Editor
-        height="100%"
-        theme="vs-dark"
-        onMount={handleMount}
-        options={{
-          fontSize: 14,
-          minimap: { enabled: false },
-        }}
-      />
+          {/* Heading */}
+          <h1 className="text-[32px] sm:text-[40px] lg:text-[48px] font-light text-black leading-tight tracking-tight">
+            Build with Bolt
+          </h1>
+        </div>
 
-      <div className="flex gap-2 p-4 bg-gray-800 border-t border-gray-700">
-        <button
-          onClick={handleGenerate}
-          disabled={isGenerating}
-          className={`px-4 py-2 text-white rounded transition ${
-            isGenerating
-              ? "bg-blue-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-        >
-          {isGenerating ? "Generating..." : "Generate AI Code"}
-        </button>
-      </div>
+        {/* Prompt Input */}
+        <div className="mb-8 max-w-[750px] mx-auto">
+          <div className="relative bg-white rounded-xl sm:rounded-2xl border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  (e.metaKey || e.ctrlKey) &&
+                  prompt.trim()
+                ) {
+                  handleGenerate();
+                }
+              }}
+              placeholder="What would you like to build? Describe your app idea in detail..."
+              className="w-full p-4 pr-14 sm:p-6 sm:pr-16 text-[15px] sm:text-[16px] text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none rounded-xl sm:rounded-2xl"
+              rows={3}
+            />
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || !prompt.trim()}
+              className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 w-9 h-9 sm:w-10 sm:h-10 bg-black text-white rounded-full flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:opacity-30"
+            >
+              {isGenerating ? (
+                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-8 sm:mt-12 lg:mt-16">
+          <p className="text-[12px] sm:text-[13px] text-gray-400">
+            Powered by Bolt
+          </p>
+        </div>
+      </main>
     </div>
   );
 }
