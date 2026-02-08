@@ -96,7 +96,7 @@ export default function EditorPage() {
                   handleGenerate();
                 }
               }}
-              placeholder="What would you like to build? Describe your app idea in detail..."
+              placeholder="What would you like to build?"
               className="w-full p-4 pr-14 sm:p-6 sm:pr-16 text-[15px] sm:text-[16px] text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none rounded-xl sm:rounded-2xl"
               rows={3}
             />
