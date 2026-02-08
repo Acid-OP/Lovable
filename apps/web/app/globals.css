@@ -107,6 +107,69 @@ a {
   pointer-events: none;
 }
 
+/* Infinite Logo Carousel - Seamless wrap */
+.logo-carousel-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding: 20px 0;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  );
+}
+
+.logo-carousel {
+  display: flex;
+  gap: 60px;
+  width: fit-content;
+  animation: scroll-seamless 40s linear infinite;
+}
+
+.logo-item {
+  font-size: 18px;
+  font-weight: 600;
+  color: #999;
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.logo-item:hover {
+  color: #000;
+}
+
+@keyframes scroll-seamless {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .logo-carousel {
+    gap: 40px;
+  }
+
+  .logo-item {
+    font-size: 16px;
+  }
+}
+
 .star-trail {
   position: relative;
 }

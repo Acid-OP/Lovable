@@ -187,6 +187,35 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        {/* Infinite Logo Carousel */}
+        <div className="mt-12 sm:mt-16 lg:mt-20">
+          <p className="text-center text-[14px] text-gray-500 mb-8 font-medium tracking-wide">
+            TRUSTED BY DEVELOPERS FROM
+          </p>
+          <div className="logo-carousel-container">
+            <div className="logo-carousel">
+              {/* First set of logos */}
+              <div className="logo-item">Google</div>
+              <div className="logo-item">Meta</div>
+              <div className="logo-item">Amazon</div>
+              <div className="logo-item">Microsoft</div>
+              <div className="logo-item">Apple</div>
+              <div className="logo-item">Netflix</div>
+              <div className="logo-item">Uber</div>
+              <div className="logo-item">Airbnb</div>
+              {/* Duplicate set for seamless loop */}
+              <div className="logo-item">Google</div>
+              <div className="logo-item">Meta</div>
+              <div className="logo-item">Amazon</div>
+              <div className="logo-item">Microsoft</div>
+              <div className="logo-item">Apple</div>
+              <div className="logo-item">Netflix</div>
+              <div className="logo-item">Uber</div>
+              <div className="logo-item">Airbnb</div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
