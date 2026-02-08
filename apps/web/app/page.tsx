@@ -127,10 +127,35 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <main className="pt-16 sm:pt-24 lg:pt-32 pb-12 sm:pb-16 lg:pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-[900px] mx-auto">
+      <main className="relative pt-16 sm:pt-24 lg:pt-32 pb-12 sm:pb-16 lg:pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Multiple stars across AI to Builds */}
+        {[-500, -412, -325, -237, -150].map((offset, i) => (
+          <div
+            key={i}
+            className="star-with-trail"
+            style={{
+              position: "absolute",
+              left: `calc(50% + ${offset}px)`,
+              top: "-20px",
+              width: "4px",
+              height: "4px",
+              borderRadius: "50%",
+              backgroundColor: "#444",
+              animationName: "starFall",
+              animationDuration: "4.5s",
+              animationTimingFunction: "ease-in",
+              animationIterationCount: "3",
+              animationDelay: `${i * 0.5}s`,
+              boxShadow: "0 0 4px 1px rgba(70, 70, 70, 0.4)",
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          />
+        ))}
+
+        <div className="relative text-center max-w-[900px] mx-auto">
           {/* Badge */}
-          <div className="flex items-center justify-center mb-4 sm:mb-6">
+          {/* <div className="flex items-center justify-center mb-4 sm:mb-6">
             <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-orange-50 border border-orange-200 rounded-full">
               <div className="w-4 h-4 sm:w-5 sm:h-5 bg-[#FF6600] flex items-center justify-center text-white font-bold text-[10px] sm:text-[11px] rounded-sm">
                 Y
@@ -139,7 +164,7 @@ export default function Home() {
                 Not Backed by Y Combinator
               </span>
             </div>
-          </div>
+          </div> */}
 
           {/* Headline */}
           <h1 className="text-[36px] sm:text-[48px] lg:text-[72px] font-medium text-[#000000] leading-[1.1] tracking-tight mb-4 sm:mb-6 px-4">
