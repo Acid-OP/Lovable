@@ -1,19 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MountainWithStars from "@/components/MountainWithStars";
+import { useSubmitPrompt } from "@/lib/hooks/useSubmitPrompt";
 
 export default function EditorPage() {
   const [prompt, setPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const router = useRouter();
+  const { submitPrompt, isLoading, error, clearError } = useSubmitPrompt();
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
-    setIsGenerating(true);
-    // TODO: Connect to API
-    setTimeout(() => setIsGenerating(false), 2000);
+    // Clear any previous errors
+    clearError();
+
+    // Submit the prompt
+    const result = await submitPrompt(prompt);
+
+    if (result) {
+      // Success! Navigate to workspace
+      router.push(`/editor/${result.jobId}`);
+    }
+    // If result is null, error state will be set automatically by the hook
   };
 
   return (
@@ -107,10 +118,10 @@ export default function EditorPage() {
             />
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
+              disabled={isLoading || !prompt.trim()}
               className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 w-9 h-9 sm:w-10 sm:h-10 bg-black text-white rounded-full flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:opacity-30"
             >
-              {isGenerating ? (
+              {isLoading ? (
                 <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <svg
@@ -129,6 +140,47 @@ export default function EditorPage() {
               )}
             </button>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mt-3 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" x2="12" y1="8" y2="12" />
+                <line x1="12" x2="12.01" y1="16" y2="16" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+              <button
+                onClick={clearError}
+                className="text-red-600 hover:text-red-800 transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-5 h-5"
+                >
+                  <line x1="18" x2="6" y1="6" y2="18" />
+                  <line x1="6" x2="18" y1="6" y2="18" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
