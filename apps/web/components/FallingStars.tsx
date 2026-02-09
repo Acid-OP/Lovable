@@ -1,11 +1,13 @@
 import React from "react";
 
 export default function FallingStars() {
-  // Stars fall from top, diagonally down to land exactly on mountain
+  // 5 stars well-separated with random natural timing
   const stars = [
-    { startX: -220, delay: 0 },
-    { startX: -180, delay: 2.5 },
-    { startX: -140, delay: 5 },
+    { startX: -280, delay: 0 },
+    { startX: -220, delay: 1.2 },
+    { startX: -160, delay: 2.5 },
+    { startX: -250, delay: 3.8 },
+    { startX: -190, delay: 5.1 },
   ];
 
   return (
@@ -25,11 +27,13 @@ export default function FallingStars() {
             boxShadow: "0 0 6px 2px rgba(50, 50, 50, 0.7)",
             pointerEvents: "none",
             zIndex: 0,
+            opacity: 0,
             animationName: "starToMountain",
             animationDuration: "4s",
             animationTimingFunction: "linear",
             animationIterationCount: "infinite",
             animationDelay: `${star.delay}s`,
+            animationFillMode: "forwards",
           }}
         />
       ))}

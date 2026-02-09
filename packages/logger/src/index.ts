@@ -1,5 +1,5 @@
 import winston from "winston";
-import type { CreateLoggerOptions } from "./types";
+import { CreateLoggerOptions } from "./types";
 
 export function createLogger(options: CreateLoggerOptions) {
   const { service, level = process.env.LOG_LEVEL || "info" } = options;

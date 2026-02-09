@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import Editor from "@monaco-editor/react";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
@@ -13,13 +13,13 @@ interface Message {
 }
 
 interface WorkspacePageProps {
-  params: {
+  params: Promise<{
     jobId: string;
-  };
+  }>;
 }
 
 export default function WorkspacePage({ params }: WorkspacePageProps) {
-  const { jobId } = params;
+  const { jobId } = use(params);
 
   const [isDark, setIsDark] = useState(false);
   const [messages, setMessages] = useState<Message[]>([

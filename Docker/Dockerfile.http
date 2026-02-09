@@ -18,7 +18,8 @@ COPY apps/http ./apps/http
 RUN pnpm install --frozen-lockfile
 
 # Build all dependency packages
-RUN pnpm --filter @repo/db build && \
+RUN pnpm --filter @repo/logger build && \
+    pnpm --filter @repo/db build && \
     pnpm --filter @repo/redis build && \
     pnpm --filter @repo/cache build && \
     pnpm --filter @repo/queue build && \
