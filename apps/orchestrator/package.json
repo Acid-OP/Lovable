@@ -16,6 +16,7 @@
     "@ai-sdk/google": "^2.0.51",
     "@google/generative-ai": "^0.24.1",
     "@repo/cache": "workspace:*",
+    "@repo/logger": "workspace:*",
     "@repo/queue": "workspace:*",
     "@repo/quota": "workspace:*",
     "@repo/redis": "workspace:*",
@@ -25,7 +26,6 @@
     "axios": "^1.7.9",
     "bullmq": "^5.10.1",
     "dotenv": "^16.4.5",
-    "winston": "^3.19.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {

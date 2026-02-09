@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { QuotaManager } from "@repo/quota";
+import { logger } from "../utils/logger";
 
 const router = Router();
 
@@ -41,7 +42,10 @@ router.get("/", async (req, res) => {
       recentJobs: recentJobs.filter((job) => job !== null),
     });
   } catch (e) {
-    console.error("Error fetching usage stats:", e);
+    logger.error("Error fetching usage stats", {
+      error: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+    });
     return res.status(500).json({
       error: "Failed to fetch usage statistics",
       details: e instanceof Error ? e.message : String(e),

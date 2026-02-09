@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@repo/logger": "workspace:*",
     "@repo/ui": "workspace:*",
     "@tanstack/react-query": "^5.90.20",
     "monaco-editor": "^0.55.1",

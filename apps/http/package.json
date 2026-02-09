@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@repo/db": "workspace:*",
+    "@repo/logger": "workspace:*",
     "@repo/queue": "workspace:*",
     "@repo/quota": "workspace:*",
     "@repo/redis": "workspace:*",
@@ -18,7 +19,6 @@
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "http-proxy-middleware": "^3.0.3",
-    "winston": "^3.11.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {

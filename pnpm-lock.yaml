@@ -29,6 +29,9 @@ importers:
       '@repo/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@repo/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       '@repo/queue':
         specifier: workspace:*
         version: link:../../packages/queue
@@ -56,9 +59,6 @@ importers:
       http-proxy-middleware:
         specifier: ^3.0.3
         version: 3.0.5
-      winston:
-        specifier: ^3.11.0
-        version: 3.19.0
       zod:
         specifier: ^4.2.1
         version: 4.2.1
@@ -90,6 +90,9 @@ importers:
       '@repo/cache':
         specifier: workspace:*
         version: link:../../packages/cache
+      '@repo/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       '@repo/queue':
         specifier: workspace:*
         version: link:../../packages/queue
@@ -117,9 +120,6 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
-      winston:
-        specifier: ^3.19.0
-        version: 3.19.0
       zod:
         specifier: ^4.2.1
         version: 4.2.1
@@ -133,6 +133,9 @@ importers:
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@repo/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -265,6 +268,19 @@ importers:
       typescript-eslint:
         specifier: ^8.47.0
         version: 8.47.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.2)
+
+  packages/logger:
+    dependencies:
+      winston:
+        specifier: ^3.17.0
+        version: 3.19.0
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.2
 
   packages/queue:
     dependencies:

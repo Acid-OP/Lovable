@@ -2,6 +2,7 @@ import { Router } from "express";
 import { QueueManager } from "@repo/queue";
 import { SessionManager } from "@repo/session";
 import { promptSchema } from "../validations/prompt";
+import { logger } from "../utils/logger";
 
 const router = Router();
 
@@ -54,7 +55,10 @@ router.post("/", async (req, res) => {
       isIteration,
     });
   } catch (e) {
-    console.error("Error enqueueing prompt:", e);
+    logger.error("Error enqueueing prompt", {
+      error: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+    });
     return res.status(500).json({
       error: "Failed to enqueue prompt",
       details: e instanceof Error ? e.message : String(e),

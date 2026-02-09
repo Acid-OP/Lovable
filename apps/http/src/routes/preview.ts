@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { SessionManager } from "@repo/session";
+import { logger } from "../utils/logger";
 
 export const previewRouter = Router();
 
@@ -25,7 +26,10 @@ previewRouter.use("/", async (req, res, next) => {
       lastActivity: Date.now().toString(),
     });
   } catch (error) {
-    console.error(`Failed to update activity for ${jobId}:`, error);
+    logger.error("Failed to update activity", {
+      jobId,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 
   // Store jobId in req for proxy to use
@@ -43,7 +47,7 @@ previewRouter.use(
       const jobId = req.jobId;
       // Use Docker DNS to resolve container by name
       const target = `http://sandbox-${jobId}:3000`;
-      console.log(`Routing ${req.hostname} to ${target}`);
+      logger.info("Routing request", { hostname: req.hostname, target });
       return target;
     },
   }),

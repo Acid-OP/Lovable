@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promptSchema } from "@/lib/validations/prompt";
 import type { ApiErrorResponse, SubmitPromptResponse } from "@/lib/types/api";
 import { BACKEND_URL, REQUEST_TIMEOUT, API_ENDPOINTS } from "@/lib/config/api";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,7 +79,10 @@ export async function POST(request: NextRequest) {
       throw fetchError;
     }
   } catch (error) {
-    console.error("[API] Submit prompt error:", error);
+    logger.error("Submit prompt error", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     const errorResponse: ApiErrorResponse = {
       success: false,
