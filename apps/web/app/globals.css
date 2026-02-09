@@ -242,15 +242,15 @@ a {
     opacity: 1;
   }
   65% {
-    transform: translate(190px, 180px);
+    transform: translate(180px, 135px);
     opacity: 1;
   }
   80% {
-    transform: translate(220px, 200px);
+    transform: translate(205px, 155px);
     opacity: 0;
   }
   100% {
-    transform: translate(240px, 220px);
+    transform: translate(220px, 165px);
     opacity: 0;
   }
 }

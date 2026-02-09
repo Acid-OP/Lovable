@@ -1,15 +1,22 @@
 import { Router } from "express";
 import { QueueManager } from "@repo/queue";
 import { SessionManager } from "@repo/session";
+import { promptSchema } from "../validations/prompt";
 
 const router = Router();
 
 router.post("/", async (req, res) => {
   try {
-    const { prompt, previousJobId } = req.body;
-    if (!prompt) {
-      return res.status(400).json({ error: "Prompt is required" });
+    // Validate request body
+    const validation = promptSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Invalid input",
+        details: validation.error.message,
+      });
     }
+
+    const { prompt, previousJobId } = validation.data;
 
     // For iterations, reuse jobId to keep same container
     const isIteration = !!previousJobId;

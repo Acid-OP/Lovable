@@ -24,7 +24,7 @@ export default function EditorPage() {
       {/* Navbar */}
       <nav className="relative bg-white">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between relative">
             {/* Left - Logo */}
             <Link href="/" className="flex items-center gap-2.5">
               <svg
@@ -48,7 +48,7 @@ export default function EditorPage() {
             </Link>
 
             {/* Center - Build with Bolt */}
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5 sm:gap-3">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2.5 sm:gap-3">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"

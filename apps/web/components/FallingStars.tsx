@@ -17,7 +17,7 @@ export default function FallingStars() {
           style={{
             position: "absolute",
             left: `calc(50% + ${star.startX}px)`,
-            top: "20px",
+            top: "10px",
             width: "5px",
             height: "5px",
             borderRadius: "50%",
