@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import MountainWithStars from "@/components/MountainWithStars";
 
 export default function EditorPage() {
   const [prompt, setPrompt] = useState("");
@@ -24,7 +25,7 @@ export default function EditorPage() {
       <nav className="relative bg-white">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            {/* Logo */}
+            {/* Left - Logo */}
             <Link href="/" className="flex items-center gap-2.5">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -46,7 +47,29 @@ export default function EditorPage() {
               </span>
             </Link>
 
-            {/* Profile */}
+            {/* Center - Build with Bolt */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5 sm:gap-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5 sm:w-6 sm:h-6 text-black flex-shrink-0"
+              >
+                <line x1="6" x2="6" y1="3" y2="15" />
+                <circle cx="18" cy="6" r="3" />
+                <circle cx="6" cy="18" r="3" />
+                <path d="M18 9a9 9 0 0 1-9 9" />
+              </svg>
+              <h1 className="text-[18px] sm:text-[22px] font-light text-black tracking-tight">
+                Build with Bolt
+              </h1>
+            </div>
+
+            {/* Right - Profile */}
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black flex items-center justify-center text-white font-semibold text-[13px] sm:text-[14px] cursor-pointer hover:bg-gray-800 transition-colors">
               U
             </div>
@@ -55,30 +78,12 @@ export default function EditorPage() {
       </nav>
 
       {/* Main Content */}
-      <main className="relative max-w-[1000px] mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16">
-        {/* Hero Section */}
-        <div className="flex items-center justify-center gap-3 sm:gap-4 mb-16 sm:mb-24 lg:mb-32">
-          {/* Logo */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-black flex-shrink-0"
-          >
-            <line x1="6" x2="6" y1="3" y2="15" />
-            <circle cx="18" cy="6" r="3" />
-            <circle cx="6" cy="18" r="3" />
-            <path d="M18 9a9 9 0 0 1-9 9" />
-          </svg>
-
-          {/* Heading */}
-          <h1 className="text-[32px] sm:text-[40px] lg:text-[48px] font-light text-black leading-tight tracking-tight">
-            Build with Bolt
-          </h1>
+      <main className="relative max-w-[1000px] mx-auto px-4 sm:px-6 py-2 sm:py-4">
+        {/* Mountain with Stars - Center */}
+        <div className="flex justify-center mb-4 sm:mb-6">
+          <div className="w-full max-w-[400px] h-[300px]">
+            <MountainWithStars />
+          </div>
         </div>
 
         {/* Prompt Input */}

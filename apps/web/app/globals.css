@@ -186,3 +186,90 @@ a {
   transform-origin: right center;
   pointer-events: none;
 }
+
+/* Loader star animation - shorter path for mountain scene */
+@keyframes star-fall {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(40px, 80px);
+    opacity: 0;
+  }
+}
+
+.star-fall {
+  animation: star-fall 2.5s ease-in infinite;
+}
+
+/* Diagonal falling stars - corner to corner diagonal path */
+@keyframes starDiagonalFall {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(600px, 600px);
+    opacity: 0;
+  }
+}
+
+.star-diagonal-fall {
+  animation: starDiagonalFall 4.5s ease-in infinite;
+}
+
+/* Stars fall from top diagonally down to mountain, stop when reaching it */
+@keyframes starToMountain {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  10% {
+    transform: translate(25px, 20px);
+    opacity: 1;
+  }
+  65% {
+    transform: translate(190px, 180px);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(220px, 200px);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(240px, 220px);
+    opacity: 0;
+  }
+}
+
+/* Loader star with greyish trail */
+.star-with-trail-loader {
+  position: relative;
+}
+
+.star-with-trail-loader::before {
+  content: '';
+  position: absolute;
+  width: 80px;
+  height: 1.5px;
+  background: linear-gradient(to left, rgba(120, 120, 120, 0.6), rgba(140, 140, 140, 0.4), rgba(160, 160, 160, 0.2), transparent);
+  top: 50%;
+  left: 50%;
+  transform: translate(-100%, -50%) rotate(24deg);
+  transform-origin: right center;
+  pointer-events: none;
+  opacity: 0.8;
+}

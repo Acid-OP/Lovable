@@ -109,7 +109,7 @@ export default function WorkspacePage() {
             {/* Theme Toggle */}
             <button
               onClick={() => setIsDark(!isDark)}
-              className={`p-2 rounded-full transition-colors ${
+              className={`p-2 rounded-full transition-colors cursor-pointer ${
                 isDark ? "hover:bg-gray-800" : "hover:bg-gray-100"
               }`}
               title={isDark ? "Light mode" : "Dark mode"}
@@ -145,12 +145,12 @@ export default function WorkspacePage() {
             </button>
 
             <button
-              className={`px-3 sm:px-4 py-1.5 text-[12px] sm:text-[13px] ${isDark ? "text-gray-400 hover:text-white" : "text-gray-700 hover:text-black"} transition-colors`}
+              className={`px-3 sm:px-4 py-1.5 text-[12px] sm:text-[13px] ${isDark ? "text-gray-400 hover:text-white" : "text-gray-700 hover:text-black"} transition-colors cursor-pointer`}
             >
               Share
             </button>
             <button
-              className={`px-3 sm:px-4 py-1.5 ${isDark ? "bg-white hover:bg-gray-200 text-black" : "bg-black hover:bg-gray-900 text-white"} text-[12px] sm:text-[13px] font-medium rounded-full transition-colors`}
+              className={`px-3 sm:px-4 py-1.5 ${isDark ? "bg-white hover:bg-gray-200 text-black" : "bg-black hover:bg-gray-900 text-white"} text-[12px] sm:text-[13px] font-medium rounded-full transition-colors cursor-pointer`}
             >
               Deploy
             </button>
