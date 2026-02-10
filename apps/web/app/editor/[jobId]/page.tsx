@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Editor from "@monaco-editor/react";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
@@ -20,12 +21,14 @@ interface WorkspacePageProps {
 
 export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { jobId } = use(params);
+  const searchParams = useSearchParams();
+  const userPrompt = searchParams.get("prompt") || "create a portfolio website";
 
   const [isDark, setIsDark] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "user",
-      content: "create a portfolio website",
+      content: userPrompt,
     },
     {
       role: "assistant",
