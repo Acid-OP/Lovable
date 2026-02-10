@@ -1,10 +1,12 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Editor from "@monaco-editor/react";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
+import { useSSEStream } from "@/lib/hooks/useSSEStream";
+import { AnimatedLogs } from "@/components/editor/AnimatedLogs";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 
@@ -30,32 +32,130 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       role: "user",
       content: userPrompt,
     },
-    {
-      role: "assistant",
-      content: "Reviewing project scope and components",
-    },
   ]);
   const [input, setInput] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(true); // Start as generating
   const [activeFile, setActiveFile] = useState("index.tsx");
-  const [files] = useState(["index.tsx", "App.tsx", "styles.css"]);
+  const [files, setFiles] = useState<string[]>([]);
+  const [showLogs, setShowLogs] = useState(true); // Start with logs view
+  const [codeReady, setCodeReady] = useState(false);
 
   const { handleEditorDidMount, createModel, switchToFile } = useMonacoModel();
+
+  // Connect to SSE stream
+  const {
+    messages: sseMessages,
+    isConnected,
+    error: sseError,
+  } = useSSEStream(jobId);
+
+  // Process SSE messages
+  useEffect(() => {
+    if (sseMessages.length === 0) return;
+
+    const latestMessage = sseMessages[sseMessages.length - 1];
+    if (!latestMessage) return;
+
+    // Update chat with status updates
+    if (latestMessage.currentStep || latestMessage.step) {
+      const stepMessage = latestMessage.currentStep || latestMessage.step || "";
+      setMessages((prev) => {
+        // Don't duplicate messages
+        if (prev[prev.length - 1]?.content === stepMessage) return prev;
+        return [
+          ...prev,
+          {
+            role: "assistant",
+            content: stepMessage,
+          },
+        ];
+      });
+    }
+
+    // Handle code files received
+    if (latestMessage.files && latestMessage.files.length > 0) {
+      setCodeReady(true);
+      setIsGenerating(false);
+      setShowLogs(false);
+
+      // Extract file names
+      const fileNames = latestMessage.files.map((f) => f.path);
+      setFiles(fileNames);
+      if (fileNames[0]) {
+        setActiveFile(fileNames[0]);
+      }
+
+      // Create models for each file
+      latestMessage.files.forEach((file) => {
+        createModel(file.path, file.content, file.language);
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "✓ Code generation complete!",
+        },
+      ]);
+    }
+
+    // Handle completion
+    if (
+      latestMessage.type === "complete" ||
+      latestMessage.status === "complete"
+    ) {
+      setIsGenerating(false);
+      if (!codeReady) {
+        // If complete but no code received, switch from logs
+        setShowLogs(false);
+      }
+    }
+
+    // Handle errors
+    if (latestMessage.type === "error") {
+      setIsGenerating(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Error: ${latestMessage.content || "Something went wrong"}`,
+        },
+      ]);
+    }
+  }, [sseMessages, createModel, codeReady]);
+
+  // Show SSE connection status in chat
+  useEffect(() => {
+    if (isConnected) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Connected to session. Starting generation...",
+        },
+      ]);
+    }
+  }, [isConnected]);
+
+  // Show SSE errors in chat
+  useEffect(() => {
+    if (sseError) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Connection error: ${sseError}`,
+        },
+      ]);
+    }
+  }, [sseError]);
 
   function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
     handleEditorDidMount(editor, monaco);
 
-    // Create initial models and set active
-    const model = createModel(
-      "index.tsx",
-      '// Your React code here\n\nexport default function App() {\n  return (\n    <div className="min-h-screen bg-white">\n      <h1>Portfolio Website</h1>\n      <p>Job ID: ' +
-        jobId +
-        "</p>\n    </div>\n  );\n}",
-      "typescript",
-    );
-
-    if (model) {
-      editor.setModel(model);
+    // Switch to active file if available
+    if (activeFile) {
+      switchToFile(activeFile);
     }
   }
 
@@ -257,44 +357,54 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
         <div
           className={`flex-1 flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
         >
-          {/* File Tabs */}
-          <div
-            className={`flex gap-1 p-2 ${isDark ? "bg-[#1e1e1e] border-gray-800" : "bg-gray-50 border-gray-200"} border-b overflow-x-auto`}
-          >
-            {files.map((file) => (
-              <button
-                key={file}
-                onClick={() => handleTabClick(file)}
-                className={`px-4 py-2 text-[13px] rounded-t whitespace-nowrap ${
-                  activeFile === file
-                    ? isDark
-                      ? "bg-[#1e1e1e] text-white border-b-2 border-white"
-                      : "bg-white text-gray-900 border-b-2 border-black"
-                    : isDark
-                      ? "text-gray-400 hover:text-gray-200 hover:bg-[#252526]"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                }`}
-              >
-                {file}
-              </button>
-            ))}
-          </div>
+          {/* File Tabs - Only show when code is ready */}
+          {!showLogs && files.length > 0 && (
+            <div
+              className={`flex gap-1 p-2 ${isDark ? "bg-[#1e1e1e] border-gray-800" : "bg-gray-50 border-gray-200"} border-b overflow-x-auto`}
+            >
+              {files.map((file) => (
+                <button
+                  key={file}
+                  onClick={() => handleTabClick(file)}
+                  className={`px-4 py-2 text-[13px] rounded-t whitespace-nowrap ${
+                    activeFile === file
+                      ? isDark
+                        ? "bg-[#1e1e1e] text-white border-b-2 border-white"
+                        : "bg-white text-gray-900 border-b-2 border-black"
+                      : isDark
+                        ? "text-gray-400 hover:text-gray-200 hover:bg-[#252526]"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  {file}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* Monaco Editor */}
-          <div className={`flex-1 ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}>
-            <Editor
-              height="100%"
-              theme={isDark ? "vs-dark" : "vs-light"}
-              onMount={handleMount}
-              options={{
-                fontSize: 14,
-                minimap: { enabled: false },
-                padding: { top: 16 },
-                lineNumbers: "on",
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-              }}
-            />
+          {/* Content Area - Logs or Editor */}
+          <div className="flex-1 overflow-hidden">
+            {showLogs ? (
+              /* Show animated logs while generating */
+              <AnimatedLogs messages={sseMessages} isDark={isDark} />
+            ) : (
+              /* Show Monaco Editor when code is ready */
+              <div className={`h-full ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}>
+                <Editor
+                  height="100%"
+                  theme={isDark ? "vs-dark" : "vs-light"}
+                  onMount={handleMount}
+                  options={{
+                    fontSize: 14,
+                    minimap: { enabled: false },
+                    padding: { top: 16 },
+                    lineNumbers: "on",
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
