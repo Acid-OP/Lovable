@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { BACKEND_URL } from "@/lib/config/api";
-import { logger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,7 +17,7 @@ export async function GET(
     });
   }
 
-  logger.info("SSE stream requested", { jobId });
+  console.log("[SSE] Stream requested", { jobId });
 
   const backendUrl = `${BACKEND_URL}/api/v1/stream/${jobId}`;
 
@@ -34,7 +33,7 @@ export async function GET(
     });
 
     if (!response.ok) {
-      logger.error("Backend stream error", {
+      console.error("[SSE] Backend stream error", {
         status: response.status,
         statusText: response.statusText,
       });
@@ -65,7 +64,7 @@ export async function GET(
           const { done, value } = await reader.read();
 
           if (done) {
-            logger.info("SSE stream completed", { jobId });
+            console.log("[SSE] Stream completed", { jobId });
             await writer.close();
             break;
           }
@@ -74,11 +73,16 @@ export async function GET(
           await writer.write(value);
         }
       } catch (error) {
-        logger.error("SSE streaming error", {
+        console.error("[SSE] Streaming error", {
           jobId,
           error: error instanceof Error ? error.message : String(error),
         });
-        await writer.close();
+        // Only close if not already closed
+        try {
+          await writer.close();
+        } catch {
+          // Writer already closed, ignore
+        }
       }
     })();
 
@@ -92,7 +96,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    logger.error("SSE proxy error", {
+    console.error("[SSE] Proxy error", {
       jobId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,

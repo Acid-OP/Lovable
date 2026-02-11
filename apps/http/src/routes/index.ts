@@ -12,9 +12,9 @@ router.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Using tester endpoint for testing (replace with promptRouter for production)
-router.use("/api/v1/prompt", testerRouter);
-// router.use("/api/v1/prompt", promptRouter);
+// Using real prompt endpoint (testerRouter was for testing only)
+// router.use("/api/v1/prompt", testerRouter);
+router.use("/api/v1/prompt", promptRouter);
 router.use("/api/v1/usage", usageRouter);
 router.use("/internal", healthCheckRouter);
 router.use(streamRouter);

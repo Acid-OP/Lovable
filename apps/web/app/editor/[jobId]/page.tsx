@@ -6,7 +6,7 @@ import Link from "next/link";
 import Editor from "@monaco-editor/react";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
 import { useSSEStream } from "@/lib/hooks/useSSEStream";
-import { AnimatedLogs } from "@/components/editor/AnimatedLogs";
+import { SessionLogsViewer } from "@/components/editor/SessionLogsViewer";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 
@@ -281,7 +281,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, i) => (
               <div
-                key={i}
+                key={`msg-${i}`}
                 className={`${msg.role === "user" ? "text-right" : "text-left"}`}
               >
                 <div
@@ -386,7 +386,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           <div className="flex-1 overflow-hidden">
             {showLogs ? (
               /* Show animated logs while generating */
-              <AnimatedLogs messages={sseMessages} isDark={isDark} />
+              <SessionLogsViewer messages={sseMessages} isDark={isDark} />
             ) : (
               /* Show Monaco Editor when code is ready */
               <div className={`h-full ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}>
