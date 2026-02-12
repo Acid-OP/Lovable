@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { BACKEND_URL } from "@/lib/config/api";
+import { BACKEND_URL, API_ENDPOINTS } from "@/lib/config/api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,7 +19,8 @@ export async function GET(
 
   console.log("[SSE] Stream requested", { jobId });
 
-  const backendUrl = `${BACKEND_URL}/api/v1/stream/${jobId}`;
+  // Use the configured stream endpoint (respects test mode)
+  const backendUrl = `${BACKEND_URL}${API_ENDPOINTS.STREAM_UPDATES}/${jobId}`;
 
   try {
     // Fetch from backend SSE endpoint

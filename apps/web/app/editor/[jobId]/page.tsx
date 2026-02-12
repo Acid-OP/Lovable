@@ -56,22 +56,6 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     const latestMessage = sseMessages[sseMessages.length - 1];
     if (!latestMessage) return;
 
-    // Update chat with status updates
-    if (latestMessage.currentStep || latestMessage.step) {
-      const stepMessage = latestMessage.currentStep || latestMessage.step || "";
-      setMessages((prev) => {
-        // Don't duplicate messages
-        if (prev[prev.length - 1]?.content === stepMessage) return prev;
-        return [
-          ...prev,
-          {
-            role: "assistant",
-            content: stepMessage,
-          },
-        ];
-      });
-    }
-
     // Handle code files received
     if (latestMessage.files && latestMessage.files.length > 0) {
       setCodeReady(true);
