@@ -4,27 +4,28 @@ import { logger } from "../utils/logger";
 const router = Router();
 
 // Mock session logs for testing
+// Frontend controls pacing - no artificial delays here
 const MOCK_LOGS = [
-  { currentStep: "Initializing workspace", delay: 600 },
-  { currentStep: "Analyzing requirements", delay: 700 },
-  { currentStep: "Setting up project structure", delay: 800 },
-  { currentStep: "Installing core dependencies", delay: 900 },
-  { currentStep: "Configuring TypeScript", delay: 600 },
-  { currentStep: "Setting up build pipeline", delay: 700 },
-  { currentStep: "Creating component architecture", delay: 800 },
-  { currentStep: "Generating UI components", delay: 900 },
-  { currentStep: "Setting up routing system", delay: 700 },
-  { currentStep: "Configuring state management", delay: 600 },
-  { currentStep: "Installing UI libraries", delay: 800 },
-  { currentStep: "Setting up styling system", delay: 700 },
-  { currentStep: "Creating page templates", delay: 900 },
-  { currentStep: "Configuring API integration", delay: 800 },
-  { currentStep: "Setting up authentication", delay: 700 },
-  { currentStep: "Optimizing bundle size", delay: 600 },
-  { currentStep: "Running type checks", delay: 700 },
-  { currentStep: "Running linter", delay: 600 },
-  { currentStep: "Building production bundle", delay: 900 },
-  { currentStep: "Finalizing deployment", delay: 700 },
+  { currentStep: "Initializing workspace" },
+  { currentStep: "Analyzing requirements" },
+  { currentStep: "Setting up project structure" },
+  { currentStep: "Installing core dependencies" },
+  { currentStep: "Configuring TypeScript" },
+  { currentStep: "Setting up build pipeline" },
+  { currentStep: "Creating component architecture" },
+  { currentStep: "Generating UI components" },
+  { currentStep: "Setting up routing system" },
+  { currentStep: "Configuring state management" },
+  { currentStep: "Installing UI libraries" },
+  { currentStep: "Setting up styling system" },
+  { currentStep: "Creating page templates" },
+  { currentStep: "Configuring API integration" },
+  { currentStep: "Setting up authentication" },
+  { currentStep: "Optimizing bundle size" },
+  { currentStep: "Running type checks" },
+  { currentStep: "Running linter" },
+  { currentStep: "Building production bundle" },
+  { currentStep: "Finalizing deployment" },
   {
     type: "code",
     files: [
@@ -39,9 +40,8 @@ const MOCK_LOGS = [
         language: "css",
       },
     ],
-    delay: 800,
   },
-  { type: "complete", status: "completed", delay: 1000 },
+  { type: "complete", status: "completed" },
 ];
 
 router.get("/:jobId", (req, res) => {
@@ -85,14 +85,14 @@ router.get("/:jobId", (req, res) => {
     // Send the log event
     res.write(`data: ${JSON.stringify(log)}\n\n`);
 
-    // Schedule next log
+    // Schedule next log - send at steady pace matching display
     if (currentIndex < MOCK_LOGS.length) {
-      setTimeout(sendNextLog, log.delay);
+      setTimeout(sendNextLog, 2500); // Match frontend display speed - 2.5s per log
     } else {
       // End stream after last message
       setTimeout(() => {
         res.end();
-      }, log.delay);
+      }, 2500);
     }
   };
 

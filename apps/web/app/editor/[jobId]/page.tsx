@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Editor from "@monaco-editor/react";
@@ -38,7 +38,14 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const [activeFile, setActiveFile] = useState("index.tsx");
   const [files, setFiles] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(true); // Start with logs view
-  const [codeReady, setCodeReady] = useState(false);
+
+  // Ref to prevent duplicate model creation
+  const modelsCreatedRef = useRef(false);
+
+  // Callback when logs animation completes
+  const handleLogsComplete = () => {
+    setShowLogs(false);
+  };
 
   const { handleEditorDidMount, createModel, switchToFile } = useMonacoModel();
 
@@ -58,9 +65,8 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
     // Handle code files received
     if (latestMessage.files && latestMessage.files.length > 0) {
-      setCodeReady(true);
       setIsGenerating(false);
-      setShowLogs(false);
+      // Don't hide logs immediately - let animation complete
 
       // Extract file names
       const fileNames = latestMessage.files.map((f) => f.path);
@@ -69,10 +75,13 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
         setActiveFile(fileNames[0]);
       }
 
-      // Create models for each file
-      latestMessage.files.forEach((file) => {
-        createModel(file.path, file.content, file.language);
-      });
+      // Create models for each file - only once to prevent Monaco duplicate error
+      if (!modelsCreatedRef.current) {
+        latestMessage.files.forEach((file) => {
+          createModel(file.path, file.content, file.language);
+        });
+        modelsCreatedRef.current = true;
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -89,10 +98,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       latestMessage.status === "complete"
     ) {
       setIsGenerating(false);
-      if (!codeReady) {
-        // If complete but no code received, switch from logs
-        setShowLogs(false);
-      }
+      // Don't hide logs immediately - let animation complete via onComplete callback
     }
 
     // Handle errors
@@ -106,7 +112,8 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
         },
       ]);
     }
-  }, [sseMessages, createModel, codeReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sseMessages]);
 
   // Show SSE connection status in chat
   useEffect(() => {
@@ -370,7 +377,11 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           <div className="flex-1 overflow-hidden">
             {showLogs ? (
               /* Show animated logs while generating */
-              <SessionLogsViewer messages={sseMessages} isDark={isDark} />
+              <SessionLogsViewer
+                messages={sseMessages}
+                isDark={isDark}
+                onComplete={handleLogsComplete}
+              />
             ) : (
               /* Show Monaco Editor when code is ready */
               <div className={`h-full ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}>
