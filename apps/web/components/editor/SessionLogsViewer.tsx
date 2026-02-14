@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { SSEMessage } from "@/lib/hooks/useSSEStream";
 
+// Module-level counter for star rotation (0-7)
+let nextStarIndex = 0;
+
 interface SessionLogsViewerProps {
   messages: SSEMessage[];
   isDark?: boolean;
@@ -14,6 +17,7 @@ interface DisplayLog {
   text: string;
   type: "info" | "success" | "error" | "step";
   timestamp: number;
+  starIndex: number; // Pre-assigned star position
 }
 
 export function SessionLogsViewer({
@@ -21,14 +25,15 @@ export function SessionLogsViewer({
   isDark = false,
   onComplete,
 }: SessionLogsViewerProps) {
-  const [currentLog, setCurrentLog] = useState<DisplayLog | null>(null);
-  const [queuedLogs, setQueuedLogs] = useState<DisplayLog[]>([]);
+  const [allLogs, setAllLogs] = useState<DisplayLog[]>([]);
+  const [activeLogIndex, setActiveLogIndex] = useState(0);
+
   const lastProcessedIndexRef = useRef(0);
-  const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const seenLogsRef = useRef<Set<string>>(new Set());
   const streamCompleteRef = useRef(false);
+  const allLogsRef = useRef<DisplayLog[]>([]);
 
-  // Process new messages and add to queue (with deduplication)
+  // Process new messages and assign star positions immediately
   useEffect(() => {
     if (messages.length === 0) return;
     if (messages.length <= lastProcessedIndexRef.current) return;
@@ -48,11 +53,15 @@ export function SessionLogsViewer({
         const text = formatMessage(msg);
         if (!text) return null;
 
+        const starIndex = nextStarIndex;
+        nextStarIndex = (nextStarIndex + 1) % 8;
+
         const log: DisplayLog = {
           id: crypto.randomUUID(),
           text,
           type: getLogType(msg),
           timestamp: Date.now(),
+          starIndex,
         };
 
         return log;
@@ -69,55 +78,42 @@ export function SessionLogsViewer({
       });
 
       if (uniqueNewLogs.length > 0) {
-        setQueuedLogs((prev) => [...prev, ...uniqueNewLogs]);
+        setAllLogs((prev) => {
+          const updated = [...prev, ...uniqueNewLogs];
+          allLogsRef.current = updated;
+          return updated;
+        });
       }
     }
 
     lastProcessedIndexRef.current = messages.length;
   }, [messages]);
 
-  // Start displaying logs when queue has items (runs once)
+  // Auto-advance through logs every 2.5 seconds
   useEffect(() => {
-    // Start interval that keeps checking the queue
-    const intervalId = setInterval(() => {
-      setQueuedLogs((queue) => {
-        // If queue is empty, nothing to do
-        if (queue.length === 0) {
-          return queue;
+    const interval = setInterval(() => {
+      setActiveLogIndex((currentIndex) => {
+        const nextIndex = currentIndex + 1;
+
+        if (nextIndex < allLogsRef.current.length) {
+          return nextIndex;
         }
 
-        // Take first log from queue and display it
-        const [nextLog, ...remaining] = queue;
-        if (nextLog) {
-          setCurrentLog(nextLog);
+        if (streamCompleteRef.current && onComplete) {
+          setTimeout(() => onComplete(), 100);
         }
 
-        // Only call onComplete when stream is complete AND queue is empty
-        if (remaining.length === 0 && streamCompleteRef.current && onComplete) {
-          setTimeout(() => onComplete(), 2500);
-        }
-
-        return remaining;
+        return currentIndex;
       });
-    }, 2500); // Check every 2.5 seconds
+    }, 2500);
 
-    // Store interval ID
-    animationIntervalRef.current = intervalId;
-
-    // Cleanup only on unmount
-    return () => {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current);
-        animationIntervalRef.current = null;
-      }
-    };
-    // Empty deps - only run once on mount
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatMessage = (msg: SSEMessage): string | null => {
     if (msg.status === "connected") {
-      return null; // Skip the "Session started" message
+      return null;
     }
     if (msg.currentStep) return msg.currentStep;
     if (msg.step) return msg.step;
@@ -135,7 +131,17 @@ export function SessionLogsViewer({
     return "info";
   };
 
-  // Enhanced falling stars with varied sizes and speeds
+  const nodePositions = [
+    { x: 25, y: 20 },
+    { x: 75, y: 22 },
+    { x: 15, y: 52 },
+    { x: 85, y: 48 },
+    { x: 30, y: 80 },
+    { x: 70, y: 78 },
+    { x: 50, y: 12 },
+    { x: 50, y: 88 },
+  ];
+
   const stars = [
     { offset: -400, size: 2, duration: 4, delay: 0 },
     { offset: -300, size: 3, duration: 5, delay: 0.8 },
@@ -152,9 +158,8 @@ export function SessionLogsViewer({
     <div
       className={`h-full flex flex-col items-center ${
         isDark ? "bg-[#1e1e1e]" : "bg-white"
-      } px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 pt-3 sm:pt-4 relative overflow-hidden`}
+      } px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 pt-3 sm:pt-4 relative`}
     >
-      {/* Enhanced falling stars background */}
       {stars.map((star, i) => (
         <div
           key={`star-${i}`}
@@ -177,10 +182,8 @@ export function SessionLogsViewer({
         />
       ))}
 
-      {/* Main content */}
       <div className="relative z-10 w-full max-w-2xl">
-        {/* Header */}
-        <div className="text-center mb-12 sm:mb-16 md:mb-20">
+        <div className="text-center mb-2 sm:mb-3 md:mb-4">
           <h2
             className={`text-2xl sm:text-3xl md:text-4xl font-medium mb-2 sm:mb-3 ${
               isDark ? "text-white" : "text-black"
@@ -193,134 +196,169 @@ export function SessionLogsViewer({
               isDark ? "text-gray-500" : "text-gray-600"
             }`}
           >
-            {currentLog ? "Processing..." : "Initializing..."}
+            {allLogs.length > 0 ? "Processing..." : "Initializing..."}
           </p>
         </div>
 
-        {/* Current log display - circular design */}
-        <div className="relative h-[200px] sm:h-[240px] md:h-[280px] flex items-center justify-center">
-          {currentLog ? (
-            <div
-              key={currentLog.id}
-              className={`absolute w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full flex flex-col items-center justify-center p-6 sm:p-7 md:p-8 ${
-                isDark
-                  ? "bg-[#252525] shadow-2xl"
-                  : "bg-white shadow-lg border border-gray-200"
-              }`}
-              style={{
-                animation: "fadeIn 0.5s ease-out",
-              }}
+        <div className="relative w-full flex flex-col items-center px-4">
+          <div className="relative w-full max-w-[1100px] h-[450px] sm:h-[500px] md:h-[550px] flex items-center justify-center mx-auto px-[200px]">
+            <svg
+              className="absolute inset-0 w-full h-full"
+              style={{ zIndex: 0 }}
             >
-              {/* Icon at top */}
-              <div className="mb-3 sm:mb-4">
-                {currentLog.type === "success" ? (
-                  <svg
-                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-green-500 mx-auto"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                ) : currentLog.type === "error" ? (
-                  <svg
-                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-red-500 mx-auto"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-blue-500 mx-auto"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
-                )}
-              </div>
+              {nodePositions.map((node, i) => {
+                const currentLog = allLogs[activeLogIndex];
+                const isActive = currentLog && i === currentLog.starIndex;
 
-              {/* Text centered below icon */}
-              <p
-                className={`text-sm sm:text-base md:text-base font-normal text-center leading-snug ${
-                  isDark ? "text-gray-300" : "text-gray-900"
-                }`}
-              >
-                {currentLog.text}
-              </p>
-            </div>
-          ) : (
-            // Loading state - circular
-            <div
-              className={`absolute w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full flex flex-col items-center justify-center ${
-                isDark
-                  ? "bg-[#252525] shadow-xl"
-                  : "bg-white shadow-md border border-gray-200"
-              }`}
-              style={{
-                animation: "fadeIn 0.6s ease-out",
-              }}
-            >
-              <div className="flex gap-2 mb-2 sm:mb-3">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={`dot-${i}`}
-                    className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
-                      isDark ? "bg-gray-600" : "bg-gray-400"
-                    }`}
+                const dx = node.x - 50;
+                const dy = node.y - 50;
+                const angle = Math.atan2(dy, dx);
+
+                const startOffset = 3;
+                const x1 = 50 + startOffset * Math.cos(angle);
+                const y1 = 50 + startOffset * Math.sin(angle);
+
+                const endOffset = isActive ? 5.5 : 4;
+                const x2 = node.x - endOffset * Math.cos(angle);
+                const y2 = node.y - endOffset * Math.sin(angle);
+
+                return (
+                  <line
+                    key={i}
+                    x1={`${x1}%`}
+                    y1={`${y1}%`}
+                    x2={`${x2}%`}
+                    y2={`${y2}%`}
+                    stroke={
+                      isActive
+                        ? isDark
+                          ? "rgba(205, 92, 92, 0.5)"
+                          : "rgba(193, 68, 14, 0.4)"
+                        : isDark
+                          ? "rgba(255, 255, 255, 0.15)"
+                          : "rgba(0, 0, 0, 0.15)"
+                    }
+                    strokeWidth={isActive ? "5" : "3"}
                     style={{
-                      animation: "bounceDot 1.4s ease-in-out infinite",
-                      animationDelay: `${i * 0.2}s`,
+                      animation: `fadeIn 0.8s ease-out ${i * 0.1}s backwards`,
+                      transition: "stroke 0.3s ease, stroke-width 0.3s ease",
                     }}
                   />
-                ))}
-              </div>
-              <span
-                className={`text-sm sm:text-base ${
-                  isDark ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                Connecting...
-              </span>
-            </div>
-          )}
-        </div>
+                );
+              })}
+            </svg>
 
-        {/* Queue indicator - minimal */}
-        {queuedLogs.length > 0 && (
-          <div
-            className="text-center mt-8 sm:mt-12 md:mt-16"
-            style={{
-              animation: "fadeIn 0.6s ease-out",
-            }}
-          >
-            <p
-              className={`text-sm ${
-                isDark ? "text-gray-600" : "text-gray-400"
-              }`}
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{ zIndex: 10 }}
             >
-              {queuedLogs.length} more step{queuedLogs.length !== 1 ? "s" : ""}
-            </p>
+              <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20">
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background:
+                      "radial-gradient(circle, rgba(205, 92, 92, 0.8) 0%, rgba(193, 68, 14, 0.4) 50%, transparent 70%)",
+                    filter: "blur(14px)",
+                    animation: "pulse 2s ease-in-out infinite",
+                  }}
+                />
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background:
+                      "radial-gradient(circle, #E27B58 0%, #CD5C5C 50%, #C1440E 100%)",
+                    boxShadow:
+                      "0 0 35px rgba(205, 92, 92, 0.9), 0 0 70px rgba(193, 68, 14, 0.5), inset 0 0 18px rgba(255, 200, 180, 0.3)",
+                  }}
+                />
+              </div>
+            </div>
+
+            {nodePositions.map((node, i) => {
+              const currentLog = allLogs[activeLogIndex];
+              const isActive = currentLog && i === currentLog.starIndex;
+
+              const truncatedText = currentLog?.text
+                ? currentLog.text.length > 35
+                  ? currentLog.text.substring(0, 35) + "..."
+                  : currentLog.text
+                : "";
+
+              return (
+                <div
+                  key={i}
+                  className="absolute flex items-center gap-2"
+                  style={{
+                    left: `${node.x}%`,
+                    top: `${node.y}%`,
+                    transform: "translate(-50%, -50%)",
+                    zIndex: isActive ? 20 : 5,
+                  }}
+                >
+                  <div
+                    className={`relative rounded-full transition-all duration-500 ${
+                      isActive
+                        ? "w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20"
+                        : "w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
+                    }`}
+                    style={{
+                      background: isActive
+                        ? isDark
+                          ? "radial-gradient(circle, #ffffff 0%, #e5e5e5 70%, #d1d1d1 100%)"
+                          : "radial-gradient(circle, #4a4a4a 0%, #2d2d2d 70%, #1a1a1a 100%)"
+                        : isDark
+                          ? "radial-gradient(circle, #e5e5e5 0%, #d1d1d1 70%, #b8b8b8 100%)"
+                          : "radial-gradient(circle, #5a5a5a 0%, #3d3d3d 70%, #252525 100%)",
+                      boxShadow: isActive
+                        ? isDark
+                          ? "0 0 25px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.2)"
+                          : "0 0 25px rgba(74, 74, 74, 0.8), 0 0 40px rgba(45, 45, 45, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.2)"
+                        : isDark
+                          ? "0 0 15px rgba(229, 229, 229, 0.5), inset 0 0 5px rgba(0, 0, 0, 0.2)"
+                          : "0 0 15px rgba(90, 90, 90, 0.4), inset 0 0 5px rgba(255, 255, 255, 0.2)",
+                      animation: isActive
+                        ? "pulse 2s ease-in-out infinite"
+                        : `fadeIn 0.8s ease-out ${i * 0.1}s backwards`,
+                    }}
+                  />
+
+                  {isActive && (
+                    <div
+                      className={`absolute whitespace-nowrap text-sm sm:text-base font-medium px-3 py-2 rounded-lg ${
+                        isDark
+                          ? "bg-gray-800/90 text-white border border-gray-700"
+                          : "bg-white/90 text-black border border-gray-300"
+                      }`}
+                      style={{
+                        ...(node.x < 40
+                          ? { left: "100%", marginLeft: "16px" }
+                          : node.x > 60
+                            ? { right: "100%", marginRight: "16px" }
+                            : node.y < 40
+                              ? {
+                                  top: "100%",
+                                  marginTop: "16px",
+                                  left: "50%",
+                                  transform: "translateX(-50%)",
+                                }
+                              : {
+                                  bottom: "100%",
+                                  marginBottom: "16px",
+                                  left: "50%",
+                                  transform: "translateX(-50%)",
+                                }),
+                        animation: "fadeIn 0.3s ease-out",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                      }}
+                    >
+                      {truncatedText}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
       </div>
 
       <style>{`
@@ -330,26 +368,6 @@ export function SessionLogsViewer({
           }
           to {
             opacity: 1;
-          }
-        }
-
-        @keyframes fadeInScale {
-          0% {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes fadeOut {
-          from {
-            opacity: 1;
-          }
-          to {
-            opacity: 0;
           }
         }
 
@@ -370,12 +388,14 @@ export function SessionLogsViewer({
           }
         }
 
-        @keyframes bounceDot {
+        @keyframes pulse {
           0%, 100% {
-            transform: translateY(0);
+            opacity: 0.6;
+            transform: scale(1);
           }
           50% {
-            transform: translateY(-8px);
+            opacity: 1;
+            transform: scale(1.1);
           }
         }
       `}</style>

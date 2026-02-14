@@ -263,7 +263,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       </nav>
 
       {/* Main Content - Split View */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex">
         {/* Left Panel - Chat */}
         <div
           className={`w-full lg:w-[380px] ${isDark ? "bg-[#1e1e1e] border-gray-800" : "bg-white border-gray-200"} border-r flex flex-col`}
@@ -374,7 +374,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           )}
 
           {/* Content Area - Logs or Editor */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
             {showLogs ? (
               /* Show animated logs while generating */
               <SessionLogsViewer
