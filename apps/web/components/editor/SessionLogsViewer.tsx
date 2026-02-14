@@ -221,14 +221,16 @@ export function SessionLogsViewer({
                   const angle = Math.atan2(dy, dx);
 
                   const startOffset = 3;
-                  const x1 = 50 + startOffset * Math.cos(angle);
-                  const y1 = 50 + startOffset * Math.sin(angle);
+                  // Round to 4 decimals to avoid SSR/client hydration mismatch from float precision
+                  const r = (n: number) => Math.round(n * 10000) / 10000;
+                  const x1 = r(50 + startOffset * Math.cos(angle));
+                  const y1 = r(50 + startOffset * Math.sin(angle));
 
                   // Adjust end offset based on node size
                   const baseOffset = isActive ? 5.5 : 4;
                   const endOffset = baseOffset * (node.size || 1);
-                  const x2 = node.x - endOffset * Math.cos(angle);
-                  const y2 = node.y - endOffset * Math.sin(angle);
+                  const x2 = r(node.x - endOffset * Math.cos(angle));
+                  const y2 = r(node.y - endOffset * Math.sin(angle));
 
                   return (
                     <line
