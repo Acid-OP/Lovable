@@ -7,6 +7,7 @@ import Editor from "@monaco-editor/react";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
 import { useSSEStream } from "@/lib/hooks/useSSEStream";
 import { SessionLogsViewer } from "@/components/editor/SessionLogsViewer";
+import { useTheme } from "@/lib/providers/ThemeProvider";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 
@@ -26,7 +27,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const searchParams = useSearchParams();
   const userPrompt = searchParams.get("prompt") || "create a portfolio website";
 
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "user",
@@ -177,11 +178,11 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
   return (
     <div
-      className={`h-screen flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
+      className={`h-screen flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"} transition-colors duration-300`}
     >
       {/* Top Navbar */}
       <nav
-        className={`${isDark ? "bg-[#1e1e1e] border-gray-800" : "bg-white border-gray-200"} border-b`}
+        className={`${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-b transition-colors duration-300`}
       >
         <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
           {/* Logo */}
@@ -212,9 +213,9 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Theme Toggle */}
             <button
-              onClick={() => setIsDark(!isDark)}
+              onClick={toggleTheme}
               className={`p-2 rounded-full transition-colors cursor-pointer ${
-                isDark ? "hover:bg-gray-800" : "hover:bg-gray-100"
+                isDark ? "hover:bg-[#2d2d30]" : "hover:bg-gray-100"
               }`}
               title={isDark ? "Light mode" : "Dark mode"}
             >
@@ -266,7 +267,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       <div className="flex-1 flex">
         {/* Left Panel - Chat */}
         <div
-          className={`w-full lg:w-[380px] ${isDark ? "bg-[#1e1e1e] border-gray-800" : "bg-white border-gray-200"} border-r flex flex-col`}
+          className={`w-full lg:w-[380px] ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-r flex flex-col transition-colors duration-300`}
         >
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -294,7 +295,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
           {/* Input Bar - Same as Editor Page */}
           <div
-            className={`p-4 ${isDark ? "border-gray-800" : "border-gray-200"} border-t`}
+            className={`p-4 ${isDark ? "border-[#333]" : "border-gray-200"} border-t transition-colors duration-300`}
           >
             <div
               className={`relative ${isDark ? "bg-[#2d2d30] border-gray-700" : "bg-white border-gray-200"} rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow`}
@@ -346,7 +347,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
         {/* Right Panel - Editor */}
         <div
-          className={`flex-1 flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
+          className={`flex-1 flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"} transition-colors duration-300`}
         >
           {/* File Tabs - Only show when code is ready */}
           {!showLogs && files.length > 0 && (

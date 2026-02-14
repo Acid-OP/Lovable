@@ -6,11 +6,12 @@ import Link from "next/link";
 import MountainWithStars from "@/components/MountainWithStars";
 import { useSubmitPrompt } from "@/lib/hooks/useSubmitPrompt";
 import { TransitionLoader } from "@/components/editor/TransitionLoader";
+import { useTheme } from "@/lib/providers/ThemeProvider";
 
 export default function EditorPage() {
   const [prompt, setPrompt] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
   const router = useRouter();
   const { submitPrompt, isLoading, error, clearError } = useSubmitPrompt();
 
@@ -43,15 +44,12 @@ export default function EditorPage() {
       {isTransitioning && <TransitionLoader />}
 
       <div
-        className={`min-h-screen ${isDark ? "bg-[#1e1e1e]" : "bg-white"} relative overflow-hidden`}
+        className={`min-h-screen ${isDark ? "bg-[#1e1e1e]" : "bg-white"} relative overflow-hidden transition-colors duration-300`}
       >
-        {/* Background Pattern */}
-        <div
-          className={`absolute inset-0 ${isDark ? "" : "bg-[radial-gradient(#e5e7eb_1px,transparent_1px)]"} [background-size:20px_20px] opacity-30`}
-        />
-
         {/* Navbar */}
-        <nav className={`relative ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}>
+        <nav
+          className={`relative ${isDark ? "bg-[#1e1e1e]" : "bg-white"} transition-colors duration-300`}
+        >
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
             <div className="flex items-center justify-between relative">
               {/* Left - Logo */}
@@ -105,8 +103,8 @@ export default function EditorPage() {
               {/* Right - Theme Toggle & Profile */}
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setIsDark(!isDark)}
-                  className={`p-2 rounded-full transition-colors ${isDark ? "hover:bg-gray-800" : "hover:bg-gray-100"}`}
+                  onClick={toggleTheme}
+                  className={`p-2 rounded-full transition-colors ${isDark ? "hover:bg-[#2d2d30]" : "hover:bg-gray-100"}`}
                 >
                   {isDark ? (
                     <svg
