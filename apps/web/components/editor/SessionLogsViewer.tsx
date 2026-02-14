@@ -132,14 +132,14 @@ export function SessionLogsViewer({
   };
 
   const nodePositions = [
-    { x: 25, y: 20 },
-    { x: 75, y: 22 },
-    { x: 15, y: 52 },
-    { x: 85, y: 48 },
-    { x: 30, y: 80 },
-    { x: 70, y: 78 },
-    { x: 50, y: 12 },
-    { x: 50, y: 88 },
+    { x: 20, y: 15, size: 0.9 },
+    { x: 78, y: 18, size: 1.1 },
+    { x: 12, y: 48, size: 0.85 },
+    { x: 88, y: 52, size: 1.0 },
+    { x: 28, y: 82, size: 1.05 },
+    { x: 75, y: 85, size: 0.95 },
+    { x: 50, y: 8, size: 1.15 },
+    { x: 50, y: 92, size: 0.8 },
   ];
 
   const stars = [
@@ -200,8 +200,8 @@ export function SessionLogsViewer({
           </p>
         </div>
 
-        <div className="relative w-full flex flex-col items-center px-4">
-          <div className="relative w-full max-w-[1100px] h-[450px] sm:h-[500px] md:h-[550px] flex items-center justify-center mx-auto px-[200px]">
+        <div className="relative w-full flex flex-col items-center px-4 overflow-visible">
+          <div className="relative w-full max-w-[700px] h-[320px] sm:h-[360px] md:h-[400px] flex items-center justify-center mx-auto px-4">
             <svg
               className="absolute inset-0 w-full h-full"
               style={{ zIndex: 0 }}
@@ -218,7 +218,9 @@ export function SessionLogsViewer({
                 const x1 = 50 + startOffset * Math.cos(angle);
                 const y1 = 50 + startOffset * Math.sin(angle);
 
-                const endOffset = isActive ? 5.5 : 4;
+                // Adjust end offset based on node size
+                const baseOffset = isActive ? 5.5 : 4;
+                const endOffset = baseOffset * (node.size || 1);
                 const x2 = node.x - endOffset * Math.cos(angle);
                 const y2 = node.y - endOffset * Math.sin(angle);
 
@@ -302,6 +304,7 @@ export function SessionLogsViewer({
                         : "w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
                     }`}
                     style={{
+                      transform: `scale(${node.size || 1})`,
                       background: isActive
                         ? isDark
                           ? "radial-gradient(circle, #ffffff 0%, #e5e5e5 70%, #d1d1d1 100%)"
@@ -324,28 +327,48 @@ export function SessionLogsViewer({
 
                   {isActive && (
                     <div
-                      className={`absolute whitespace-nowrap text-sm sm:text-base font-medium px-3 py-2 rounded-lg ${
+                      className={`absolute text-sm sm:text-base font-medium px-3 py-2 rounded-lg ${
                         isDark
                           ? "bg-gray-800/90 text-white border border-gray-700"
                           : "bg-white/90 text-black border border-gray-300"
                       }`}
                       style={{
                         ...(node.x < 40
-                          ? { left: "100%", marginLeft: "16px" }
+                          ? {
+                              right: "calc(100% + 8px)",
+                              whiteSpace: "nowrap",
+                              maxWidth: "min(250px, 40vw)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }
                           : node.x > 60
-                            ? { right: "100%", marginRight: "16px" }
+                            ? {
+                                left: "calc(100% + 8px)",
+                                whiteSpace: "nowrap",
+                                maxWidth: "min(250px, 40vw)",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }
                             : node.y < 40
                               ? {
                                   top: "100%",
                                   marginTop: "16px",
                                   left: "50%",
                                   transform: "translateX(-50%)",
+                                  whiteSpace: "nowrap",
+                                  maxWidth: "min(300px, 80vw)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
                                 }
                               : {
                                   bottom: "100%",
                                   marginBottom: "16px",
                                   left: "50%",
                                   transform: "translateX(-50%)",
+                                  whiteSpace: "nowrap",
+                                  maxWidth: "min(300px, 80vw)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
                                 }),
                         animation: "fadeIn 0.3s ease-out",
                         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
