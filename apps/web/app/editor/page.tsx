@@ -44,12 +44,10 @@ export default function EditorPage() {
       {isTransitioning && <TransitionLoader />}
 
       <div
-        className={`min-h-screen ${isDark ? "bg-[#1e1e1e]" : "bg-white"} relative overflow-hidden transition-colors duration-300`}
+        className={`min-h-screen ${isDark ? "bg-[#1e1e1e]" : "bg-white"} relative overflow-hidden`}
       >
         {/* Navbar */}
-        <nav
-          className={`relative ${isDark ? "bg-[#1e1e1e]" : "bg-white"} transition-colors duration-300`}
-        >
+        <nav className={`relative ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}>
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
             <div className="flex items-center justify-between relative">
               {/* Left - Logo */}
@@ -104,7 +102,7 @@ export default function EditorPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleTheme}
-                  className={`p-2 rounded-full transition-colors ${isDark ? "hover:bg-[#2d2d30]" : "hover:bg-gray-100"}`}
+                  className={`p-2 rounded-full ${isDark ? "hover:bg-[#2d2d30]" : "hover:bg-gray-100"}`}
                 >
                   {isDark ? (
                     <svg
@@ -157,7 +155,7 @@ export default function EditorPage() {
           {/* Prompt Input */}
           <div className="mb-8 max-w-[750px] mx-auto">
             <div
-              className={`relative ${isDark ? "bg-[#2d2d30] border-[#3d3d3d] focus-within:border-[#555555]" : "bg-white border-gray-200 focus-within:border-gray-400"} rounded-xl sm:rounded-2xl border-2 shadow-lg hover:shadow-xl transition-all`}
+              className={`relative ${isDark ? "bg-[#2d2d30] border-[#3d3d3d] focus-within:border-[#555555]" : "bg-white border-gray-200 focus-within:border-gray-400"} rounded-xl sm:rounded-2xl border-2 shadow-lg hover:shadow-xl transition-shadow`}
             >
               <textarea
                 value={prompt}
@@ -172,7 +170,7 @@ export default function EditorPage() {
                   }
                 }}
                 placeholder="What would you like to build?"
-                className={`w-full p-4 pr-14 sm:p-6 sm:pr-16 text-[15px] sm:text-[16px] ${isDark ? "text-white placeholder:text-gray-500 bg-transparent" : "text-gray-900 placeholder:text-gray-400"} resize-none focus:outline-none rounded-xl sm:rounded-2xl`}
+                className={`w-full p-4 pr-14 sm:p-6 sm:pr-16 text-[15px] sm:text-[16px] ${isDark ? "text-white placeholder:text-[#888] bg-transparent" : "text-gray-900 placeholder:text-gray-500"} resize-none focus:outline-none rounded-xl sm:rounded-2xl`}
                 rows={3}
               />
               <button

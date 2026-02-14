@@ -178,11 +178,11 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
   return (
     <div
-      className={`h-screen flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"} transition-colors duration-300`}
+      className={`h-screen flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
     >
       {/* Top Navbar */}
       <nav
-        className={`${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-b transition-colors duration-300`}
+        className={`${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-b`}
       >
         <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
           {/* Logo */}
@@ -214,7 +214,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-full transition-colors cursor-pointer ${
+              className={`p-2 rounded-full cursor-pointer ${
                 isDark ? "hover:bg-[#2d2d30]" : "hover:bg-gray-100"
               }`}
               title={isDark ? "Light mode" : "Dark mode"}
@@ -267,7 +267,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       <div className="flex-1 flex">
         {/* Left Panel - Chat */}
         <div
-          className={`w-full lg:w-[380px] ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-r flex flex-col transition-colors duration-300`}
+          className={`w-full lg:w-[380px] ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-r flex flex-col`}
         >
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -283,7 +283,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                         ? "bg-white text-black"
                         : "bg-gray-900 text-white"
                       : isDark
-                        ? "bg-gray-800 text-gray-200"
+                        ? "bg-[#2d2d30] text-gray-200"
                         : "bg-gray-100 text-gray-900"
                   }`}
                 >
@@ -295,10 +295,10 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
           {/* Input Bar - Same as Editor Page */}
           <div
-            className={`p-4 ${isDark ? "border-[#333]" : "border-gray-200"} border-t transition-colors duration-300`}
+            className={`p-4 ${isDark ? "border-[#333]" : "border-gray-200"} border-t`}
           >
             <div
-              className={`relative ${isDark ? "bg-[#2d2d30] border-gray-700" : "bg-white border-gray-200"} rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow`}
+              className={`relative ${isDark ? "bg-[#2d2d30] border-[#3d3d3d]" : "bg-white border-gray-200"} rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow`}
             >
               <textarea
                 value={input}
@@ -313,7 +313,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                   }
                 }}
                 placeholder="What would you like to build?"
-                className={`w-full p-4 pr-14 text-[15px] ${isDark ? "text-white placeholder:text-gray-500 bg-transparent" : "text-gray-900 placeholder:text-gray-400"} resize-none focus:outline-none rounded-xl`}
+                className={`w-full p-4 pr-14 text-[15px] ${isDark ? "text-white placeholder:text-[#888] bg-transparent" : "text-gray-900 placeholder:text-gray-500"} resize-none focus:outline-none rounded-xl`}
                 rows={2}
               />
               <button
@@ -347,7 +347,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
         {/* Right Panel - Editor */}
         <div
-          className={`flex-1 flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"} transition-colors duration-300`}
+          className={`flex-1 flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
         >
           {/* File Tabs - Only show when code is ready */}
           {!showLogs && files.length > 0 && (

@@ -131,15 +131,16 @@ export function SessionLogsViewer({
     return "info";
   };
 
+  // Pulled nodes inward so log labels don't overflow off-screen
   const nodePositions = [
-    { x: 20, y: 15, size: 0.9 },
-    { x: 78, y: 18, size: 1.1 },
-    { x: 12, y: 48, size: 0.85 },
-    { x: 88, y: 52, size: 1.0 },
-    { x: 28, y: 82, size: 1.05 },
-    { x: 75, y: 85, size: 0.95 },
-    { x: 50, y: 8, size: 1.15 },
-    { x: 50, y: 92, size: 0.8 },
+    { x: 25, y: 18, size: 0.85 },
+    { x: 72, y: 18, size: 1.0 },
+    { x: 18, y: 48, size: 0.8 },
+    { x: 82, y: 48, size: 0.9 },
+    { x: 30, y: 78, size: 0.95 },
+    { x: 70, y: 80, size: 0.85 },
+    { x: 50, y: 10, size: 1.05 },
+    { x: 50, y: 88, size: 0.75 },
   ];
 
   const stars = [
@@ -156,9 +157,9 @@ export function SessionLogsViewer({
 
   return (
     <div
-      className={`h-full flex flex-col items-center ${
+      className={`h-full flex flex-col ${
         isDark ? "bg-[#1e1e1e]" : "bg-white"
-      } px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 pt-3 sm:pt-4 relative`}
+      } px-4 sm:px-6 md:px-8 relative overflow-hidden`}
     >
       {stars.map((star, i) => (
         <div
@@ -182,7 +183,8 @@ export function SessionLogsViewer({
         />
       ))}
 
-      <div className="relative z-10 w-full max-w-2xl">
+      {/* Title pinned at top, aligned with first chat message */}
+      <div className="relative z-10 w-full max-w-2xl mx-auto pt-4">
         <div className="text-center mb-2 sm:mb-3 md:mb-4">
           <h2
             className={`text-2xl sm:text-3xl md:text-4xl font-medium mb-2 sm:mb-3 ${
@@ -199,160 +201,159 @@ export function SessionLogsViewer({
             {allLogs.length > 0 ? "Processing..." : "Initializing..."}
           </p>
         </div>
+      </div>
 
-        <div className="relative w-full flex flex-col items-center px-4 overflow-visible">
-          <div className="relative w-full max-w-[700px] h-[320px] sm:h-[360px] md:h-[400px] flex items-center justify-center mx-auto px-4">
-            <svg
-              className="absolute inset-0 w-full h-full"
-              style={{ zIndex: 0 }}
-            >
+      {/* Cosmic visualization pushed down to fill remaining space */}
+      <div className="flex-1 flex items-center justify-center relative z-10">
+        <div className="w-full max-w-2xl">
+          <div className="relative w-full flex flex-col items-center px-4 overflow-visible">
+            <div className="relative w-full max-w-[550px] h-[280px] sm:h-[320px] md:h-[360px] flex items-center justify-center mx-auto px-4">
+              <svg
+                className="absolute inset-0 w-full h-full"
+                style={{ zIndex: 0 }}
+              >
+                {nodePositions.map((node, i) => {
+                  const currentLog = allLogs[activeLogIndex];
+                  const isActive = currentLog && i === currentLog.starIndex;
+
+                  const dx = node.x - 50;
+                  const dy = node.y - 50;
+                  const angle = Math.atan2(dy, dx);
+
+                  const startOffset = 3;
+                  const x1 = 50 + startOffset * Math.cos(angle);
+                  const y1 = 50 + startOffset * Math.sin(angle);
+
+                  // Adjust end offset based on node size
+                  const baseOffset = isActive ? 5.5 : 4;
+                  const endOffset = baseOffset * (node.size || 1);
+                  const x2 = node.x - endOffset * Math.cos(angle);
+                  const y2 = node.y - endOffset * Math.sin(angle);
+
+                  return (
+                    <line
+                      key={i}
+                      x1={`${x1}%`}
+                      y1={`${y1}%`}
+                      x2={`${x2}%`}
+                      y2={`${y2}%`}
+                      stroke={
+                        isActive
+                          ? isDark
+                            ? "rgba(205, 92, 92, 0.5)"
+                            : "rgba(193, 68, 14, 0.4)"
+                          : isDark
+                            ? "rgba(255, 255, 255, 0.15)"
+                            : "rgba(0, 0, 0, 0.15)"
+                      }
+                      strokeWidth={isActive ? "6" : "4"}
+                      style={{
+                        animation: `fadeIn 0.8s ease-out ${i * 0.1}s backwards`,
+                        transition: "stroke 0.3s ease, stroke-width 0.3s ease",
+                      }}
+                    />
+                  );
+                })}
+              </svg>
+
+              <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                style={{ zIndex: 10 }}
+              >
+                <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16">
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background:
+                        "radial-gradient(circle, rgba(205, 92, 92, 0.8) 0%, rgba(193, 68, 14, 0.4) 50%, transparent 70%)",
+                      filter: "blur(14px)",
+                      animation: "pulse 2s ease-in-out infinite",
+                    }}
+                  />
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background:
+                        "radial-gradient(circle, #E27B58 0%, #CD5C5C 50%, #C1440E 100%)",
+                      boxShadow:
+                        "0 0 35px rgba(205, 92, 92, 0.9), 0 0 70px rgba(193, 68, 14, 0.5), inset 0 0 18px rgba(255, 200, 180, 0.3)",
+                    }}
+                  />
+                </div>
+              </div>
+
               {nodePositions.map((node, i) => {
                 const currentLog = allLogs[activeLogIndex];
                 const isActive = currentLog && i === currentLog.starIndex;
 
-                const dx = node.x - 50;
-                const dy = node.y - 50;
-                const angle = Math.atan2(dy, dx);
-
-                const startOffset = 3;
-                const x1 = 50 + startOffset * Math.cos(angle);
-                const y1 = 50 + startOffset * Math.sin(angle);
-
-                // Adjust end offset based on node size
-                const baseOffset = isActive ? 5.5 : 4;
-                const endOffset = baseOffset * (node.size || 1);
-                const x2 = node.x - endOffset * Math.cos(angle);
-                const y2 = node.y - endOffset * Math.sin(angle);
+                const truncatedText = currentLog?.text
+                  ? currentLog.text.length > 35
+                    ? currentLog.text.substring(0, 35) + "..."
+                    : currentLog.text
+                  : "";
 
                 return (
-                  <line
-                    key={i}
-                    x1={`${x1}%`}
-                    y1={`${y1}%`}
-                    x2={`${x2}%`}
-                    y2={`${y2}%`}
-                    stroke={
-                      isActive
-                        ? isDark
-                          ? "rgba(205, 92, 92, 0.5)"
-                          : "rgba(193, 68, 14, 0.4)"
-                        : isDark
-                          ? "rgba(255, 255, 255, 0.15)"
-                          : "rgba(0, 0, 0, 0.15)"
-                    }
-                    strokeWidth={isActive ? "5" : "3"}
-                    style={{
-                      animation: `fadeIn 0.8s ease-out ${i * 0.1}s backwards`,
-                      transition: "stroke 0.3s ease, stroke-width 0.3s ease",
-                    }}
-                  />
-                );
-              })}
-            </svg>
-
-            <div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-              style={{ zIndex: 10 }}
-            >
-              <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20">
-                <div
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    background:
-                      "radial-gradient(circle, rgba(205, 92, 92, 0.8) 0%, rgba(193, 68, 14, 0.4) 50%, transparent 70%)",
-                    filter: "blur(14px)",
-                    animation: "pulse 2s ease-in-out infinite",
-                  }}
-                />
-                <div
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    background:
-                      "radial-gradient(circle, #E27B58 0%, #CD5C5C 50%, #C1440E 100%)",
-                    boxShadow:
-                      "0 0 35px rgba(205, 92, 92, 0.9), 0 0 70px rgba(193, 68, 14, 0.5), inset 0 0 18px rgba(255, 200, 180, 0.3)",
-                  }}
-                />
-              </div>
-            </div>
-
-            {nodePositions.map((node, i) => {
-              const currentLog = allLogs[activeLogIndex];
-              const isActive = currentLog && i === currentLog.starIndex;
-
-              const truncatedText = currentLog?.text
-                ? currentLog.text.length > 35
-                  ? currentLog.text.substring(0, 35) + "..."
-                  : currentLog.text
-                : "";
-
-              return (
-                <div
-                  key={i}
-                  className="absolute flex items-center gap-2"
-                  style={{
-                    left: `${node.x}%`,
-                    top: `${node.y}%`,
-                    transform: "translate(-50%, -50%)",
-                    zIndex: isActive ? 20 : 5,
-                  }}
-                >
                   <div
-                    className={`relative rounded-full transition-all duration-500 ${
-                      isActive
-                        ? "w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20"
-                        : "w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
-                    }`}
+                    key={i}
+                    className="absolute flex items-center gap-2"
                     style={{
-                      transform: `scale(${node.size || 1})`,
-                      background: isActive
-                        ? isDark
-                          ? "radial-gradient(circle, #ffffff 0%, #e5e5e5 70%, #d1d1d1 100%)"
-                          : "radial-gradient(circle, #4a4a4a 0%, #2d2d2d 70%, #1a1a1a 100%)"
-                        : isDark
-                          ? "radial-gradient(circle, #e5e5e5 0%, #d1d1d1 70%, #b8b8b8 100%)"
-                          : "radial-gradient(circle, #5a5a5a 0%, #3d3d3d 70%, #252525 100%)",
-                      boxShadow: isActive
-                        ? isDark
-                          ? "0 0 25px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.2)"
-                          : "0 0 25px rgba(74, 74, 74, 0.8), 0 0 40px rgba(45, 45, 45, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.2)"
-                        : isDark
-                          ? "0 0 15px rgba(229, 229, 229, 0.5), inset 0 0 5px rgba(0, 0, 0, 0.2)"
-                          : "0 0 15px rgba(90, 90, 90, 0.4), inset 0 0 5px rgba(255, 255, 255, 0.2)",
-                      animation: isActive
-                        ? "pulse 2s ease-in-out infinite"
-                        : `fadeIn 0.8s ease-out ${i * 0.1}s backwards`,
+                      left: `${node.x}%`,
+                      top: `${node.y}%`,
+                      transform: "translate(-50%, -50%)",
+                      zIndex: isActive ? 20 : 5,
                     }}
-                  />
-
-                  {isActive && (
+                  >
                     <div
-                      className={`absolute text-sm sm:text-base font-medium px-3 py-2 rounded-lg ${
-                        isDark
-                          ? "bg-gray-800/90 text-white border border-gray-700"
-                          : "bg-white/90 text-black border border-gray-300"
+                      className={`relative rounded-full transition-all duration-500 ${
+                        isActive
+                          ? "w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14"
+                          : "w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
                       }`}
                       style={{
-                        ...(node.x < 40
-                          ? {
-                              right: "calc(100% + 8px)",
-                              whiteSpace: "nowrap",
-                              maxWidth: "min(250px, 40vw)",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }
-                          : node.x > 60
+                        transform: `scale(${node.size || 1})`,
+                        background: isActive
+                          ? isDark
+                            ? "radial-gradient(circle, #ffffff 0%, #e5e5e5 70%, #d1d1d1 100%)"
+                            : "radial-gradient(circle, #4a4a4a 0%, #2d2d2d 70%, #1a1a1a 100%)"
+                          : isDark
+                            ? "radial-gradient(circle, #e5e5e5 0%, #d1d1d1 70%, #b8b8b8 100%)"
+                            : "radial-gradient(circle, #5a5a5a 0%, #3d3d3d 70%, #252525 100%)",
+                        boxShadow: isActive
+                          ? isDark
+                            ? "0 0 25px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.2)"
+                            : "0 0 25px rgba(74, 74, 74, 0.8), 0 0 40px rgba(45, 45, 45, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.2)"
+                          : isDark
+                            ? "0 0 15px rgba(229, 229, 229, 0.5), inset 0 0 5px rgba(0, 0, 0, 0.2)"
+                            : "0 0 15px rgba(90, 90, 90, 0.4), inset 0 0 5px rgba(255, 255, 255, 0.2)",
+                        animation: isActive
+                          ? "pulse 2s ease-in-out infinite"
+                          : `fadeIn 0.8s ease-out ${i * 0.1}s backwards`,
+                      }}
+                    />
+
+                    {isActive && (
+                      <div
+                        className={`absolute text-sm sm:text-base font-medium px-3 py-2 rounded-lg ${
+                          isDark
+                            ? "bg-[#2d2d30]/95 text-white border border-[#3d3d3d]"
+                            : "bg-white/90 text-black border border-gray-300"
+                        }`}
+                        style={{
+                          ...(node.y < 30
                             ? {
-                                left: "calc(100% + 8px)",
+                                bottom: "100%",
+                                marginBottom: "10px",
+                                left: "50%",
+                                transform: "translateX(-50%)",
                                 whiteSpace: "nowrap",
-                                maxWidth: "min(250px, 40vw)",
+                                maxWidth: "min(300px, 80vw)",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
                               }
-                            : node.y < 40
+                            : node.y > 70
                               ? {
                                   top: "100%",
-                                  marginTop: "16px",
+                                  marginTop: "10px",
                                   left: "50%",
                                   transform: "translateX(-50%)",
                                   whiteSpace: "nowrap",
@@ -360,26 +361,32 @@ export function SessionLogsViewer({
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
                                 }
-                              : {
-                                  bottom: "100%",
-                                  marginBottom: "16px",
-                                  left: "50%",
-                                  transform: "translateX(-50%)",
-                                  whiteSpace: "nowrap",
-                                  maxWidth: "min(300px, 80vw)",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                }),
-                        animation: "fadeIn 0.3s ease-out",
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                      }}
-                    >
-                      {truncatedText}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                              : node.x < 40
+                                ? {
+                                    right: "calc(100% + 10px)",
+                                    whiteSpace: "nowrap",
+                                    maxWidth: "min(250px, 40vw)",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }
+                                : {
+                                    left: "calc(100% + 10px)",
+                                    whiteSpace: "nowrap",
+                                    maxWidth: "min(250px, 40vw)",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }),
+                          animation: "fadeIn 0.3s ease-out",
+                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                        }}
+                      >
+                        {truncatedText}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -396,7 +403,7 @@ export function SessionLogsViewer({
 
         @keyframes starFall {
           0% {
-            transform: translateY(0) translateX(0);
+            transform: translate(0, 0);
             opacity: 0;
           }
           10% {
@@ -406,7 +413,7 @@ export function SessionLogsViewer({
             opacity: 1;
           }
           100% {
-            transform: translateY(100vh) translateX(50px);
+            transform: translate(180px, 500px);
             opacity: 0;
           }
         }
