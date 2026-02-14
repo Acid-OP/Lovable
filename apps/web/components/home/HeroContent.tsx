@@ -13,7 +13,7 @@ export function HeroContent() {
 
       {/* Subheading */}
       <p className="text-[16px] sm:text-[18px] lg:text-[20px] text-[#666666] leading-relaxed font-normal mb-8 sm:mb-10 px-4 max-w-[700px] mx-auto">
-        Describe your idea and watch it come to life—complete with code, design,
+        Describe your idea and watch it come to life complete with code, design,
         and deployment
       </p>
 
