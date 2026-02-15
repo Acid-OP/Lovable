@@ -466,7 +466,7 @@ export default function TestEditorPage() {
                         ? "bg-white text-black"
                         : "bg-gray-900 text-white"
                       : isDark
-                        ? "bg-[#2d2d30] text-gray-200"
+                        ? "bg-[#2a2a2a] text-gray-200"
                         : "bg-gray-100 text-gray-900"
                   }`}
                 >
@@ -621,14 +621,13 @@ export default function TestEditorPage() {
                 {/* Scrollable File Tabs */}
                 <div
                   ref={tabsContainerRef}
-                  className="flex flex-nowrap items-center gap-0.5 px-2 py-1 overflow-x-auto scroll-smooth"
-                  style={{ scrollbarWidth: "thin" }}
+                  className={`flex flex-nowrap items-center gap-0.5 px-2 pt-1 pb-1.5 overflow-x-auto scroll-smooth ${isDark ? "file-tabs-scroll-dark" : "file-tabs-scroll-light"}`}
                 >
                   {DUMMY_FILES.map((file) => (
                     <button
                       key={file.path}
                       onClick={() => handleTabClick(file.path)}
-                      className={`group relative flex-shrink-0 px-3 py-1.5 text-[12px] rounded-md whitespace-nowrap transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                      className={`group relative flex-shrink-0 px-3 py-1.5 text-[12px] rounded-md whitespace-nowrap transition-colors duration-150 flex items-center gap-2 cursor-pointer ${
                         activeFile === file.path
                           ? isDark
                             ? "bg-[#2d2d30] text-white"

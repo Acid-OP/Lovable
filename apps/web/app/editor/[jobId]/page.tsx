@@ -330,7 +330,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                         ? "bg-white text-black"
                         : "bg-gray-900 text-white"
                       : isDark
-                        ? "bg-[#2d2d30] text-gray-200"
+                        ? "bg-[#2a2a2a] text-gray-200"
                         : "bg-gray-100 text-gray-900"
                   }`}
                 >

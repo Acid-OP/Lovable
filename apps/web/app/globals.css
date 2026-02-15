@@ -310,3 +310,49 @@ a {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Ultra-thin file tabs scrollbar — dark theme */
+.file-tabs-scroll-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.6) transparent;
+}
+
+.file-tabs-scroll-dark::-webkit-scrollbar {
+  height: 2px;
+}
+
+.file-tabs-scroll-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.file-tabs-scroll-dark::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 2px;
+}
+
+.file-tabs-scroll-dark::-webkit-scrollbar-thumb:hover {
+  background: #fff;
+}
+
+/* Ultra-thin file tabs scrollbar — light theme */
+.file-tabs-scroll-light {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.8) transparent;
+}
+
+.file-tabs-scroll-light::-webkit-scrollbar {
+  height: 2px;
+}
+
+.file-tabs-scroll-light::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.file-tabs-scroll-light::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 2px;
+}
+
+.file-tabs-scroll-light::-webkit-scrollbar-thumb:hover {
+  background: #000;
+}
