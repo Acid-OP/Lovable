@@ -37,15 +37,17 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     },
   ]);
   const [input, setInput] = useState("");
-  const [isGenerating, setIsGenerating] = useState(true); // Start as generating
+  const [isGenerating, setIsGenerating] = useState(true);
   const [activeFile, setActiveFile] = useState("index.tsx");
   const [files, setFiles] = useState<string[]>([]);
-  const [showLogs, setShowLogs] = useState(true); // Start with logs view
-  const [filesData, setFilesData] = useState<FilesData | null>(null); // Store fetched files
+  const [showLogs, setShowLogs] = useState(true);
+  const [filesData, setFilesData] = useState<FilesData | null>(null);
+  const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
 
   // Refs to prevent duplicate operations
   const modelsCreatedRef = useRef(false);
   const filesFetchedRef = useRef(false);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
 
   // Callback when logs animation completes
   const handleLogsComplete = useCallback(() => {
@@ -210,11 +212,16 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
   const handleTabClick = useCallback(
     (filename: string) => {
+      setActiveTab("code");
       switchToFile(filename);
       setActiveFile(filename);
     },
     [switchToFile],
   );
+
+  const handlePreviewClick = useCallback(() => {
+    setActiveTab("preview");
+  }, []);
 
   return (
     <div
@@ -304,10 +311,10 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       </nav>
 
       {/* Main Content - Split View */}
-      <div className="flex-1 flex">
-        {/* Left Panel - Chat */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Chat (Fixed Width) */}
         <div
-          className={`w-full lg:w-[380px] ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-r flex flex-col`}
+          className={`w-[380px] flex-shrink-0 ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-r flex flex-col`}
         >
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -385,37 +392,141 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           </div>
         </div>
 
-        {/* Right Panel - Editor */}
+        {/* Right Panel - Editor/Preview */}
         <div
           className={`flex-1 flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
         >
-          {/* File Tabs - Only show when code is ready */}
+          {/* Tabs Bar - Only show when code is ready */}
           {!showLogs && files.length > 0 && (
             <div
-              className={`flex gap-1 p-2 ${isDark ? "bg-[#1e1e1e] border-gray-800" : "bg-gray-50 border-gray-200"} border-b overflow-x-auto`}
+              className={`relative ${isDark ? "bg-[#252526] border-[#3d3d3d]" : "bg-gray-50 border-gray-200"} border-b`}
             >
-              {files.map((file) => (
-                <button
-                  key={file}
-                  onClick={() => handleTabClick(file)}
-                  className={`px-4 py-2 text-[13px] rounded-t whitespace-nowrap ${
-                    activeFile === file
-                      ? isDark
-                        ? "bg-[#1e1e1e] text-white border-b-2 border-white"
-                        : "bg-white text-gray-900 border-b-2 border-black"
-                      : isDark
-                        ? "text-gray-400 hover:text-gray-200 hover:bg-[#252526]"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              {/* Horizontal Scrollable Tabs Container */}
+              <div className="relative group">
+                {/* Left Gradient Fade */}
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-8 pointer-events-none z-10 ${
+                    isDark
+                      ? "bg-gradient-to-r from-[#252526] to-transparent"
+                      : "bg-gradient-to-r from-gray-50 to-transparent"
                   }`}
+                />
+
+                {/* Tabs Container with Horizontal Scroll */}
+                <div
+                  ref={tabsContainerRef}
+                  className="flex flex-nowrap items-center gap-0.5 px-2 py-1.5 overflow-x-auto scrollbar-hide scroll-smooth"
+                  style={{
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                  }}
                 >
-                  {file}
-                </button>
-              ))}
+                  {/* File Tabs */}
+                  {files.map((file) => (
+                    <button
+                      key={file}
+                      onClick={() => handleTabClick(file)}
+                      className={`group relative flex-shrink-0 px-3 py-1.5 text-[12px] rounded-md whitespace-nowrap transition-all duration-200 flex items-center gap-2 ${
+                        activeTab === "code" && activeFile === file
+                          ? isDark
+                            ? "bg-[#1e1e1e] text-white shadow-sm"
+                            : "bg-white text-gray-900 shadow-sm"
+                          : isDark
+                            ? "text-gray-400 hover:text-gray-200 hover:bg-[#2d2d30]"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      }`}
+                    >
+                      {/* File Icon */}
+                      <svg
+                        className="w-3.5 h-3.5 flex-shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <span className="font-medium">{file}</span>
+
+                      {/* Active Indicator */}
+                      {activeTab === "code" && activeFile === file && (
+                        <div
+                          className={`absolute bottom-0 left-0 right-0 h-0.5 ${
+                            isDark ? "bg-blue-500" : "bg-blue-600"
+                          }`}
+                        />
+                      )}
+                    </button>
+                  ))}
+
+                  {/* Divider */}
+                  <div
+                    className={`flex-shrink-0 w-px h-6 mx-2 ${isDark ? "bg-[#3d3d3d]" : "bg-gray-300"}`}
+                  />
+
+                  {/* Preview Tab */}
+                  <button
+                    onClick={handlePreviewClick}
+                    className={`group relative flex-shrink-0 px-3 py-1.5 text-[12px] rounded-md whitespace-nowrap transition-all duration-200 flex items-center gap-2 ${
+                      activeTab === "preview"
+                        ? isDark
+                          ? "bg-[#1e1e1e] text-white shadow-sm"
+                          : "bg-white text-gray-900 shadow-sm"
+                        : isDark
+                          ? "text-gray-400 hover:text-gray-200 hover:bg-[#2d2d30]"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    {/* Preview Icon */}
+                    <svg
+                      className="w-3.5 h-3.5 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                    <span className="font-medium">Preview</span>
+
+                    {/* Active Indicator */}
+                    {activeTab === "preview" && (
+                      <div
+                        className={`absolute bottom-0 left-0 right-0 h-0.5 ${
+                          isDark ? "bg-blue-500" : "bg-blue-600"
+                        }`}
+                      />
+                    )}
+                  </button>
+                </div>
+
+                {/* Right Gradient Fade */}
+                <div
+                  className={`absolute right-0 top-0 bottom-0 w-8 pointer-events-none z-10 ${
+                    isDark
+                      ? "bg-gradient-to-l from-[#252526] to-transparent"
+                      : "bg-gradient-to-l from-gray-50 to-transparent"
+                  }`}
+                />
+              </div>
             </div>
           )}
 
-          {/* Content Area - Logs or Editor */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Content Area - Logs, Editor, or Preview */}
+          <div className="flex-1 overflow-hidden">
             {showLogs ? (
               /* Show animated logs while generating */
               <SessionLogsViewer
@@ -423,8 +534,8 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                 isDark={isDark}
                 onComplete={handleLogsComplete}
               />
-            ) : (
-              /* Show Monaco Editor when code is ready */
+            ) : activeTab === "code" ? (
+              /* Show Monaco Editor when code tab is active */
               <div className={`h-full ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}>
                 <Editor
                   height="100%"
@@ -439,6 +550,51 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                     automaticLayout: true,
                   }}
                 />
+              </div>
+            ) : (
+              /* Show Preview when preview tab is active */
+              <div
+                className={`h-full flex items-center justify-center ${
+                  isDark ? "bg-[#1e1e1e]" : "bg-white"
+                }`}
+              >
+                <div className="text-center space-y-4">
+                  <div
+                    className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${
+                      isDark ? "bg-[#2d2d30]" : "bg-gray-100"
+                    }`}
+                  >
+                    <svg
+                      className={`w-8 h-8 ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3
+                      className={`text-sm font-medium ${
+                        isDark ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Preview Coming Soon
+                    </h3>
+                    <p
+                      className={`text-xs mt-1 ${
+                        isDark ? "text-gray-500" : "text-gray-500"
+                      }`}
+                    >
+                      Live preview will be synced here
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

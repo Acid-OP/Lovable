@@ -190,13 +190,14 @@ export default function DummyPreview({ isDark }: DummyPreviewProps) {
     <div className="flex flex-col h-full">
       {/* File tabs */}
       <div
-        className={`flex gap-1 p-2 ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-gray-50 border-gray-200"} border-b overflow-x-auto`}
+        className={`flex gap-1 p-2 ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-gray-50 border-gray-200"} border-b overflow-x-auto scrollbar-thin`}
+        style={{ minWidth: 0 }}
       >
         {DUMMY_FILES.map((f) => (
           <button
             key={f.path}
             onClick={() => handleTabClick(f.path)}
-            className={`px-4 py-2 text-[13px] rounded-t whitespace-nowrap cursor-pointer ${
+            className={`flex-shrink-0 px-4 py-2 text-[13px] rounded-t whitespace-nowrap cursor-pointer ${
               activeFile === f.path
                 ? isDark
                   ? "bg-[#1e1e1e] text-white border-b-2 border-white"
