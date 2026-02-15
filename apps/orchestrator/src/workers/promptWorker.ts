@@ -679,6 +679,86 @@ export function createPromptWorker() {
         startupDurationMs: devServerDuration,
       });
 
+      // Store generated files in Redis for API access
+      try {
+        // Get ALL files from container (not just .tsx from plan)
+        const findResult = await sandbox.exec(
+          containerId,
+          "find /workspace -type f \\( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.css' -o -name '*.json' -o -name '*.html' -o -name '*.md' \\) ! -path '*/node_modules/*' ! -path '*/.next/*'",
+        );
+
+        const allContainerFiles = findResult.output
+          .trim()
+          .split("\n")
+          .filter((path: string) => path.length > 0);
+
+        logger.info("files.reading", {
+          jobId,
+          filesCount: allContainerFiles.length,
+        });
+
+        const generatedFiles = await Promise.all(
+          allContainerFiles.map(async (path: string) => {
+            const content = await sandbox.readFile(containerId, path);
+
+            // Determine language from file extension
+            const language =
+              path.endsWith(".tsx") || path.endsWith(".ts")
+                ? "typescript"
+                : path.endsWith(".jsx") || path.endsWith(".js")
+                  ? "javascript"
+                  : path.endsWith(".css")
+                    ? "css"
+                    : path.endsWith(".json")
+                      ? "json"
+                      : path.endsWith(".html")
+                        ? "html"
+                        : "plaintext";
+
+            return {
+              path: path.replace("/workspace/", ""), // Remove /workspace prefix
+              content,
+              language,
+            };
+          }),
+        );
+
+        const filesData = {
+          files: generatedFiles,
+          metadata: {
+            jobId,
+            generatedAt: new Date().toISOString(),
+            totalFiles: generatedFiles.length,
+            totalSize: generatedFiles.reduce(
+              (sum, f) => sum + f.content.length,
+              0,
+            ),
+          },
+        };
+
+        // Store in Redis with 1 hour expiry
+        await redis.set(
+          `files:${jobId}`,
+          JSON.stringify(filesData),
+          "EX",
+          3600, // 1 hour TTL
+        );
+
+        logger.info("files.stored", {
+          jobId,
+          filesCount: generatedFiles.length,
+          totalSizeBytes: filesData.metadata.totalSize,
+          expiresInSeconds: 3600,
+        });
+      } catch (fileError) {
+        logger.error("files.storage_failed", {
+          jobId,
+          error:
+            fileError instanceof Error ? fileError.message : String(fileError),
+        });
+        // Don't fail the job if file storage fails
+      }
+
       // Wait for dev server to be ready (Next.js needs time to initialize)
       logger.info("devserver.initializing", {
         jobId,

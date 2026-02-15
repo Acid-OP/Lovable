@@ -1,4 +1,4 @@
-import { dockerRequest } from "./dockerClient.js";
+import { dockerRequest, demuxDockerStream } from "./dockerClient.js";
 import {
   DEFAULT_IMAGE,
   CONTAINER_CONFIG,
@@ -170,14 +170,20 @@ export class SandboxManager {
 
     const execId = execData.Id;
 
-    // Start exec and get output
+    // Start exec and get output (raw buffer to properly demux Docker stream headers)
     const startResponse = await dockerRequest({
       path: `/exec/${execId}/start`,
       method: "POST",
       body: { Detach: false, Tty: false },
+      raw: true,
     });
 
-    const output = startResponse.data;
+    // Docker exec with Tty:false uses a multiplexed stream format where each
+    // chunk has an 8-byte header (stream type + size). We must strip these
+    // headers to get the actual stdout content.
+    const output = startResponse.rawData
+      ? demuxDockerStream(startResponse.rawData)
+      : startResponse.data;
 
     // exit code
     const inspectResponse = await dockerRequest({

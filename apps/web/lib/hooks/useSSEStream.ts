@@ -60,7 +60,11 @@ export function useSSEStream(jobId: string | null): UseSSEStreamReturn {
           setMessages((prev) => [...prev, data]);
 
           // Handle completion
-          if (data.type === "complete" || data.status === "complete") {
+          if (
+            data.type === "complete" ||
+            data.status === "complete" ||
+            data.status === "completed"
+          ) {
             logger.info("Job completed, closing stream", { jobId });
             eventSource.close();
             setIsConnected(false);

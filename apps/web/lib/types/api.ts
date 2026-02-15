@@ -37,3 +37,29 @@ export interface UseSubmitPromptReturn {
   error: string | null;
   clearError: () => void;
 }
+
+// Files API Types
+export interface GeneratedFile {
+  path: string;
+  content: string;
+  language: string;
+}
+
+export interface FilesMetadata {
+  jobId: string;
+  generatedAt: string;
+  totalFiles: number;
+  totalSize: number;
+}
+
+export interface FilesData {
+  files: GeneratedFile[];
+  metadata: FilesMetadata;
+}
+
+export interface FetchFilesResponse {
+  success: true;
+  data: FilesData;
+}
+
+export type FetchFilesApiResponse = FetchFilesResponse | ApiErrorResponse;

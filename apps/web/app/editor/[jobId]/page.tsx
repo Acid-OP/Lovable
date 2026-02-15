@@ -1,15 +1,17 @@
 "use client";
 
-import { use, useState, useEffect, useRef } from "react";
+import { use, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Editor from "@monaco-editor/react";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
 import { useSSEStream } from "@/lib/hooks/useSSEStream";
+import { useFetchFiles } from "@/lib/hooks/useFetchFiles";
 import { SessionLogsViewer } from "@/components/editor/SessionLogsViewer";
 import { useTheme } from "@/lib/providers/ThemeProvider";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
+import type { FilesData, GeneratedFile } from "@/lib/types/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -39,16 +41,20 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const [activeFile, setActiveFile] = useState("index.tsx");
   const [files, setFiles] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(true); // Start with logs view
+  const [filesData, setFilesData] = useState<FilesData | null>(null); // Store fetched files
 
-  // Ref to prevent duplicate model creation
+  // Refs to prevent duplicate operations
   const modelsCreatedRef = useRef(false);
+  const filesFetchedRef = useRef(false);
 
   // Callback when logs animation completes
-  const handleLogsComplete = () => {
+  const handleLogsComplete = useCallback(() => {
     setShowLogs(false);
-  };
+  }, []);
 
-  const { handleEditorDidMount, createModel, switchToFile } = useMonacoModel();
+  const { handleEditorDidMount, createModel, switchToFile, isReady } =
+    useMonacoModel();
+  const { fetchFiles, error: fetchError } = useFetchFiles();
 
   // Connect to SSE stream
   const {
@@ -64,42 +70,47 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     const latestMessage = sseMessages[sseMessages.length - 1];
     if (!latestMessage) return;
 
-    // Handle code files received
-    if (latestMessage.files && latestMessage.files.length > 0) {
-      setIsGenerating(false);
-      // Don't hide logs immediately - let animation complete
-
-      // Extract file names
-      const fileNames = latestMessage.files.map((f) => f.path);
-      setFiles(fileNames);
-      if (fileNames[0]) {
-        setActiveFile(fileNames[0]);
-      }
-
-      // Create models for each file - only once to prevent Monaco duplicate error
-      if (!modelsCreatedRef.current) {
-        latestMessage.files.forEach((file) => {
-          createModel(file.path, file.content, file.language);
-        });
-        modelsCreatedRef.current = true;
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "✓ Code generation complete!",
-        },
-      ]);
-    }
-
-    // Handle completion
+    // Handle completion - fetch files from API (only once)
     if (
-      latestMessage.type === "complete" ||
-      latestMessage.status === "complete"
+      (latestMessage.type === "complete" ||
+        latestMessage.status === "complete" ||
+        latestMessage.status === "completed") &&
+      !filesFetchedRef.current
     ) {
       setIsGenerating(false);
-      // Don't hide logs immediately - let animation complete via onComplete callback
+      filesFetchedRef.current = true;
+
+      // Fetch files from API endpoint
+      fetchFiles(jobId).then((data) => {
+        if (!data) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "Error: Failed to load generated files",
+            },
+          ]);
+          return;
+        }
+
+        // Store files data - models will be created when Monaco is ready
+        setFilesData(data);
+
+        // Extract and set file names for tabs
+        const fileNames = data.files.map((f) => f.path);
+        setFiles(fileNames);
+        if (fileNames[0]) {
+          setActiveFile(fileNames[0]);
+        }
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "✓ Code generation complete!",
+          },
+        ]);
+      });
     }
 
     // Handle errors
@@ -113,8 +124,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
         },
       ]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sseMessages]);
+  }, [sseMessages, jobId, fetchFiles, createModel]);
 
   // Show SSE connection status in chat
   useEffect(() => {
@@ -142,19 +152,46 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     }
   }, [sseError]);
 
-  function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
-    handleEditorDidMount(editor, monaco);
-
-    // Switch to active file if available
-    if (activeFile) {
-      switchToFile(activeFile);
+  // Show file fetch errors in chat
+  useEffect(() => {
+    if (fetchError) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Error loading files: ${fetchError}`,
+        },
+      ]);
     }
-  }
+  }, [fetchError]);
 
-  const handleSend = () => {
+  // Create Monaco models when both files are fetched AND Monaco is ready
+  useEffect(() => {
+    if (!filesData || !isReady || modelsCreatedRef.current) return;
+
+    filesData.files.forEach((file: GeneratedFile) => {
+      createModel(file.path, file.content, file.language);
+    });
+
+    modelsCreatedRef.current = true;
+
+    // Switch to the first file
+    if (filesData.files[0]) {
+      switchToFile(filesData.files[0].path);
+    }
+  }, [filesData, isReady, createModel, switchToFile]);
+
+  const handleMount = useCallback(
+    (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+      handleEditorDidMount(editor, monaco);
+    },
+    [handleEditorDidMount],
+  );
+
+  const handleSend = useCallback(() => {
     if (!input.trim()) return;
 
-    setMessages([...messages, { role: "user", content: input }]);
+    setMessages((prev) => [...prev, { role: "user", content: input }]);
     setInput("");
     setIsGenerating(true);
 
@@ -169,12 +206,15 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       ]);
       setIsGenerating(false);
     }, 1000);
-  };
+  }, [input]);
 
-  const handleTabClick = (filename: string) => {
-    switchToFile(filename);
-    setActiveFile(filename);
-  };
+  const handleTabClick = useCallback(
+    (filename: string) => {
+      switchToFile(filename);
+      setActiveFile(filename);
+    },
+    [switchToFile],
+  );
 
   return (
     <div

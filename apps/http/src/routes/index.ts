@@ -6,6 +6,7 @@ import { streamRouter } from "./stream.js";
 import streamTesterRouter from "./streamTester.js";
 import { healthCheckRouter } from "./healthCheck.js";
 import usageRouter from "./usage.js";
+import filesRouter from "./files.js";
 
 const router = Router();
 
@@ -21,6 +22,8 @@ router.use("/internal", healthCheckRouter);
 
 router.use("/api/v1/stream-test", streamTesterRouter); // Test endpoint
 router.use(streamRouter); // Real SSE endpoint
+
+router.use("/api/v1/files", filesRouter); // Files endpoint
 
 router.use(previewRouter);
 export default router;

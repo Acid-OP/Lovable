@@ -43,6 +43,7 @@ export default function useMonacoModel() {
     editorRef.current = editor;
     monacoRef.current = monaco;
 
+    // Compiler options for TypeScript
     monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
       jsx: monaco.languages.typescript.JsxEmit.React,
       jsxFactory: "React.createElement",
@@ -55,8 +56,11 @@ export default function useMonacoModel() {
       noEmit: true,
       esModuleInterop: true,
       skipLibCheck: true,
+      noLib: false,
+      allowSyntheticDefaultImports: true,
     });
 
+    // Compiler options for JavaScript
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
       jsx: monaco.languages.typescript.JsxEmit.React,
       jsxFactory: "React.createElement",
@@ -68,18 +72,33 @@ export default function useMonacoModel() {
       module: monaco.languages.typescript.ModuleKind.ESNext,
       noEmit: true,
       esModuleInterop: true,
+      allowSyntheticDefaultImports: true,
     });
 
+    // COMPLETELY disable all diagnostics and error displays
     monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-      noSemanticValidation: true,
-      noSyntaxValidation: false,
+      noSemanticValidation: true, // No semantic errors
+      noSyntaxValidation: true, // No syntax errors either
+      noSuggestionDiagnostics: true, // No suggestions
     });
+
+    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: true,
+      noSuggestionDiagnostics: true,
+    });
+
+    // Disable eager model sync to prevent validation
+    monaco.languages.typescript.typescriptDefaults.setEagerModelSync(false);
+    monaco.languages.typescript.javascriptDefaults.setEagerModelSync(false);
 
     setIsReady(true);
   }
 
   function createModel(filename: string, content: string, language: string) {
-    if (!monacoRef.current) return;
+    if (!monacoRef.current) {
+      return;
+    }
 
     const uri = monacoRef.current.Uri.parse(`file:///${filename}`);
     const model = monacoRef.current.editor.createModel(content, language, uri);
@@ -90,9 +109,12 @@ export default function useMonacoModel() {
   }
 
   function switchToFile(filename: string) {
-    if (!editorRef.current) return;
+    if (!editorRef.current) {
+      return;
+    }
 
     const model = modelsRef.current.get(filename);
+
     if (model) {
       editorRef.current.setModel(model);
     }
