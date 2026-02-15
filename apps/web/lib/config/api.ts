@@ -10,7 +10,7 @@ export const REQUEST_TIMEOUT = 10000; // 10 seconds
 /**
  * Testing mode - set to true to use mock endpoints (saves tokens)
  */
-export const USE_TEST_ENDPOINTS = true;
+export const USE_TEST_ENDPOINTS = false;
 
 /**
  * API endpoints

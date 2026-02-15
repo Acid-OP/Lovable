@@ -37,7 +37,7 @@ router.post("/", async (req, res) => {
       await SessionManager.update(result.jobId as string, {
         prompt,
         status: "queued",
-        currentStep: "Queued for processing",
+        currentStep: "Request received",
         lastActivity: Date.now().toString(),
         iterationCount,
       });
@@ -45,6 +45,7 @@ router.post("/", async (req, res) => {
       await SessionManager.create(result.jobId as string);
       await SessionManager.update(result.jobId as string, {
         prompt,
+        currentStep: "Request received",
         iterationCount: 1,
       });
     }

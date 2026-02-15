@@ -32,13 +32,81 @@ export function isWorkerHealthy() {
   return workerHealthy;
 }
 
+// Helper to convert technical step descriptions to user-friendly phase names
+function getUserFriendlyPhase(step: PlanStep): string {
+  const desc = step.description.toLowerCase();
+  const path = step.path?.toLowerCase() || "";
+
+  // Project structure setup
+  if (
+    desc.includes("package.json") ||
+    desc.includes("initialize") ||
+    desc.includes("create project") ||
+    desc.includes("setup project")
+  ) {
+    return "Setting up project structure";
+  }
+
+  // Dependencies
+  if (
+    desc.includes("install") ||
+    desc.includes("dependencies") ||
+    desc.includes("npm") ||
+    desc.includes("pnpm") ||
+    step.command?.includes("install")
+  ) {
+    return "Installing dependencies";
+  }
+
+  // Components
+  if (
+    path.endsWith(".tsx") ||
+    path.endsWith(".jsx") ||
+    desc.includes("component") ||
+    desc.includes("react")
+  ) {
+    return "Generating components";
+  }
+
+  // Styles
+  if (
+    path.endsWith(".css") ||
+    path.includes("tailwind") ||
+    path.includes("style") ||
+    desc.includes("styling")
+  ) {
+    return "Configuring styles";
+  }
+
+  // Config files
+  if (
+    path.includes("config") ||
+    path.includes(".json") ||
+    path.includes("tsconfig") ||
+    desc.includes("configuration")
+  ) {
+    return "Configuring project";
+  }
+
+  // Default: use a cleaned version of the description
+  return step.description;
+}
+
 export function createPromptWorker() {
   const worker = new Worker(
     QUEUE_NAMES.PROMPT_QUEUE,
     async (job: Job) => {
+      const jobStartTime = Date.now();
       const promptText = job.data?.prompt;
       const previousJobId = job.data?.previousJobId;
       const jobId = job.id as string;
+
+      logger.info("job.processing_started", {
+        jobId,
+        hasPrompt: !!promptText,
+        isIteration: !!previousJobId,
+        attempt: job.attemptsMade + 1,
+      });
 
       // Step 1: Classify prompt type (NEW or CONTINUATION)
       let promptType: PromptType = PROMPT_TYPE.NEW;
@@ -76,14 +144,27 @@ export function createPromptWorker() {
       // Step 2: Sanitize and validate prompt
       await SessionManager.update(jobId, {
         status: SESSION_STATUS.PROCESSING,
-        currentStep: "Sanitizing prompt",
+        currentStep: "Understanding your request",
       });
+
+      logger.info("prompt.sanitizing", { jobId });
       const validation = await sanitizePrompt(promptText);
       if (!validation.isValid) {
+        logger.error("prompt.validation_failed", {
+          jobId,
+          reason: validation.rejectionReason,
+          riskLevel: validation.riskLevel,
+        });
         throw new Error(
           validation.rejectionReason || "Prompt failed validation",
         );
       }
+
+      logger.info("prompt.validated", {
+        jobId,
+        riskLevel: validation.riskLevel,
+        hasWarnings: validation.warnings.length > 0,
+      });
 
       // Step 3: Setup container (reuse for iterations, create new for first prompts)
       const sandbox = SandboxManager.getInstance();
@@ -150,12 +231,17 @@ export function createPromptWorker() {
         logger.info("plan.cache.hit", { jobId, cacheKey });
         await SessionManager.update(jobId, {
           status: SESSION_STATUS.PROCESSING,
-          currentStep: "Using cached plan",
+          currentStep: "Planning your application",
         });
 
         validatedPlan = cachedData.plan;
         enhancedPrompt = cachedData.enhancedPrompt;
         fromCache = true;
+
+        logger.info("plan.loaded_from_cache", {
+          jobId,
+          stepsCount: validatedPlan.steps.length,
+        });
       } else {
         logger.info("plan.cache.miss", {
           jobId,
@@ -168,30 +254,50 @@ export function createPromptWorker() {
           // NEW PROJECT: Full plan generation
           await SessionManager.update(jobId, {
             status: SESSION_STATUS.PROCESSING,
-            currentStep: "Enhancing prompt",
+            currentStep: "Planning your application",
           });
+
+          const enhanceStartTime = Date.now();
+          logger.info("plan.enhancing_prompt", { jobId });
           enhancedPrompt = await enhancePrompt(
             validation.sanitizedPrompt,
             jobId,
           );
+          const enhanceDuration = Date.now() - enhanceStartTime;
 
-          await SessionManager.update(jobId, {
-            status: SESSION_STATUS.PROCESSING,
-            currentStep: "Generating plan",
+          const planStartTime = Date.now();
+          logger.info("plan.generating", {
+            jobId,
+            promptLength: enhancedPrompt.length,
+            enhanceDurationMs: enhanceDuration,
           });
           plan = await generatePlan(enhancedPrompt, jobId);
+          const planDuration = Date.now() - planStartTime;
+
+          logger.info("plan.generated", {
+            jobId,
+            durationMs: planDuration,
+            stepsCount: plan.steps.length,
+          });
         } else {
           // CONTINUATION: Incremental plan generation
           await SessionManager.update(jobId, {
             status: SESSION_STATUS.PROCESSING,
-            currentStep: "Analyzing existing code",
+            currentStep: "Loading your project",
           });
 
+          logger.info("plan.loading_context", { jobId, previousJobId });
           const context = await getContextFromJob(previousJobId!);
 
           await SessionManager.update(jobId, {
             status: SESSION_STATUS.PROCESSING,
-            currentStep: "Generating incremental plan",
+            currentStep: "Planning changes",
+          });
+
+          logger.info("plan.generating_incremental", {
+            jobId,
+            containerId: containerId!,
+            hasPreviousContext: !!context.previousPrompt,
           });
 
           plan = await generateIncrementalPlan(
@@ -205,10 +311,10 @@ export function createPromptWorker() {
           enhancedPrompt = promptText; // No enhancement for continuation
         }
 
-        // Validate plan
-        await SessionManager.update(jobId, {
-          status: SESSION_STATUS.PROCESSING,
-          currentStep: "Validating plan",
+        // Validate plan (silent - no user-facing log)
+        logger.info("plan.validating", {
+          jobId,
+          stepsCount: plan.steps.length,
         });
         const planValidation = planValidator.validate(plan);
 
@@ -255,14 +361,26 @@ export function createPromptWorker() {
 
       // Step 5: Create container for new prompts (continuation already has one)
       if (promptType === PROMPT_TYPE.NEW) {
-        logger.info("sandbox.new_project", { jobId });
+        await SessionManager.update(jobId, {
+          currentStep: "Creating workspace",
+        });
 
-        logger.info("sandbox.creating", { jobId });
+        logger.info("sandbox.creating_container", { jobId });
         containerId = await sandbox.createContainer(jobId);
-        logger.info("sandbox.created", { jobId, containerId });
+        logger.info("sandbox.container_created", {
+          jobId,
+          containerId: containerId.slice(0, 12),
+        });
 
+        logger.info("sandbox.starting_container", {
+          jobId,
+          containerId: containerId.slice(0, 12),
+        });
         await sandbox.startContainer(containerId);
-        logger.info("sandbox.started", { jobId, containerId });
+        logger.info("sandbox.container_started", {
+          jobId,
+          containerId: containerId.slice(0, 12),
+        });
       }
 
       // Ensure containerId is assigned
@@ -287,6 +405,25 @@ export function createPromptWorker() {
 
       const totalSteps = validatedPlan.steps.length;
 
+      const executionStartTime = Date.now();
+      logger.info("plan.execution_started", {
+        jobId,
+        totalSteps,
+        containerId: containerId.slice(0, 12),
+      });
+
+      // Count files to generate (for user-facing log)
+      const filesToGenerate = validatedPlan.steps.filter(
+        (s) => s.type === "file_write",
+      ).length;
+
+      // Show single unified log for all file operations
+      await SessionManager.update(jobId, {
+        currentStep: `Generating your application${filesToGenerate > 0 ? ` (${filesToGenerate} files)` : ""}`,
+      });
+
+      let installingDependencies = false;
+
       for (const step of validatedPlan.steps) {
         logger.info("step.executing", {
           jobId,
@@ -296,11 +433,20 @@ export function createPromptWorker() {
           progress: `${step.id}/${totalSteps}`,
         });
 
-        await SessionManager.update(jobId, {
-          currentStep: `Step ${step.id}/${totalSteps}: ${step.description}`,
-        });
-
         if (step.type === "command" && step.command) {
+          // Show "Installing dependencies" log only once when npm/pnpm install runs
+          if (
+            !installingDependencies &&
+            (step.command.includes("install") ||
+              step.command.includes("npm") ||
+              step.command.includes("pnpm"))
+          ) {
+            installingDependencies = true;
+            await SessionManager.update(jobId, {
+              currentStep: "Installing dependencies",
+            });
+          }
+
           const result = await sandbox.exec(
             containerId,
             step.command,
@@ -310,6 +456,7 @@ export function createPromptWorker() {
             jobId,
             stepId: step.id,
             exitCode: result.exitCode,
+            command: step.command.slice(0, 50),
           });
         }
 
@@ -331,35 +478,56 @@ export function createPromptWorker() {
           });
         }
       }
+
+      const executionDuration = Date.now() - executionStartTime;
+      logger.info("plan.execution_completed", {
+        jobId,
+        totalSteps,
+        durationMs: executionDuration,
+        avgStepDurationMs: Math.round(executionDuration / totalSteps),
+      });
+
       // Step 7: Build project and auto-fix errors (retry up to MAX_FIX_RETRIES)
       let buildSuccess = false;
       let fixAttempts = 0;
       let lastBuildErrors = "";
 
       while (!buildSuccess && fixAttempts < MAX_FIX_RETRIES) {
-        await SessionManager.update(jobId, {
-          currentStep:
-            fixAttempts === 0
-              ? "Building project..."
-              : `Fixing errors (attempt ${fixAttempts})...`,
+        // Show "Building" on first attempt, "Optimizing" on retries
+        if (fixAttempts === 0) {
+          await SessionManager.update(jobId, {
+            currentStep: "Building your application",
+          });
+        } else if (fixAttempts === 1) {
+          // Only update to "Optimizing" once (not every retry)
+          await SessionManager.update(jobId, {
+            currentStep: "Optimizing code",
+          });
+        }
+
+        const buildStartTime = Date.now();
+        logger.info("build.attempting", {
+          jobId,
+          attempt: fixAttempts + 1,
+          maxAttempts: MAX_FIX_RETRIES,
         });
 
         const buildResult = await sandbox.runBuild(containerId);
+        const buildDuration = Date.now() - buildStartTime;
 
         if (buildResult.success) {
           buildSuccess = true;
-          logger.info("sandbox.build_success", {
+          logger.info("build.success", {
             jobId,
-            containerId,
-            attempts: fixAttempts,
+            containerId: containerId.slice(0, 12),
+            attempts: fixAttempts + 1,
+            onFirstTry: fixAttempts === 0,
+            durationMs: buildDuration,
           });
 
-          // Post-build UI validation on actual generated files
+          // Post-build UI validation on actual generated files (silent)
           if (fixAttempts > 0) {
-            // Only validate after fixes to check if quality was maintained
-            await SessionManager.update(jobId, {
-              currentStep: "Validating UI quality of fixed code...",
-            });
+            logger.info("build.validating_ui_quality", { jobId });
 
             try {
               // Read generated files from sandbox (using already extracted appFiles)
@@ -387,18 +555,16 @@ export function createPromptWorker() {
                 postBuildValidation.warnings.length > 0 ||
                 postBuildValidation.suggestions.length > 0
               ) {
-                logger.warn("sandbox.post_build_ui_issues", {
+                logger.warn("build.ui_quality_issues", {
                   jobId,
-                  warnings: postBuildValidation.warnings,
-                  suggestions: postBuildValidation.suggestions,
+                  warningsCount: postBuildValidation.warnings.length,
+                  suggestionsCount: postBuildValidation.suggestions.length,
                 });
               } else {
-                logger.info("sandbox.post_build_ui_quality_maintained", {
-                  jobId,
-                });
+                logger.info("build.ui_quality_maintained", { jobId });
               }
             } catch (validationError) {
-              logger.error("sandbox.post_build_validation_failed", {
+              logger.error("build.ui_validation_error", {
                 jobId,
                 error:
                   validationError instanceof Error
@@ -410,20 +576,22 @@ export function createPromptWorker() {
         } else {
           lastBuildErrors = buildResult.errors;
           fixAttempts++;
-          logger.warn("sandbox.build_failed", {
+          logger.warn("build.failed", {
             jobId,
-            containerId,
+            containerId: containerId.slice(0, 12),
             attempt: fixAttempts,
+            durationMs: buildDuration,
+            errorsPreview: buildResult.errors.slice(0, 200),
           });
 
           if (fixAttempts < MAX_FIX_RETRIES) {
             // Parse errors from build output
             const errorMap = parseErrorFiles(buildResult.errors);
 
-            //Classify errors by type
+            // Classify errors by type
             const classifiedErrors = classifyBuildErrors(errorMap);
 
-            logger.info("sandbox.errors_classified", {
+            logger.info("build.errors_classified", {
               jobId,
               attempt: fixAttempts,
               totalErrors: classifiedErrors.length,
@@ -436,20 +604,19 @@ export function createPromptWorker() {
               ),
             });
 
-            //Route errors to appropriate handlers
+            // Route errors to appropriate handlers
             const handlingResult = await routeAndHandleErrors(
               containerId,
               classifiedErrors,
               jobId,
             );
 
-            logger.info("sandbox.errors_handled", {
+            logger.info("build.errors_handled", {
               jobId,
               success: handlingResult.success,
-              autoFixed: handlingResult.autoFixedErrors.length,
-              llmFixed: handlingResult.llmFixedErrors.length,
-              failed: handlingResult.failedErrors.length,
-              message: handlingResult.message,
+              autoFixedCount: handlingResult.autoFixedErrors.length,
+              llmFixedCount: handlingResult.llmFixedErrors.length,
+              failedCount: handlingResult.failedErrors.length,
             });
 
             // Apply LLM-generated fixes if any
@@ -459,10 +626,10 @@ export function createPromptWorker() {
 
             // If we auto-fixed dependencies, the build will likely succeed on retry
             if (handlingResult.autoFixedErrors.length > 0) {
-              logger.info("sandbox.auto_fixes_applied", {
+              logger.info("build.auto_fixes_applied", {
                 jobId,
-                count: handlingResult.autoFixedErrors.length,
-                retryingBuild: true,
+                fixesCount: handlingResult.autoFixedErrors.length,
+                willRetry: true,
               });
             }
 
@@ -471,7 +638,7 @@ export function createPromptWorker() {
               !handlingResult.success &&
               handlingResult.failedErrors.some((e) => e.type === "config")
             ) {
-              logger.error("sandbox.config_error_abort", {
+              logger.error("build.config_error_fatal", {
                 jobId,
                 message: handlingResult.message,
               });
@@ -482,25 +649,38 @@ export function createPromptWorker() {
       }
 
       if (!buildSuccess) {
-        logger.error("sandbox.build_failed_after_retries", {
+        logger.error("build.failed_max_retries", {
           jobId,
-          containerId,
-          attempts: fixAttempts,
-          errors: lastBuildErrors.slice(0, 500),
+          containerId: containerId.slice(0, 12),
+          totalAttempts: fixAttempts,
+          errorsPreview: lastBuildErrors.slice(0, 500),
         });
       }
 
       // Step 8: Start dev server and run health checks
-      logger.info("sandbox.starting_dev_server", { jobId, containerId });
-      await sandbox.startDevServer(containerId);
-      logger.info("sandbox.dev_server_started", {
+      await SessionManager.update(jobId, {
+        currentStep: "Starting preview",
+      });
+
+      const devServerStartTime = Date.now();
+      logger.info("devserver.starting", {
         jobId,
-        containerId,
+        containerId: containerId.slice(0, 12),
+        port: config.container.port,
+      });
+
+      await sandbox.startDevServer(containerId);
+      const devServerDuration = Date.now() - devServerStartTime;
+
+      logger.info("devserver.started", {
+        jobId,
+        containerId: containerId.slice(0, 12),
         previewUrl: `http://localhost:${config.container.port}`,
+        startupDurationMs: devServerDuration,
       });
 
       // Wait for dev server to be ready (Next.js needs time to initialize)
-      logger.info("sandbox.waiting_for_dev_server", {
+      logger.info("devserver.initializing", {
         jobId,
         waitTimeMs: 5000,
       });
@@ -508,11 +688,12 @@ export function createPromptWorker() {
 
       // Health check: Verify dev server is responding and app renders without errors
       await SessionManager.update(jobId, {
-        currentStep: "Verifying app health...",
+        currentStep: "Running final checks",
       });
 
       // Call HTTP server's health check endpoint (HTTP has network access to containers)
-      logger.info("sandbox.health_check_via_http", { jobId });
+      const healthCheckStartTime = Date.now();
+      logger.info("health.checking", { jobId, routes: routes.length });
       const healthCheckResponse = await axios.post(
         `${config.api.httpServiceUrl}/internal/health-check`,
         {
@@ -523,20 +704,26 @@ export function createPromptWorker() {
           timeout: 15000,
         },
       );
+      const healthCheckDuration = Date.now() - healthCheckStartTime;
+
+      logger.info("health.check_completed", {
+        jobId,
+        durationMs: healthCheckDuration,
+        routesChecked: routes.length,
+      });
 
       const { runtimeErrorDetected, runtimeErrorMessage } =
         healthCheckResponse.data;
 
       // If runtime errors detected, attempt one fix (extending the build fix loop by 1)
       if (runtimeErrorDetected) {
-        logger.info("sandbox.runtime_error_fix_attempt", {
+        logger.warn("health.runtime_errors_detected", {
           jobId,
-          runtimeError: runtimeErrorMessage,
-          message: "Runtime errors detected, attempting fix",
+          errorPreview: runtimeErrorMessage.slice(0, 200),
         });
 
         await SessionManager.update(jobId, {
-          currentStep: "Fixing runtime errors...",
+          currentStep: "Optimizing code",
         });
 
         // Create synthetic error for the LLM to fix
@@ -554,11 +741,10 @@ export function createPromptWorker() {
           jobId,
         );
 
-        logger.info("sandbox.runtime_errors_handled", {
+        logger.info("health.runtime_errors_handled", {
           jobId,
           success: runtimeHandlingResult.success,
-          llmFixed: runtimeHandlingResult.llmFixedErrors.length,
-          message: runtimeHandlingResult.message,
+          fixesGenerated: runtimeHandlingResult.llmFixedErrors.length,
         });
 
         // Apply LLM-generated fixes if any
@@ -568,24 +754,21 @@ export function createPromptWorker() {
         ) {
           await applyFixes(containerId, runtimeHandlingResult.fixes, jobId);
 
-          // Rebuild after runtime fixes
-          await SessionManager.update(jobId, {
-            currentStep: "Rebuilding after runtime fixes...",
-          });
-
+          // Rebuild after runtime fixes (silent - already showing "Optimizing code")
+          logger.info("health.rebuilding", { jobId });
           const rebuildResult = await sandbox.runBuild(containerId);
 
           if (!rebuildResult.success) {
-            logger.error("sandbox.rebuild_failed_after_runtime_fix", {
+            logger.error("health.rebuild_failed", {
               jobId,
-              errors: rebuildResult.errors.slice(0, 500),
+              errorsPreview: rebuildResult.errors.slice(0, 500),
             });
             throw new Error(
               `Rebuild failed after runtime fix: ${rebuildResult.errors.slice(0, 200)}`,
             );
           }
 
-          logger.info("sandbox.rebuild_success_after_runtime_fix", { jobId });
+          logger.info("health.rebuild_success", { jobId });
 
           // Restart dev server (rebuild stops the old one)
           await sandbox.startDevServer(containerId);
@@ -593,7 +776,7 @@ export function createPromptWorker() {
 
           // Re-run health check to verify fix worked
           try {
-            logger.info("sandbox.health_recheck_via_http", { jobId });
+            logger.info("health.rechecking", { jobId });
             const recheckResponse = await axios.post(
               `${config.api.httpServiceUrl}/internal/health-check`,
               {
@@ -608,22 +791,21 @@ export function createPromptWorker() {
             const stillHasErrors = recheckResponse.data.runtimeErrorDetected;
 
             if (stillHasErrors) {
-              logger.error("sandbox.runtime_errors_persist_after_fix", {
+              logger.error("health.errors_persist", {
                 jobId,
-                message: "Runtime errors still present after fix attempt",
-                error: recheckResponse.data.runtimeErrorMessage,
+                errorPreview: recheckResponse.data.runtimeErrorMessage.slice(
+                  0,
+                  200,
+                ),
               });
               throw new Error(
                 `Runtime errors persist after fix: ${recheckResponse.data.runtimeErrorMessage}`,
               );
             } else {
-              logger.info("sandbox.runtime_fix_successful", {
-                jobId,
-                message: "Runtime errors resolved successfully",
-              });
+              logger.info("health.fix_successful", { jobId });
             }
           } catch (recheckError) {
-            logger.error("sandbox.health_recheck_failed", {
+            logger.error("health.recheck_failed", {
               jobId,
               error:
                 recheckError instanceof Error
@@ -635,15 +817,27 @@ export function createPromptWorker() {
             );
           }
         } else {
-          logger.error("sandbox.no_runtime_fixes_generated", {
+          logger.error("health.no_fixes_generated", {
             jobId,
-            message: "LLM did not generate fixes for runtime errors",
+            errorPreview: runtimeErrorMessage.slice(0, 200),
           });
           throw new Error(
             `Runtime errors detected but could not generate fixes: ${runtimeErrorMessage}`,
           );
         }
+      } else {
+        logger.info("health.passed", { jobId, routesChecked: routes.length });
       }
+
+      const jobDuration = Date.now() - jobStartTime;
+
+      logger.info("job.processing_completed", {
+        jobId,
+        totalDurationMs: jobDuration,
+        cached: fromCache,
+        hadErrors: fixAttempts > 0,
+        buildAttempts: fixAttempts + 1,
+      });
 
       return {
         plan: validatedPlan,
@@ -678,18 +872,25 @@ export function createPromptWorker() {
         ? job.finishedOn - job.processedOn
         : undefined;
 
+    // Determine completion message based on prompt type
+    const isIteration = job.data?.previousJobId;
+    const completionMessage = isIteration
+      ? "Changes applied successfully!"
+      : "Your app is ready!";
+
     await SessionManager.update(jobId, {
       status: SESSION_STATUS.COMPLETED,
-      currentStep: "Done",
+      currentStep: completionMessage,
       result: JSON.stringify(job.returnvalue),
     });
 
     logger.info("job.completed", {
-      queue: QUEUE_NAMES.PROMPT_QUEUE,
       jobId: job.id,
-      attempt: job.attemptsMade,
       durationMs,
-      returnValuePresent: job.returnvalue !== undefined,
+      attempts: job.attemptsMade,
+      cached: job.returnvalue?.cached,
+      containerId: job.returnvalue?.containerId?.slice(0, 12),
+      isIteration,
     });
   });
 
@@ -702,12 +903,16 @@ export function createPromptWorker() {
       });
     }
 
+    const failedJobData = job?.data;
     logger.error("job.failed", {
-      queue: QUEUE_NAMES.PROMPT_QUEUE,
       jobId: job?.id,
       attempt: job?.attemptsMade,
-      reason: err.message,
-      stack: err.stack,
+      errorMessage: err.message,
+      errorName: err.name,
+      errorStack: err.stack?.split("\n").slice(0, 5).join("\n"), // First 5 lines only
+      isIteration: !!failedJobData?.previousJobId,
+      promptPreview: failedJobData?.prompt?.slice(0, 100),
+      willRetry: (job?.attemptsMade || 0) < 3,
     });
     workerHealthy = false;
   });
