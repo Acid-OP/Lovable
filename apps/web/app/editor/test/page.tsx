@@ -464,7 +464,7 @@ export default function TestEditorPage() {
                     msg.role === "user"
                       ? isDark
                         ? "bg-white text-black"
-                        : "bg-gray-900 text-white"
+                        : "bg-black text-white"
                       : isDark
                         ? "bg-[#2a2a2a] text-gray-200"
                         : "bg-gray-100 text-gray-900"
@@ -480,7 +480,7 @@ export default function TestEditorPage() {
             className={`p-4 ${isDark ? "border-[#333]" : "border-gray-200"} border-t`}
           >
             <div
-              className={`relative ${isDark ? "bg-[#2d2d30] border-[#3d3d3d]" : "bg-white border-gray-200"} rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow`}
+              className={`relative ${isDark ? "bg-[#2d2d30] border-[#3d3d3d] focus-within:border-[#555555]" : "bg-white border-gray-200 focus-within:border-gray-400"} rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow`}
             >
               <textarea
                 value={input}
@@ -558,7 +558,7 @@ export default function TestEditorPage() {
                 Code
                 {activeTab === "code" && (
                   <div
-                    className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? "bg-blue-500" : "bg-blue-600"}`}
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? "bg-white" : "bg-black"}`}
                   />
                 )}
               </button>
@@ -596,7 +596,7 @@ export default function TestEditorPage() {
                 Preview
                 {activeTab === "preview" && (
                   <div
-                    className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? "bg-blue-500" : "bg-blue-600"}`}
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? "bg-white" : "bg-black"}`}
                   />
                 )}
               </button>
@@ -627,7 +627,7 @@ export default function TestEditorPage() {
                     <button
                       key={file.path}
                       onClick={() => handleTabClick(file.path)}
-                      className={`group relative flex-shrink-0 px-3 py-1.5 text-[12px] rounded-md whitespace-nowrap transition-colors duration-150 flex items-center gap-2 cursor-pointer ${
+                      className={`group relative flex-shrink-0 px-3 py-1.5 text-[12px] rounded-md whitespace-nowrap flex items-center gap-2 cursor-pointer ${
                         activeFile === file.path
                           ? isDark
                             ? "bg-[#2d2d30] text-white"
