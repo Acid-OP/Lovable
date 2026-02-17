@@ -11,7 +11,7 @@ import Link from "next/link";
 import Editor from "@monaco-editor/react";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { SessionLogsViewer } from "@/components/editor/SessionLogsViewer";
+import { RisingLogsLoader } from "@/components/editor/RisingLogsLoader";
 import { useTheme } from "@/lib/providers/ThemeProvider";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
 import type { Message, SSEMessage } from "@/lib/types/editor";
@@ -665,7 +665,7 @@ export default function TestEditorPage() {
           {/* Content Area */}
           <div className="flex-1 overflow-hidden">
             {showLogs ? (
-              <SessionLogsViewer
+              <RisingLogsLoader
                 messages={FAKE_SSE_MESSAGES.slice(0, sseIdx)}
                 isDark={isDark}
                 onComplete={handleLogsComplete}

@@ -44,3 +44,9 @@ export interface AnimatedLogsProps {
   messages: SSEMessage[];
   isDark?: boolean;
 }
+
+export interface RisingLogsLoaderProps {
+  messages: SSEMessage[];
+  isDark?: boolean;
+  onComplete?: () => void;
+}
