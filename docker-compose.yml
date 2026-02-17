@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v2.10
+    image: traefik:v2.11
     container_name: lovable-traefik
     command:
       - "--api.insecure=true"
@@ -12,7 +12,7 @@ services:
       - "3003:80"
       - "8080:8080"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - sandbox-network
     restart: unless-stopped
