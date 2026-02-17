@@ -718,7 +718,7 @@ export default function TestEditorPage() {
                         : "bg-white text-gray-500 border border-gray-200"
                     }`}
                   >
-                    https://localhost:3000
+                    http://sandbox-test.localhost:3003
                   </div>
                   <button
                     className={`p-1 rounded ${isDark ? "hover:bg-[#3d3d3d] text-gray-400" : "hover:bg-gray-200 text-gray-500"}`}
