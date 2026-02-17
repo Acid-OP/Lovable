@@ -117,6 +117,11 @@ export class SandboxManager {
       Labels: {
         jobId: jobId,
         type: "sandbox",
+        "traefik.enable": "true",
+        [`traefik.http.routers.${containerName}.rule`]: `Host(\`${containerName}.localhost\`)`,
+        [`traefik.http.routers.${containerName}.entrypoints`]: "web",
+        [`traefik.http.services.${containerName}.loadbalancer.server.port`]:
+          "3000",
       },
     };
 

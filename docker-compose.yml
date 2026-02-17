@@ -1,4 +1,22 @@
 services:
+  traefik:
+    image: traefik:v2.10
+    container_name: lovable-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=lovable_sandbox-network"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "3003:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - sandbox-network
+    restart: unless-stopped
+
   http:
     build:
       context: .
