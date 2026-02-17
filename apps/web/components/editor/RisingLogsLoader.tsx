@@ -93,60 +93,88 @@ export function RisingLogsLoader({
         isDark ? "bg-[#1e1e1e]" : "bg-white"
       }`}
     >
-      {/* ── Title — pinned upper area ── */}
-      <div className="text-center pt-[12%]">
+      {/* ── Title ── */}
+      <div className="text-center pt-[10%]">
         <h2
-          className={`text-2xl font-semibold tracking-tight ${
+          className={`text-[26px] font-semibold tracking-tight ${
             isDark ? "text-white" : "text-black"
           }`}
         >
           Building your application
         </h2>
-        <p
-          className={`text-sm mt-2 tracking-wide uppercase ${
+        <div
+          className={`flex items-center justify-center gap-[3px] mt-3 text-[13px] tracking-wider uppercase ${
             isDark ? "text-neutral-500" : "text-neutral-400"
           }`}
         >
-          {activeIndex >= 0 ? "Processing" : "Initializing"}
-        </p>
+          <span>{activeIndex >= 0 ? "Processing" : "Initializing"}</span>
+          <span className="flex gap-[2px]">
+            <span style={{ animation: "dotFade 1.4s ease-in-out infinite" }}>
+              .
+            </span>
+            <span
+              style={{ animation: "dotFade 1.4s ease-in-out 0.2s infinite" }}
+            >
+              .
+            </span>
+            <span
+              style={{ animation: "dotFade 1.4s ease-in-out 0.4s infinite" }}
+            >
+              .
+            </span>
+          </span>
+        </div>
       </div>
 
-      {/* ── Log feed — fixed-height zone, messages anchored to bottom ── */}
-      <div className="flex-1 w-full max-w-lg px-6 flex flex-col relative">
-        {/* Fade-out gradient at top of feed */}
+      {/* Thin separator */}
+      <div
+        className={`w-10 h-px mt-6 ${
+          isDark ? "bg-neutral-700" : "bg-neutral-200"
+        }`}
+      />
+
+      {/* ── Log feed ── */}
+      <div className="flex-1 w-full max-w-xl px-6 flex flex-col relative">
+        {/* Top gradient mask */}
         <div
-          className="absolute top-0 left-0 right-0 h-16 z-10 pointer-events-none"
+          className="absolute top-0 left-0 right-0 h-20 z-10 pointer-events-none"
           style={{
             background: isDark
-              ? "linear-gradient(to bottom, #1e1e1e 30%, transparent)"
-              : "linear-gradient(to bottom, #ffffff 30%, transparent)",
+              ? "linear-gradient(to bottom, #1e1e1e 25%, transparent)"
+              : "linear-gradient(to bottom, #ffffff 25%, transparent)",
           }}
         />
 
-        {/* Messages centered vertically in the feed area */}
-        <div className="flex-1 flex flex-col gap-6 items-center justify-center relative">
+        {/* Messages — vertically centered */}
+        <div className="flex-1 flex flex-col gap-7 items-center justify-center relative">
           {visible.map((log, idx) => {
-            const distFromNewest = visible.length - 1 - idx;
-            const opacity = 1 - distFromNewest * 0.18;
-            const isNewest = distFromNewest === 0;
+            const dist = visible.length - 1 - idx;
+            const isNewest = dist === 0;
+            const opacity = 1 - dist * 0.2;
+            const scale = 1 - dist * 0.018;
+            const lift = dist * 2;
 
             return (
               <div
                 key={log.id}
-                className="flex items-center gap-3.5 justify-center will-change-[transform,opacity]"
+                className="flex items-center gap-3.5 justify-center"
                 style={{
-                  opacity: Math.max(0.1, opacity),
+                  opacity: Math.max(0.06, opacity),
+                  transform: isNewest
+                    ? undefined
+                    : `translateY(-${lift}px) scale(${scale})`,
                   animation: isNewest
-                    ? "logEnter 0.75s cubic-bezier(0.22, 1, 0.36, 1) both"
+                    ? "logEnter 1s cubic-bezier(0.33, 1, 0.68, 1) both"
                     : undefined,
                   transition:
-                    "opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0.4, 0, 0.2, 1)",
+                    "opacity 1.4s cubic-bezier(0.25, 0.1, 0.25, 1), transform 1.4s cubic-bezier(0.25, 0.1, 0.25, 1)",
+                  willChange: "transform, opacity",
                 }}
               >
-                {/* Status indicator */}
+                {/* Status dot */}
                 <div className="flex-shrink-0">
                   <div
-                    className={`w-2.5 h-2.5 rounded-full ${
+                    className={`w-[10px] h-[10px] rounded-full ${
                       log.type === "success"
                         ? "bg-emerald-500"
                         : log.type === "error"
@@ -156,18 +184,25 @@ export function RisingLogsLoader({
                             : "bg-neutral-800"
                     }`}
                     style={{
-                      boxShadow:
-                        isNewest && log.type === "success"
-                          ? "0 0 8px rgba(16,185,129,0.5)"
-                          : isNewest && log.type === "error"
-                            ? "0 0 8px rgba(239,68,68,0.5)"
-                            : "none",
+                      boxShadow: isNewest
+                        ? log.type === "success"
+                          ? "0 0 10px rgba(16,185,129,0.5)"
+                          : log.type === "error"
+                            ? "0 0 10px rgba(239,68,68,0.5)"
+                            : isDark
+                              ? "0 0 10px rgba(255,255,255,0.15)"
+                              : "0 0 10px rgba(0,0,0,0.08)"
+                        : "none",
+                      animation: isNewest
+                        ? "dotGlow 2.5s ease-in-out infinite"
+                        : undefined,
                     }}
                   />
                 </div>
+
                 {/* Log text */}
                 <span
-                  className={`text-[17px] leading-snug ${
+                  className={`text-[17px] leading-relaxed font-medium ${
                     log.type === "success"
                       ? "text-emerald-500"
                       : log.type === "error"
@@ -183,46 +218,65 @@ export function RisingLogsLoader({
             );
           })}
 
-          {/* ── Animated shimmer bar — centered below messages ── */}
-          <div className="flex justify-center pt-2">
-            <div className="relative h-[2px] w-24 overflow-hidden rounded-full">
+          {/* Shimmer indicator */}
+          <div className="flex justify-center pt-3">
+            <div className="relative h-[2px] w-28 overflow-hidden rounded-full">
               <div
-                className={`absolute inset-0 ${
+                className={`absolute inset-0 rounded-full ${
                   isDark ? "bg-neutral-800" : "bg-neutral-200"
                 }`}
               />
               <div
-                className="absolute inset-y-0 w-10 rounded-full will-change-[left]"
+                className="absolute inset-y-0 w-12 rounded-full"
                 style={{
                   background: isDark
-                    ? "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)"
-                    : "linear-gradient(90deg, transparent, rgba(0,0,0,0.25), transparent)",
-                  animation: "shimmer 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                    ? "linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)"
+                    : "linear-gradient(90deg, transparent, rgba(0,0,0,0.2), transparent)",
+                  animation:
+                    "shimmer 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                  willChange: "transform",
                 }}
               />
             </div>
           </div>
         </div>
+
+        {/* Bottom gradient mask */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-16 z-10 pointer-events-none"
+          style={{
+            background: isDark
+              ? "linear-gradient(to top, #1e1e1e 25%, transparent)"
+              : "linear-gradient(to top, #ffffff 25%, transparent)",
+          }}
+        />
       </div>
 
       <style>{`
         @keyframes logEnter {
           0% {
             opacity: 0;
-            transform: translateY(18px);
+            transform: translateY(22px) scale(0.96);
+          }
+          40% {
+            opacity: 0.6;
           }
           100% {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
+        @keyframes dotFade {
+          0%, 100% { opacity: 0.2; }
+          50% { opacity: 1; }
+        }
+        @keyframes dotGlow {
+          0%, 100% { box-shadow: 0 0 0 0 transparent; }
+          50% { box-shadow: 0 0 12px 3px ${isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)"}; }
+        }
         @keyframes shimmer {
-          0% {
-            left: -40px;
-          }
-          100% {
-            left: calc(100%);
-          }
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(350%); }
         }
       `}</style>
     </div>

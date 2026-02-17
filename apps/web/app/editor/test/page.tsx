@@ -16,19 +16,16 @@ import { useTheme } from "@/lib/providers/ThemeProvider";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
 import type { Message, SSEMessage } from "@/lib/types/editor";
 
-const DUMMY_MESSAGES: Message[] = [
-  {
-    role: "user",
-    content:
-      "Create a modern portfolio website with hero, features, and footer sections",
-  },
-  {
-    role: "assistant",
-    content: "Connected to session. Starting generation...",
-  },
-  { role: "assistant", content: "Analyzing requirements…" },
-  { role: "assistant", content: "✓ Code generation complete!" },
-];
+const INITIAL_USER_MESSAGE: Message = {
+  role: "user",
+  content:
+    "Create a modern portfolio website with hero, features, and footer sections",
+};
+
+const DONE_MESSAGE: Message = {
+  role: "assistant",
+  content: "Done! Your application is ready.",
+};
 
 // Fake SSE messages
 const FAKE_SSE_MESSAGES: SSEMessage[] = [
@@ -255,9 +252,10 @@ Open [http://localhost:3000](http://localhost:3000) to view it in the browser.`,
 
 export default function TestEditorPage() {
   const { isDark, toggleTheme } = useTheme();
-  const [messages, setMessages] = useState<Message[]>([DUMMY_MESSAGES[0]!]);
+  const [messages, setMessages] = useState<Message[]>([INITIAL_USER_MESSAGE]);
   const [input, setInput] = useState("");
   const [showLogs, setShowLogs] = useState(true);
+  const [isBuilding, setIsBuilding] = useState(true);
   const [sseIdx, setSseIdx] = useState(0);
   const [activeFile, setActiveFile] = useState(DUMMY_FILES[0]!.path);
   const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
@@ -277,18 +275,15 @@ export default function TestEditorPage() {
     return () => clearTimeout(timer);
   }, [sseIdx]);
 
-  // Drip-feed chat messages
+  // When build completes, add the done message
   useEffect(() => {
-    if (sseIdx === 1 && messages.length < 2) {
-      setMessages((prev) => [...prev, DUMMY_MESSAGES[1]!]);
+    if (
+      !isBuilding &&
+      !messages.some((m) => m.content === DONE_MESSAGE.content)
+    ) {
+      setMessages((prev) => [...prev, DONE_MESSAGE]);
     }
-    if (sseIdx === 3 && messages.length < 3) {
-      setMessages((prev) => [...prev, DUMMY_MESSAGES[2]!]);
-    }
-    if (sseIdx >= FAKE_SSE_MESSAGES.length && messages.length < 4) {
-      setMessages((prev) => [...prev, DUMMY_MESSAGES[3]!]);
-    }
-  }, [sseIdx, messages.length]);
+  }, [isBuilding, messages]);
 
   // Create Monaco models when ready
   useEffect(() => {
@@ -308,6 +303,7 @@ export default function TestEditorPage() {
 
   const handleLogsComplete = useCallback(() => {
     setShowLogs(false);
+    setIsBuilding(false);
   }, []);
 
   const handleSend = useCallback(() => {
@@ -469,6 +465,34 @@ export default function TestEditorPage() {
                 </div>
               </div>
             ))}
+
+            {/* Minimal loader while building */}
+            {isBuilding && (
+              <div className="text-left">
+                <div
+                  className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg ${
+                    isDark ? "bg-[#2a2a2a]" : "bg-gray-100"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${isDark ? "bg-neutral-400" : "bg-neutral-500"}`}
+                    style={{ animation: "chatDot 1.4s ease-in-out infinite" }}
+                  />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${isDark ? "bg-neutral-400" : "bg-neutral-500"}`}
+                    style={{
+                      animation: "chatDot 1.4s ease-in-out 0.2s infinite",
+                    }}
+                  />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${isDark ? "bg-neutral-400" : "bg-neutral-500"}`}
+                    style={{
+                      animation: "chatDot 1.4s ease-in-out 0.4s infinite",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div
@@ -775,6 +799,13 @@ export default function TestEditorPage() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes chatDot {
+          0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+          40% { opacity: 1; transform: scale(1.1); }
+        }
+      `}</style>
     </div>
   );
 }
