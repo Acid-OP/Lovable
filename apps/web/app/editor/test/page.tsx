@@ -14,12 +14,7 @@ import type { editor } from "monaco-editor";
 import { SessionLogsViewer } from "@/components/editor/SessionLogsViewer";
 import { useTheme } from "@/lib/providers/ThemeProvider";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
-import type { SSEMessage } from "@/lib/hooks/useSSEStream";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import type { Message, SSEMessage } from "@/lib/types/editor";
 
 const DUMMY_MESSAGES: Message[] = [
   {
@@ -718,7 +713,7 @@ export default function TestEditorPage() {
                         : "bg-white text-gray-500 border border-gray-200"
                     }`}
                   >
-                    http://sandbox-test.localhost:3003
+                    localhost:3000
                   </div>
                   <button
                     className={`p-1 rounded ${isDark ? "hover:bg-[#3d3d3d] text-gray-400" : "hover:bg-gray-200 text-gray-500"}`}

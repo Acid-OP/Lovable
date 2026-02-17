@@ -2,21 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { logger } from "@/lib/utils/client-logger";
+import type { SSEMessage } from "@/lib/types/editor";
 
-export interface SSEMessage {
-  type?: "log" | "status" | "code" | "error" | "complete" | "connected";
-  content?: string;
-  step?: string;
-  status?: string;
-  jobId?: string;
-  message?: string;
-  currentStep?: string;
-  files?: Array<{
-    path: string;
-    content: string;
-    language: string;
-  }>;
-}
+export type { SSEMessage };
 
 interface UseSSEStreamReturn {
   messages: SSEMessage[];

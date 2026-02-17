@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { SSEMessage } from "@/lib/hooks/useSSEStream";
-
-interface AnimatedLogsProps {
-  messages: SSEMessage[];
-  isDark?: boolean;
-}
+import type { AnimatedLogsProps, SSEMessage } from "@/lib/types/editor";
 
 export function AnimatedLogs({ messages, isDark = false }: AnimatedLogsProps) {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);

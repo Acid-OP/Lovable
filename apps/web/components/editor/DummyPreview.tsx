@@ -158,9 +158,7 @@ body {
 
 /* ---------- component ---------- */
 
-interface DummyPreviewProps {
-  isDark: boolean;
-}
+import type { DummyPreviewProps } from "@/lib/types/editor";
 
 export default function DummyPreview({ isDark }: DummyPreviewProps) {
   const [activeFile, setActiveFile] = useState(DUMMY_FILES[0]!.path);

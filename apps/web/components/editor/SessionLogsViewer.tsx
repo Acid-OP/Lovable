@@ -1,24 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { SSEMessage } from "@/lib/hooks/useSSEStream";
+import type {
+  SSEMessage,
+  SessionLogsViewerProps,
+  DisplayLog,
+} from "@/lib/types/editor";
 
 // Module-level counter for star rotation (0-7)
 let nextStarIndex = 0;
-
-interface SessionLogsViewerProps {
-  messages: SSEMessage[];
-  isDark?: boolean;
-  onComplete?: () => void; // Called when all logs are displayed
-}
-
-interface DisplayLog {
-  id: string;
-  text: string;
-  type: "info" | "success" | "error" | "step";
-  timestamp: number;
-  starIndex: number; // Pre-assigned star position
-}
 
 export function SessionLogsViewer({
   messages,

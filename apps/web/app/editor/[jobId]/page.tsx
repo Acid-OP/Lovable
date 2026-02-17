@@ -12,11 +12,7 @@ import { useTheme } from "@/lib/providers/ThemeProvider";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import type { FilesData, GeneratedFile } from "@/lib/types/api";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import type { Message } from "@/lib/types/editor";
 
 interface WorkspacePageProps {
   params: Promise<{
@@ -588,7 +584,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                         : "bg-white text-gray-500 border border-gray-200"
                     }`}
                   >
-                    http://sandbox-{jobId}.localhost:3003
+                    localhost:3000
                   </div>
                   <button
                     className={`p-1 rounded ${isDark ? "hover:bg-[#3d3d3d] text-gray-400" : "hover:bg-gray-200 text-gray-500"}`}
