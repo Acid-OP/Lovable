@@ -7,7 +7,7 @@ import Editor from "@monaco-editor/react";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
 import { useSSEStream } from "@/lib/hooks/useSSEStream";
 import { useFetchFiles } from "@/lib/hooks/useFetchFiles";
-import { SessionLogsViewer } from "@/components/editor/SessionLogsViewer";
+import { RisingLogsLoader } from "@/components/editor/RisingLogsLoader";
 import { useTheme } from "@/lib/providers/ThemeProvider";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
@@ -105,7 +105,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           ...prev,
           {
             role: "assistant",
-            content: "✓ Code generation complete!",
+            content: "Done! Your application is ready.",
           },
         ]);
       });
@@ -124,16 +124,10 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     }
   }, [sseMessages, jobId, fetchFiles, createModel]);
 
-  // Show SSE connection status in chat
+  // SSE connection status — no chat message needed, the loader handles it
   useEffect(() => {
     if (isConnected) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Connected to session. Starting generation...",
-        },
-      ]);
+      // Loader is visible; no chat message needed
     }
   }, [isConnected]);
 
@@ -334,6 +328,34 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                 </div>
               </div>
             ))}
+
+            {/* Minimal loader while building */}
+            {isGenerating && (
+              <div className="text-left">
+                <div
+                  className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg ${
+                    isDark ? "bg-[#2a2a2a]" : "bg-gray-100"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${isDark ? "bg-neutral-400" : "bg-neutral-500"}`}
+                    style={{ animation: "chatDot 1.4s ease-in-out infinite" }}
+                  />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${isDark ? "bg-neutral-400" : "bg-neutral-500"}`}
+                    style={{
+                      animation: "chatDot 1.4s ease-in-out 0.2s infinite",
+                    }}
+                  />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${isDark ? "bg-neutral-400" : "bg-neutral-500"}`}
+                    style={{
+                      animation: "chatDot 1.4s ease-in-out 0.4s infinite",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Input Bar - Same as Editor Page */}
@@ -537,7 +559,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           {/* Content Area - Logs, Editor, or Preview */}
           <div className="flex-1 overflow-hidden">
             {showLogs ? (
-              <SessionLogsViewer
+              <RisingLogsLoader
                 messages={sseMessages}
                 isDark={isDark}
                 onComplete={handleLogsComplete}
@@ -618,6 +640,13 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes chatDot {
+          0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+          40% { opacity: 1; transform: scale(1.1); }
+        }
+      `}</style>
     </div>
   );
 }
