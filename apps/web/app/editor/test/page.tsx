@@ -259,6 +259,7 @@ export default function TestEditorPage() {
   const [sseIdx, setSseIdx] = useState(0);
   const [activeFile, setActiveFile] = useState(DUMMY_FILES[0]!.path);
   const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
+  const [mobilePanel, setMobilePanel] = useState<"chat" | "editor">("editor");
 
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const modelsCreatedRef = useRef(false);
@@ -376,6 +377,38 @@ export default function TestEditorPage() {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Mobile Panel Toggle */}
+            <div className="flex md:hidden items-center gap-1">
+              <button
+                onClick={() => setMobilePanel("chat")}
+                className={`px-2.5 py-1 text-[12px] font-medium rounded-md cursor-pointer ${
+                  mobilePanel === "chat"
+                    ? isDark
+                      ? "bg-[#2d2d30] text-white"
+                      : "bg-gray-100 text-black"
+                    : isDark
+                      ? "text-gray-500"
+                      : "text-gray-400"
+                }`}
+              >
+                Chat
+              </button>
+              <button
+                onClick={() => setMobilePanel("editor")}
+                className={`px-2.5 py-1 text-[12px] font-medium rounded-md cursor-pointer ${
+                  mobilePanel === "editor"
+                    ? isDark
+                      ? "bg-[#2d2d30] text-white"
+                      : "bg-gray-100 text-black"
+                    : isDark
+                      ? "text-gray-500"
+                      : "text-gray-400"
+                }`}
+              >
+                Editor
+              </button>
+            </div>
+
             <button
               onClick={toggleTheme}
               className={`p-2 rounded-full cursor-pointer ${isDark ? "hover:bg-[#2d2d30]" : "hover:bg-gray-100"}`}
@@ -425,12 +458,12 @@ export default function TestEditorPage() {
             )}
 
             <button
-              className={`px-3 sm:px-4 py-1.5 text-[12px] sm:text-[13px] ${isDark ? "text-gray-400 hover:text-white" : "text-gray-700 hover:text-black"} cursor-pointer`}
+              className={`hidden sm:inline-block px-3 sm:px-4 py-1.5 text-[12px] sm:text-[13px] ${isDark ? "text-gray-400 hover:text-white" : "text-gray-700 hover:text-black"} cursor-pointer`}
             >
               Share
             </button>
             <button
-              className={`px-3 sm:px-4 py-1.5 ${isDark ? "bg-white hover:bg-gray-200 text-black" : "bg-black hover:bg-gray-900 text-white"} text-[12px] sm:text-[13px] font-medium rounded-full cursor-pointer`}
+              className={`hidden sm:inline-block px-3 sm:px-4 py-1.5 ${isDark ? "bg-white hover:bg-gray-200 text-black" : "bg-black hover:bg-gray-900 text-white"} text-[12px] sm:text-[13px] font-medium rounded-full cursor-pointer`}
             >
               Deploy
             </button>
@@ -440,9 +473,11 @@ export default function TestEditorPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Chat (Fixed Width) */}
+        {/* Left Panel - Chat */}
         <div
-          className={`w-[380px] flex-shrink-0 ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-r flex flex-col`}
+          className={`${
+            mobilePanel === "chat" ? "flex" : "hidden"
+          } md:flex w-full md:w-[300px] lg:w-[380px] flex-shrink-0 ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} md:border-r flex-col`}
         >
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, i) => (
@@ -542,7 +577,9 @@ export default function TestEditorPage() {
 
         {/* Right Panel - Editor/Preview */}
         <div
-          className={`flex-1 min-w-0 flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
+          className={`${
+            mobilePanel === "editor" ? "flex" : "hidden"
+          } md:flex flex-1 min-w-0 flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
         >
           {/* Top-Level Tabs: Code | Preview */}
           {!showLogs && (

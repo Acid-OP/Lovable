@@ -20,29 +20,9 @@ export interface SSEMessage {
   }>;
 }
 
-// Log entry for the session logs viewer
-export interface DisplayLog {
-  id: string;
-  text: string;
-  type: "info" | "success" | "error" | "step";
-  timestamp: number;
-  starIndex: number;
-}
-
 // Component props
-export interface SessionLogsViewerProps {
-  messages: SSEMessage[];
-  isDark?: boolean;
-  onComplete?: () => void;
-}
-
 export interface DummyPreviewProps {
   isDark: boolean;
-}
-
-export interface AnimatedLogsProps {
-  messages: SSEMessage[];
-  isDark?: boolean;
 }
 
 export interface RisingLogsLoaderProps {

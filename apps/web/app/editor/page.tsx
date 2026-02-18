@@ -74,8 +74,8 @@ export default function EditorPage() {
                 </span>
               </Link>
 
-              {/* Center - Build with Bolt */}
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2.5 sm:gap-3">
+              {/* Center - Build with Bolt (hidden on very small screens to avoid overlap) */}
+              <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-2.5 sm:gap-3">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -147,7 +147,7 @@ export default function EditorPage() {
         <main className="relative max-w-[1000px] mx-auto px-4 sm:px-6 py-2 sm:py-4">
           {/* Mountain with Stars - Center */}
           <div className="flex justify-center mb-4 sm:mb-6">
-            <div className="w-full max-w-[400px] h-[300px]">
+            <div className="w-full max-w-[300px] sm:max-w-[400px] h-[200px] sm:h-[300px]">
               <MountainWithStars isDark={isDark} />
             </div>
           </div>

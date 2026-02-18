@@ -39,6 +39,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const [showLogs, setShowLogs] = useState(true);
   const [filesData, setFilesData] = useState<FilesData | null>(null);
   const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
+  const [mobilePanel, setMobilePanel] = useState<"chat" | "editor">("editor");
 
   // Refs to prevent duplicate operations
   const modelsCreatedRef = useRef(false);
@@ -55,11 +56,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { fetchFiles, error: fetchError } = useFetchFiles();
 
   // Connect to SSE stream
-  const {
-    messages: sseMessages,
-    isConnected,
-    error: sseError,
-  } = useSSEStream(jobId);
+  const { messages: sseMessages, error: sseError } = useSSEStream(jobId);
 
   // Process SSE messages
   useEffect(() => {
@@ -123,13 +120,6 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       ]);
     }
   }, [sseMessages, jobId, fetchFiles, createModel]);
-
-  // SSE connection status — no chat message needed, the loader handles it
-  useEffect(() => {
-    if (isConnected) {
-      // Loader is visible; no chat message needed
-    }
-  }, [isConnected]);
 
   // Show SSE errors in chat
   useEffect(() => {
@@ -248,6 +238,38 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Mobile Panel Toggle — visible only on small screens */}
+            <div className="flex md:hidden items-center gap-1">
+              <button
+                onClick={() => setMobilePanel("chat")}
+                className={`px-2.5 py-1 text-[12px] font-medium rounded-md cursor-pointer ${
+                  mobilePanel === "chat"
+                    ? isDark
+                      ? "bg-[#2d2d30] text-white"
+                      : "bg-gray-100 text-black"
+                    : isDark
+                      ? "text-gray-500"
+                      : "text-gray-400"
+                }`}
+              >
+                Chat
+              </button>
+              <button
+                onClick={() => setMobilePanel("editor")}
+                className={`px-2.5 py-1 text-[12px] font-medium rounded-md cursor-pointer ${
+                  mobilePanel === "editor"
+                    ? isDark
+                      ? "bg-[#2d2d30] text-white"
+                      : "bg-gray-100 text-black"
+                    : isDark
+                      ? "text-gray-500"
+                      : "text-gray-400"
+                }`}
+              >
+                Editor
+              </button>
+            </div>
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -287,12 +309,12 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
             </button>
 
             <button
-              className={`px-3 sm:px-4 py-1.5 text-[12px] sm:text-[13px] ${isDark ? "text-gray-400 hover:text-white" : "text-gray-700 hover:text-black"} transition-colors cursor-pointer`}
+              className={`hidden sm:inline-block px-3 sm:px-4 py-1.5 text-[12px] sm:text-[13px] ${isDark ? "text-gray-400 hover:text-white" : "text-gray-700 hover:text-black"} transition-colors cursor-pointer`}
             >
               Share
             </button>
             <button
-              className={`px-3 sm:px-4 py-1.5 ${isDark ? "bg-white hover:bg-gray-200 text-black" : "bg-black hover:bg-gray-900 text-white"} text-[12px] sm:text-[13px] font-medium rounded-full transition-colors cursor-pointer`}
+              className={`hidden sm:inline-block px-3 sm:px-4 py-1.5 ${isDark ? "bg-white hover:bg-gray-200 text-black" : "bg-black hover:bg-gray-900 text-white"} text-[12px] sm:text-[13px] font-medium rounded-full transition-colors cursor-pointer`}
             >
               Deploy
             </button>
@@ -302,9 +324,11 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
       {/* Main Content - Split View */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Chat (Fixed Width) */}
+        {/* Left Panel - Chat */}
         <div
-          className={`w-[380px] flex-shrink-0 ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} border-r flex flex-col`}
+          className={`${
+            mobilePanel === "chat" ? "flex" : "hidden"
+          } md:flex w-full md:w-[300px] lg:w-[380px] flex-shrink-0 ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} md:border-r flex-col`}
         >
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -412,7 +436,9 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
         {/* Right Panel - Editor/Preview */}
         <div
-          className={`flex-1 min-w-0 flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
+          className={`${
+            mobilePanel === "editor" ? "flex" : "hidden"
+          } md:flex flex-1 min-w-0 flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
         >
           {/* Top-Level Tabs: Code | Preview */}
           {!showLogs && (
