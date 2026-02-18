@@ -738,6 +738,7 @@ export default function TestEditorPage() {
                   theme={isDark ? "vs-dark" : "vs-light"}
                   onMount={handleMount}
                   options={{
+                    readOnly: true,
                     fontSize: 14,
                     minimap: { enabled: false },
                     padding: { top: 16 },
