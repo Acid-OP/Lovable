@@ -618,32 +618,38 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
           {/* Content Area - Logs, Editor, or Preview */}
           <div className="flex-1 overflow-hidden relative">
-            {showLogs ? (
+            {showLogs && (
               <RisingLogsLoader
                 messages={sseMessages}
                 isDark={isDark}
                 onComplete={handleLogsComplete}
               />
-            ) : activeTab === "code" ? (
-              <div className={`h-full ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}>
-                <Editor
-                  height="100%"
-                  theme={isDark ? "vs-dark" : "vs-light"}
-                  onMount={handleMount}
-                  options={{
-                    readOnly: true,
-                    fontSize: 14,
-                    minimap: { enabled: false },
-                    padding: { top: 16 },
-                    lineNumbers: "on",
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                  }}
-                />
-              </div>
-            ) : (
+            )}
+
+            {/* Code Editor - always mounted, hidden via CSS to preserve Monaco state */}
+            <div
+              className={`h-full ${isDark ? "bg-[#1e1e1e]" : "bg-white"} ${showLogs || activeTab !== "code" ? "hidden" : ""}`}
+            >
+              <Editor
+                height="100%"
+                theme={isDark ? "vs-dark" : "vs-light"}
+                onMount={handleMount}
+                options={{
+                  readOnly: true,
+                  fontSize: 14,
+                  minimap: { enabled: false },
+                  padding: { top: 16 },
+                  lineNumbers: "on",
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                }}
+              />
+            </div>
+
+            {/* Preview - always mounted after logs complete, hidden via CSS */}
+            {!showLogs && (
               <div
-                className={`h-full flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}
+                className={`h-full flex flex-col ${isDark ? "bg-[#1e1e1e]" : "bg-white"} ${activeTab !== "preview" ? "hidden" : ""}`}
               >
                 {/* URL bar */}
                 <div

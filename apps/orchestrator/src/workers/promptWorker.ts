@@ -717,7 +717,7 @@ export function createPromptWorker() {
         // Get ALL files from container (not just .tsx from plan)
         const findResult = await sandbox.exec(
           containerId,
-          "find /workspace -type f \\( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.css' -o -name '*.json' -o -name '*.html' -o -name '*.md' \\) ! -path '*/node_modules/*' ! -path '*/.next/*'",
+          "find /workspace -type f \\( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.css' -o -name '*.json' -o -name '*.html' -o -name '*.md' \\) ! -path '*/node_modules/*' ! -path '*/.next/*' ! -name '__error-bridge.js'",
         );
 
         const allContainerFiles = findResult.output
