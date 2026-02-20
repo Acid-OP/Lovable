@@ -31,4 +31,6 @@ export interface SessionData {
   promptType?: "new" | "continuation";
   projectSummary?: string;
   iterationCount?: number;
+  // Runtime error checking
+  runtimeCheck?: string;
 }

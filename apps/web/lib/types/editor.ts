@@ -13,6 +13,7 @@ export interface SSEMessage {
   jobId?: string;
   message?: string;
   currentStep?: string;
+  runtimeCheck?: string;
   files?: Array<{
     path: string;
     content: string;
