@@ -40,11 +40,13 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const [filesData, setFilesData] = useState<FilesData | null>(null);
   const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
   const [mobilePanel, setMobilePanel] = useState<"chat" | "editor">("editor");
+  const [isRuntimeChecking, setIsRuntimeChecking] = useState(false);
 
   // Refs to prevent duplicate operations
   const modelsCreatedRef = useRef(false);
   const filesFetchedRef = useRef(false);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const runtimeReportSentRef = useRef(false);
 
   // Callback when logs animation completes
   const handleLogsComplete = useCallback(() => {
@@ -64,6 +66,12 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
     const latestMessage = sseMessages[sseMessages.length - 1];
     if (!latestMessage) return;
+
+    // Handle runtime check signal from orchestrator
+    if (latestMessage.runtimeCheck === "start") {
+      runtimeReportSentRef.current = false;
+      setIsRuntimeChecking(true);
+    }
 
     // Handle completion - fetch files from API (only once)
     if (
@@ -146,6 +154,32 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       ]);
     }
   }, [fetchError]);
+
+  // Listen for postMessage from the error bridge inside the iframe
+  useEffect(() => {
+    if (!isRuntimeChecking) return;
+
+    function handleMessage(event: MessageEvent) {
+      if (event.data?.type !== "__ERROR_BRIDGE_REPORT__") return;
+      if (runtimeReportSentRef.current) return;
+      runtimeReportSentRef.current = true;
+
+      const { errors, url, timestamp } = event.data;
+
+      fetch(`/api/runtime-report/${jobId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ errors, url, timestamp }),
+      }).catch((err) => {
+        console.error("Failed to send runtime report:", err);
+      });
+
+      setIsRuntimeChecking(false);
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [isRuntimeChecking, jobId]);
 
   // Create Monaco models when both files are fetched AND Monaco is ready
   useEffect(() => {
@@ -583,7 +617,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           )}
 
           {/* Content Area - Logs, Editor, or Preview */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden relative">
             {showLogs ? (
               <RisingLogsLoader
                 messages={sseMessages}
@@ -663,6 +697,16 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                   title="Live Preview"
                 />
               </div>
+            )}
+
+            {/* Hidden iframe for runtime error checking (behind the loader) */}
+            {isRuntimeChecking && showLogs && (
+              <iframe
+                src={`http://sandbox-${jobId}.localhost:3003`}
+                className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"
+                title="Runtime Check"
+              />
             )}
           </div>
         </div>

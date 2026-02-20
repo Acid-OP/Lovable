@@ -19,6 +19,7 @@ import { routeAndHandleErrors, applyFixes } from "../planner/errorRouter.js";
 import { parseErrorFiles } from "../planner/buildErrorParser.js";
 import { extractRoutesFromPlan } from "../planner/routeExtractor.js";
 import { config } from "../config.js";
+import { getErrorBridgeScript } from "../planner/errorBridge.js";
 import { classifyPrompt } from "../classification/promptClassifier.js";
 import { getContextFromJob } from "../classification/conversationContext.js";
 import axios from "axios";
@@ -487,6 +488,38 @@ export function createPromptWorker() {
         avgStepDurationMs: Math.round(executionDuration / totalSteps),
       });
 
+      // Inject error bridge script for iframe-based runtime error detection
+      try {
+        logger.info("errorbridge.injecting", { jobId });
+        await sandbox.writeFile(
+          containerId,
+          "/workspace/public/__error-bridge.js",
+          getErrorBridgeScript(),
+        );
+
+        // Inject script tag into layout.tsx
+        const layoutPath = "/workspace/app/layout.tsx";
+        const layoutContent = await sandbox.readFile(containerId, layoutPath);
+
+        if (layoutContent && !layoutContent.includes("__error-bridge.js")) {
+          const patchedLayout = layoutContent.replace(
+            /(<body[^>]*>)/,
+            '$1\n        <script src="/__error-bridge.js" defer></script>',
+          );
+          await sandbox.writeFile(containerId, layoutPath, patchedLayout);
+          logger.info("errorbridge.layout_injected", { jobId });
+        }
+      } catch (bridgeError) {
+        logger.warn("errorbridge.injection_failed", {
+          jobId,
+          error:
+            bridgeError instanceof Error
+              ? bridgeError.message
+              : String(bridgeError),
+        });
+        // Non-fatal: runtime check will fall back to old health check
+      }
+
       // Step 7: Build project and auto-fix errors (retry up to MAX_FIX_RETRIES)
       let buildSuccess = false;
       let fixAttempts = 0;
@@ -907,6 +940,174 @@ export function createPromptWorker() {
         }
       } else {
         logger.info("health.passed", { jobId, routesChecked: routes.length });
+      }
+
+      // Step 9: Iframe-based runtime error checking
+      // The browser loads the app in a hidden iframe with the error bridge script.
+      // The bridge catches real JS errors and reports them back via postMessage → HTTP → Redis.
+      const RUNTIME_CHECK_TIMEOUT = 30; // seconds
+      const MAX_RUNTIME_FIX_RETRIES = 2;
+      let runtimeFixAttempts = 0;
+      let runtimeClean = false;
+
+      while (!runtimeClean && runtimeFixAttempts <= MAX_RUNTIME_FIX_RETRIES) {
+        // Signal browser to load the hidden iframe
+        await SessionManager.update(jobId, {
+          currentStep:
+            runtimeFixAttempts === 0
+              ? "Running final checks"
+              : "Optimizing code",
+          runtimeCheck: "start",
+        });
+
+        // Clear any stale result from previous attempt
+        const runtimeResultKey = `runtime-result:${jobId}`;
+        await redis.del(runtimeResultKey);
+
+        logger.info("runtime.waiting_for_browser", {
+          jobId,
+          timeoutSeconds: RUNTIME_CHECK_TIMEOUT,
+          attempt: runtimeFixAttempts + 1,
+        });
+
+        // Use a duplicate Redis connection for the blocking BLPOP
+        const blpopRedis = redis.duplicate();
+        let report: {
+          errors: Array<{ source: string; message: string; extra?: any }>;
+          url: string;
+        } | null = null;
+
+        try {
+          const result = await blpopRedis.blpop(
+            runtimeResultKey,
+            RUNTIME_CHECK_TIMEOUT,
+          );
+
+          if (result) {
+            const [, reportJson] = result;
+            report = JSON.parse(reportJson);
+          }
+        } finally {
+          await blpopRedis.quit().catch(() => {});
+        }
+
+        // Clean up the Redis key
+        await redis.del(runtimeResultKey);
+
+        if (!report) {
+          // Timeout — browser didn't report back. Skip runtime check.
+          logger.warn("runtime.timeout", {
+            jobId,
+            message:
+              "Browser did not report within timeout. Skipping runtime check.",
+          });
+          runtimeClean = true;
+          break;
+        }
+
+        if (report.errors.length === 0) {
+          // No runtime errors — app is clean
+          logger.info("runtime.clean", { jobId });
+          runtimeClean = true;
+          break;
+        }
+
+        // Runtime errors detected
+        logger.warn("runtime.errors_detected", {
+          jobId,
+          errorCount: report.errors.length,
+          errors: report.errors.slice(0, 5).map((e) => e.message),
+        });
+
+        runtimeFixAttempts++;
+
+        if (runtimeFixAttempts > MAX_RUNTIME_FIX_RETRIES) {
+          logger.error("runtime.max_retries_exceeded", {
+            jobId,
+            attempts: runtimeFixAttempts,
+          });
+          // Don't fail the job — old health check already passed
+          break;
+        }
+
+        // Build error description for the existing fix pipeline
+        const runtimeErrorMessage = report.errors
+          .map((e) => `[${e.source}] ${e.message}`)
+          .join("\n");
+
+        const runtimeErrorMap = new Map<string, string>();
+        runtimeErrorMap.set(
+          "Runtime Error",
+          `Browser runtime errors detected:\n${runtimeErrorMessage}\n\n` +
+            `Common causes:\n` +
+            `- Missing 'use client' directive in components using hooks/events\n` +
+            `- Missing imports (especially for framer-motion, lucide-react)\n` +
+            `- Incorrect component structure (server/client mismatch)\n` +
+            `- Type errors not caught at build time`,
+        );
+
+        await SessionManager.update(jobId, {
+          currentStep: "Optimizing code",
+        });
+
+        const runtimeClassified = classifyBuildErrors(runtimeErrorMap);
+        const runtimeHandlingResult = await routeAndHandleErrors(
+          containerId,
+          runtimeClassified,
+          jobId,
+        );
+
+        if (
+          runtimeHandlingResult.fixes &&
+          runtimeHandlingResult.fixes.length > 0
+        ) {
+          await applyFixes(containerId, runtimeHandlingResult.fixes, jobId);
+
+          // Rebuild
+          logger.info("runtime.rebuilding", { jobId });
+          const rebuildResult = await sandbox.runBuild(containerId);
+
+          if (!rebuildResult.success) {
+            logger.error("runtime.rebuild_failed", {
+              jobId,
+              errorsPreview: rebuildResult.errors.slice(0, 500),
+            });
+            // Don't fail — old health check passed, this is best-effort
+            break;
+          }
+
+          // Restart dev server
+          await sandbox.startDevServer(containerId);
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+
+          // Re-inject bridge script if layout was overwritten during fix
+          try {
+            const layoutPath = "/workspace/app/layout.tsx";
+            const newLayout = await sandbox.readFile(containerId, layoutPath);
+            if (newLayout && !newLayout.includes("__error-bridge.js")) {
+              const patched = newLayout.replace(
+                /(<body[^>]*>)/,
+                '$1\n        <script src="/__error-bridge.js" defer></script>',
+              );
+              await sandbox.writeFile(containerId, layoutPath, patched);
+            }
+          } catch {
+            // Non-fatal
+          }
+
+          logger.info("runtime.fix_applied_retrying", {
+            jobId,
+            attempt: runtimeFixAttempts,
+          });
+          // Loop continues — will send new runtimeCheck: "start"
+        } else {
+          logger.warn("runtime.no_fixes_generated", {
+            jobId,
+            errorPreview: runtimeErrorMessage.slice(0, 200),
+          });
+          // No fixes generated — move on, old health check already passed
+          break;
+        }
       }
 
       const jobDuration = Date.now() - jobStartTime;
