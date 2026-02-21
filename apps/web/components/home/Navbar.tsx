@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Logo } from "./Logo";
 import { NavLinks, MobileNavLinks } from "./NavLinks";
 import { MobileMenuButton } from "./MobileMenuButton";
@@ -17,9 +18,12 @@ export function Navbar() {
 
           {/* Right - Get Started Button (Desktop) */}
           <div className="hidden md:block">
-            <button className="px-5 lg:px-6 py-2 bg-[#2d2d2d] text-white text-[13px] font-medium rounded-md hover:bg-[#222] transition-colors">
+            <Link
+              href="/signup"
+              className="px-5 lg:px-6 py-2 bg-[#2d2d2d] text-white text-[13px] font-medium rounded-md hover:bg-[#222] transition-colors"
+            >
               Get Started →
-            </button>
+            </Link>
           </div>
 
           <MobileMenuButton

@@ -37,9 +37,13 @@ export function MobileNavLinks({ onLinkClick }: MobileNavLinksProps) {
           {item.label}
         </a>
       ))}
-      <button className="w-full px-6 py-2.5 bg-[#2d2d2d] text-white text-[13px] font-medium rounded-md hover:bg-[#222] transition-colors">
+      <a
+        href="/signup"
+        onClick={onLinkClick}
+        className="w-full block text-center px-6 py-2.5 bg-[#2d2d2d] text-white text-[13px] font-medium rounded-md hover:bg-[#222] transition-colors"
+      >
         Get Started →
-      </button>
+      </a>
     </div>
   );
 }

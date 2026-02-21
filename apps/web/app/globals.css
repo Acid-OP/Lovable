@@ -286,6 +286,55 @@ a {
   opacity: 0.8;
 }
 
+/* Auth panel falling stars */
+@keyframes authStar {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.8;
+  }
+  70% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(120px, 400px);
+    opacity: 0;
+  }
+}
+
+.auth-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  animation-name: authStar;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.auth-star::before {
+  content: "";
+  position: absolute;
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(
+    to left,
+    rgba(255, 255, 255, 0.3),
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  top: 50%;
+  right: 100%;
+  transform: translateY(-50%) rotate(-17deg);
+  transform-origin: right center;
+}
+
 /* Fade in animation for loader messages */
 @keyframes fadeIn {
   0% {
