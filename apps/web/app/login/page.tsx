@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import MountainWithStars from "@/components/MountainWithStars";
+import { useTheme } from "@/lib/providers/ThemeProvider";
 
 export default function LoginPage() {
+  const { isDark, toggleTheme } = useTheme();
+
   return (
-    <div className="min-h-screen bg-[#f5f5f0] flex flex-col">
-      {/* Top — Logo + Bolt centered */}
-      <div className="pt-10 sm:pt-12 text-center">
+    <div
+      className={`min-h-screen ${isDark ? "bg-[#1e1e1e]" : "bg-[#f5f5f0]"} flex flex-col transition-colors`}
+    >
+      {/* Top bar — Logo + Theme toggle */}
+      <div className="flex items-center justify-between px-6 sm:px-10 pt-8 sm:pt-10">
+        <div />
         <Link href="/" className="inline-flex items-center gap-2.5">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -17,41 +23,84 @@ export default function LoginPage() {
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="w-7 h-7 sm:w-8 sm:h-8 text-[#1a1a1a]"
+            className={`w-7 h-7 sm:w-8 sm:h-8 ${isDark ? "text-white" : "text-[#1a1a1a]"}`}
           >
             <line x1="6" x2="6" y1="3" y2="15" />
             <circle cx="18" cy="6" r="3" />
             <circle cx="6" cy="18" r="3" />
             <path d="M18 9a9 9 0 0 1-9 9" />
           </svg>
-          <span className="font-[family-name:var(--font-heading)] text-[30px] sm:text-[36px] font-normal text-[#1a1a1a] tracking-[-0.02em]">
+          <span
+            className={`font-[family-name:var(--font-heading)] text-[30px] sm:text-[36px] font-normal ${isDark ? "text-white" : "text-[#1a1a1a]"} tracking-[-0.02em]`}
+          >
             Bolt
           </span>
         </Link>
+        <button
+          onClick={toggleTheme}
+          className={`p-2 rounded-full ${isDark ? "hover:bg-[#2d2d30]" : "hover:bg-[#e8e8e4]"} transition-colors cursor-pointer`}
+        >
+          {isDark ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4 text-gray-400"
+            >
+              <circle cx="12" cy="12" r="5" />
+              <path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4 text-gray-600"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
+        </button>
       </div>
 
       {/* Main — side by side */}
       <div className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-24 px-6 sm:px-12 py-10">
         {/* Left — Mountain + tagline */}
         <div className="flex flex-col items-center flex-shrink-0">
-          <div className="relative w-[220px] h-[170px] sm:w-[280px] sm:h-[220px] lg:w-[320px] lg:h-[260px]">
-            <MountainWithStars />
+          <div className="relative w-[260px] h-[210px] sm:w-[320px] sm:h-[260px] lg:w-[440px] lg:h-[360px]">
+            <MountainWithStars isDark={isDark} />
           </div>
-          <p className="hidden lg:block text-[13px] text-[#999] text-center max-w-[260px] -mt-2 leading-[1.6]">
-            Describe what you want. AI writes the code and deploys it.
+          <p
+            className={`hidden lg:block font-[family-name:var(--font-heading)] text-[14px] ${isDark ? "text-[#666]" : "text-[#999]"} text-center max-w-[260px] -mt-16 leading-[1.6] italic`}
+          >
+            What you can imagine, you can create.
           </p>
         </div>
 
         {/* Right — Form */}
         <div className="w-full max-w-[360px]">
-          <h1 className="font-[family-name:var(--font-heading)] text-[26px] sm:text-[30px] font-normal text-[#1a1a1a] tracking-[-0.02em] leading-[1.1] mb-1.5 text-center lg:text-left">
+          <h1
+            className={`font-[family-name:var(--font-heading)] text-[26px] sm:text-[30px] font-normal ${isDark ? "text-white" : "text-[#1a1a1a]"} tracking-[-0.02em] leading-[1.1] mb-1.5 text-center`}
+          >
             Welcome back
           </h1>
-          <p className="text-[13px] text-[#aaa] mb-7 text-center lg:text-left">
+          <p
+            className={`text-[13px] ${isDark ? "text-[#666]" : "text-[#aaa]"} mb-7 text-center`}
+          >
             Log in to continue building
           </p>
 
-          <button className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white border border-[#e5e5e3] rounded-lg text-[13px] font-medium text-[#1a1a1a] hover:border-[#ccc] transition-colors cursor-pointer">
+          <button
+            className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 ${isDark ? "bg-[#2d2d30] border-[#3d3d3d] text-white hover:border-[#555]" : "bg-white border-[#e5e5e3] text-[#1a1a1a] hover:border-[#ccc]"} border rounded-lg text-[13px] font-medium transition-colors cursor-pointer`}
+          >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
@@ -74,46 +123,77 @@ export default function LoginPage() {
           </button>
 
           <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-[#e0e0dc]" />
-            <span className="text-[10px] text-[#ccc] uppercase tracking-wider">
+            <div
+              className={`flex-1 h-px ${isDark ? "bg-[#333]" : "bg-[#e0e0dc]"}`}
+            />
+            <span
+              className={`text-[10px] ${isDark ? "text-[#555]" : "text-[#ccc]"} uppercase tracking-wider`}
+            >
               or
             </span>
-            <div className="flex-1 h-px bg-[#e0e0dc]" />
+            <div
+              className={`flex-1 h-px ${isDark ? "bg-[#333]" : "bg-[#e0e0dc]"}`}
+            />
           </div>
 
           <form className="space-y-3.5">
             <input
               type="email"
               placeholder="Email"
-              className="w-full px-3.5 py-2.5 bg-white border border-[#e5e5e3] rounded-lg text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] placeholder:font-light outline-none focus:border-[#999] transition-colors"
+              className={`w-full px-3.5 py-2.5 ${isDark ? "bg-[#2d2d30] border-[#3d3d3d] text-white placeholder:text-[#666]" : "bg-white border-[#e5e5e3] text-[#1a1a1a] placeholder:text-[#bbb]"} border rounded-lg text-[13px] placeholder:font-light outline-none ${isDark ? "focus:border-[#555]" : "focus:border-[#999]"} transition-colors`}
             />
             <input
               type="password"
               placeholder="Password"
-              className="w-full px-3.5 py-2.5 bg-white border border-[#e5e5e3] rounded-lg text-[13px] text-[#1a1a1a] placeholder:text-[#bbb] placeholder:font-light outline-none focus:border-[#999] transition-colors"
+              className={`w-full px-3.5 py-2.5 ${isDark ? "bg-[#2d2d30] border-[#3d3d3d] text-white placeholder:text-[#666]" : "bg-white border-[#e5e5e3] text-[#1a1a1a] placeholder:text-[#bbb]"} border rounded-lg text-[13px] placeholder:font-light outline-none ${isDark ? "focus:border-[#555]" : "focus:border-[#999]"} transition-colors`}
             />
             <button
               type="submit"
-              className="w-full py-2.5 bg-[#1a1a1a] text-white text-[13px] font-medium rounded-lg hover:bg-[#2d2d2d] transition-colors cursor-pointer"
+              className={`w-full py-2.5 ${isDark ? "bg-white text-[#1a1a1a] hover:bg-gray-200" : "bg-[#1a1a1a] text-white hover:bg-[#2d2d2d]"} text-[13px] font-medium rounded-lg transition-colors cursor-pointer`}
             >
               Log in
             </button>
           </form>
 
-          <div className="flex items-center justify-between mt-5">
+          <div className="flex items-center justify-center mt-5">
             <Link
               href="/forgot-password"
-              className="text-[11px] text-[#bbb] hover:text-[#888] transition-colors"
+              className={`text-[11px] ${isDark ? "text-[#666] hover:text-[#999]" : "text-[#888] hover:text-[#555]"} transition-colors`}
             >
               Forgot password?
             </Link>
+          </div>
+
+          <p
+            className={`text-[11px] ${isDark ? "text-[#555]" : "text-[#888]"} mt-5 text-center`}
+          >
+            By continuing, you agree to our{" "}
+            <Link
+              href="#"
+              className={`${isDark ? "text-[#777] hover:text-white" : "text-[#666] hover:text-[#1a1a1a]"} underline underline-offset-2`}
+            >
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="#"
+              className={`${isDark ? "text-[#777] hover:text-white" : "text-[#666] hover:text-[#1a1a1a]"} underline underline-offset-2`}
+            >
+              Privacy Policy
+            </Link>
+          </p>
+
+          <p
+            className={`text-[12px] ${isDark ? "text-[#666]" : "text-[#888]"} mt-4 text-center`}
+          >
+            Don&apos;t have an account?{" "}
             <Link
               href="/signup"
-              className="text-[11px] text-[#1a1a1a] font-medium hover:underline"
+              className={`${isDark ? "text-white" : "text-[#1a1a1a]"} font-medium hover:underline`}
             >
-              Create account
+              Sign up
             </Link>
-          </div>
+          </p>
         </div>
       </div>
     </div>
