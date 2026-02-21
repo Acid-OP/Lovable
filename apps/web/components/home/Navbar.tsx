@@ -9,7 +9,7 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="border-b border-gray-100">
+    <nav className="border-b border-[#e8e8e3]">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-5">
         <div className="flex items-center justify-between">
           <Logo />

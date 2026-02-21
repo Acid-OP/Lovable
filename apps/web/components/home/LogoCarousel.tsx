@@ -121,8 +121,8 @@ export function LogoCarousel() {
       </p>
       <div className="relative overflow-hidden w-full">
         {/* Fade edges */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-white to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-white to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-[#f5f5f0] to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-[#f5f5f0] to-transparent z-10" />
 
         <div
           ref={trackRef}
