@@ -230,7 +230,7 @@ export function UseCases() {
   };
 
   return (
-    <section className="px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+    <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
       <div className="max-w-5xl mx-auto">
         <p className="text-[11px] sm:text-[12px] font-medium text-[#aaa] tracking-widest uppercase mb-5">
           Use Cases

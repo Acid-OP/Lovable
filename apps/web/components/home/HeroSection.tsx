@@ -4,6 +4,7 @@ import { HeroContent } from "./HeroContent";
 import { LogoCarousel } from "./LogoCarousel";
 import { ThreeSteps } from "./ThreeSteps";
 import { UseCases } from "./UseCases";
+import { CtaBanner } from "./CtaBanner";
 
 export function HeroSection() {
   return (
@@ -13,7 +14,7 @@ export function HeroSection() {
         <HeroContent />
       </section>
 
-      <section className="relative px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto mb-20 sm:mb-28">
+      <section className="relative px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto mb-16 sm:mb-20">
         <div className="absolute -inset-4 sm:-inset-8 rounded-3xl bg-gradient-to-br from-purple-200/30 via-blue-200/20 to-emerald-200/30 blur-3xl pointer-events-none" />
 
         <div className="relative rounded-2xl overflow-hidden border border-[#d8d8d4] shadow-[0_20px_70px_-15px_rgba(0,0,0,0.2)] ring-1 ring-black/5">
@@ -29,12 +30,13 @@ export function HeroSection() {
         </div>
       </section>
 
-      <section className="px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 lg:pb-20">
+      <section className="px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20">
         <LogoCarousel />
       </section>
 
       <ThreeSteps />
       <UseCases />
+      <CtaBanner />
     </>
   );
 }
