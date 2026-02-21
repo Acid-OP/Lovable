@@ -3,6 +3,7 @@ import { FallingStars } from "./FallingStars";
 import { HeroContent } from "./HeroContent";
 import { LogoCarousel } from "./LogoCarousel";
 import { ThreeSteps } from "./ThreeSteps";
+import { UseCases } from "./UseCases";
 
 export function HeroSection() {
   return (
@@ -17,7 +18,7 @@ export function HeroSection() {
 
         <div className="relative rounded-2xl overflow-hidden border border-[#d8d8d4] shadow-[0_20px_70px_-15px_rgba(0,0,0,0.2)] ring-1 ring-black/5">
           <Image
-            src="/editor-preview.png"
+            src="/editor-preview-v2.png"
             alt="Haven editor workspace showing a personal finance dashboard built with AI"
             width={1920}
             height={1080}
@@ -33,6 +34,7 @@ export function HeroSection() {
       </section>
 
       <ThreeSteps />
+      <UseCases />
     </>
   );
 }
