@@ -48,7 +48,7 @@ export default function EditorPage() {
       >
         {/* Navbar */}
         <nav
-          className={`relative ${isDark ? "bg-[#1e1e1e]" : "bg-[#f5f5f0] border-b border-[#e8e8e3]"}`}
+          className={`relative ${isDark ? "bg-[#1e1e1e] border-b border-[#333]" : "bg-[#f5f5f0] border-b border-[#e8e8e3]"}`}
         >
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
             <div className="flex items-center justify-between relative">
@@ -104,7 +104,7 @@ export default function EditorPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleTheme}
-                  className={`p-2 rounded-full ${isDark ? "hover:bg-[#2d2d30]" : "hover:bg-gray-100"}`}
+                  className={`p-2 rounded-full cursor-pointer ${isDark ? "hover:bg-[#2d2d30]" : "hover:bg-gray-100"}`}
                 >
                   {isDark ? (
                     <svg
