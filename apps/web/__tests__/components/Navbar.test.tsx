@@ -38,7 +38,8 @@ describe("Navbar", () => {
     render(<Navbar />);
     const menuButton = screen.getByRole("button");
 
-    expect(screen.queryByText("Get Started →")).not.toBeVisible();
+    const initialLinks = screen.getAllByRole("link", { name: "Features" });
+    expect(initialLinks).toHaveLength(1);
 
     fireEvent.click(menuButton);
 
