@@ -17,8 +17,8 @@ export function Navbar() {
 
           {/* Right - Get Started Button (Desktop) */}
           <div className="hidden md:block">
-            <button className="px-5 lg:px-6 py-2.5 bg-black text-white text-[14px] font-normal rounded-full hover:bg-gray-800 transition-colors">
-              Get Started
+            <button className="px-5 lg:px-6 py-2 bg-[#2d2d2d] text-white text-[13px] font-medium rounded-md hover:bg-[#222] transition-colors">
+              Get Started →
             </button>
           </div>
 

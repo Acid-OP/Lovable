@@ -30,7 +30,7 @@ export function HeroContent() {
       <div className="flex justify-center mb-6">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#e8e8e4] text-[12px] sm:text-[13px] text-[#777] tracking-wide">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          now powering 10,000+ apps with the latest AI models
+          build apps 10x faster with AI
         </span>
       </div>
 
@@ -40,7 +40,7 @@ export function HeroContent() {
         AI builds it.
       </h1>
 
-      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-4">
+      <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-1 mb-4">
         <span className="text-[13px] text-[#888]">Understand how</span>
         {models.map((model) => (
           <span
@@ -58,14 +58,14 @@ export function HeroContent() {
         Real code, real design, real apps shipped from a single prompt
       </p>
 
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+      <div className="flex items-center justify-center gap-3">
         <Link
           href="/editor"
-          className="w-full sm:w-auto px-7 py-2.5 bg-[#1a1a1a] text-white text-[14px] font-medium rounded-lg hover:bg-black transition-colors duration-200 cursor-pointer text-center"
+          className="px-6 py-2.5 bg-[#2d2d2d] text-white text-[13px] font-medium rounded-md hover:bg-[#222] transition-colors duration-200 cursor-pointer text-center"
         >
-          Get Started
+          Get Started →
         </Link>
-        <button className="w-full sm:w-auto px-7 py-2.5 bg-white text-[#1a1a1a] text-[14px] font-medium rounded-lg border border-[#e5e5e3] hover:border-[#ccc] transition-colors duration-200 cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <button className="px-6 py-2.5 bg-white text-[#2d2d2d] text-[13px] font-medium rounded-md border border-[#e5e5e3] hover:border-[#ccc] transition-colors duration-200 cursor-pointer">
           View Demo
         </button>
       </div>
