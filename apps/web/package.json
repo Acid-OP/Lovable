@@ -11,6 +11,7 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@lobehub/icons": "^4.6.0",
     "@monaco-editor/react": "^4.7.0",
     "@repo/logger": "workspace:*",
     "@repo/ui": "workspace:*",

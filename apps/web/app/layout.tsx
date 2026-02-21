@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { QueryProvider } from "@/lib/providers/QueryProvider";
@@ -8,6 +8,12 @@ import { ThemeProvider } from "@/lib/providers/ThemeProvider";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-heading",
 });
 
 const geistMono = localFont({
@@ -28,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} ${geistMono.variable}`}
+        className={`${inter.className} ${geistMono.variable} ${playfair.variable}`}
         suppressHydrationWarning
       >
         <ThemeProvider>

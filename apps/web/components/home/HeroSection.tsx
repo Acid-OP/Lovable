@@ -4,10 +4,15 @@ import { LogoCarousel } from "./LogoCarousel";
 
 export function HeroSection() {
   return (
-    <main className="relative pt-16 sm:pt-20 lg:pt-28 pb-12 sm:pb-16 lg:pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      <FallingStars />
-      <HeroContent />
-      <LogoCarousel />
-    </main>
+    <>
+      <section className="relative min-h-[calc(100vh-68px)] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden pb-16">
+        <FallingStars />
+        <HeroContent />
+      </section>
+
+      <section className="px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 lg:pb-20">
+        <LogoCarousel />
+      </section>
+    </>
   );
 }
