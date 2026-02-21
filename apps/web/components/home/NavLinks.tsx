@@ -1,7 +1,6 @@
 const navItems = [
-  { href: "#features", label: "Features" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#about", label: "About" },
+  { href: "#how-it-works", label: "Features" },
+  { href: "/editor", label: "Editor" },
 ];
 
 export function NavLinks() {
@@ -37,8 +36,8 @@ export function MobileNavLinks({ onLinkClick }: MobileNavLinksProps) {
           {item.label}
         </a>
       ))}
-      <button className="w-full px-6 py-2.5 bg-black text-white text-[14px] font-normal rounded-full hover:bg-gray-800 transition-colors">
-        Get Started
+      <button className="w-full px-6 py-2.5 bg-[#2d2d2d] text-white text-[13px] font-medium rounded-md hover:bg-[#222] transition-colors">
+        Get Started →
       </button>
     </div>
   );

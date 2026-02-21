@@ -20,7 +20,10 @@ const steps = [
 
 export function ThreeSteps() {
   return (
-    <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20 border-t border-[#e8e8e4]">
+    <section
+      id="how-it-works"
+      className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20 border-t border-[#e8e8e4] scroll-mt-20"
+    >
       <div className="max-w-5xl mx-auto">
         <p className="text-[11px] sm:text-[12px] font-medium text-[#aaa] tracking-widest uppercase mb-5">
           Streamlined Process
