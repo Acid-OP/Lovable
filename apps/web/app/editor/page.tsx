@@ -44,10 +44,12 @@ export default function EditorPage() {
       {isTransitioning && <TransitionLoader />}
 
       <div
-        className={`min-h-screen ${isDark ? "bg-[#1e1e1e]" : "bg-white"} relative overflow-hidden`}
+        className={`min-h-screen ${isDark ? "bg-[#1e1e1e]" : "bg-[#f5f5f0]"} relative overflow-hidden`}
       >
         {/* Navbar */}
-        <nav className={`relative ${isDark ? "bg-[#1e1e1e]" : "bg-white"}`}>
+        <nav
+          className={`relative ${isDark ? "bg-[#1e1e1e]" : "bg-[#f5f5f0] border-b border-[#e8e8e3]"}`}
+        >
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
             <div className="flex items-center justify-between relative">
               {/* Left - Logo */}
@@ -134,7 +136,7 @@ export default function EditorPage() {
                   )}
                 </button>
                 <div
-                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full ${isDark ? "bg-white text-black" : "bg-black text-white"} flex items-center justify-center font-semibold text-[13px] sm:text-[14px] cursor-pointer hover:opacity-80 transition-opacity`}
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full ${isDark ? "bg-white text-black" : "bg-[#2d2d2d] text-white"} flex items-center justify-center font-semibold text-[13px] sm:text-[14px] cursor-pointer hover:opacity-80 transition-opacity`}
                 >
                   U
                 </div>
@@ -155,7 +157,7 @@ export default function EditorPage() {
           {/* Prompt Input */}
           <div className="mb-8 max-w-[750px] mx-auto">
             <div
-              className={`relative ${isDark ? "bg-[#2d2d30] border-[#3d3d3d] focus-within:border-[#555555]" : "bg-white border-gray-200 focus-within:border-gray-400"} rounded-xl sm:rounded-2xl border-2 shadow-lg hover:shadow-xl transition-shadow`}
+              className={`relative ${isDark ? "bg-[#2d2d30] border-[#3d3d3d] focus-within:border-[#555555]" : "bg-white border-[#e5e5e3] focus-within:border-[#ccc]"} rounded-xl sm:rounded-2xl border-2 shadow-lg hover:shadow-xl transition-shadow`}
             >
               <textarea
                 value={prompt}
@@ -176,7 +178,7 @@ export default function EditorPage() {
               <button
                 onClick={handleGenerate}
                 disabled={isLoading || !prompt.trim()}
-                className={`absolute bottom-3 right-3 sm:bottom-4 sm:right-4 w-9 h-9 sm:w-10 sm:h-10 ${isDark ? "bg-white text-black" : "bg-black text-white"} rounded-full flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:opacity-30`}
+                className={`absolute bottom-3 right-3 sm:bottom-4 sm:right-4 w-9 h-9 sm:w-10 sm:h-10 ${isDark ? "bg-white text-black" : "bg-[#2d2d2d] text-white"} rounded-full flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:opacity-30`}
               >
                 {isLoading ? (
                   <div
