@@ -41,6 +41,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
   const [mobilePanel, setMobilePanel] = useState<"chat" | "editor">("editor");
   const [isRuntimeChecking, setIsRuntimeChecking] = useState(false);
+  const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
 
   // Refs to prevent duplicate operations
   const modelsCreatedRef = useRef(false);
@@ -692,6 +693,25 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                       />
                     </svg>
                   </button>
+                  <button
+                    onClick={() => setIsPreviewFullscreen(true)}
+                    className={`p-1 rounded cursor-pointer ${isDark ? "hover:bg-[#3d3d3d] text-gray-400" : "hover:bg-[#e5e5e3] text-gray-500"}`}
+                    title="Fullscreen preview"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"
+                      />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* Preview iframe */}
@@ -717,6 +737,61 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Preview Overlay */}
+      {isPreviewFullscreen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col"
+          style={{ background: isDark ? "#1e1e1e" : "#f5f5f0" }}
+        >
+          <div
+            className={`flex items-center gap-2 px-4 py-2.5 ${isDark ? "bg-[#252526] border-[#3d3d3d]" : "bg-[#eeeeea] border-[#e5e5e3]"} border-b`}
+          >
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`w-3 h-3 rounded-full ${isDark ? "bg-[#ff5f57]" : "bg-red-400"}`}
+              />
+              <div
+                className={`w-3 h-3 rounded-full ${isDark ? "bg-[#febc2e]" : "bg-yellow-400"}`}
+              />
+              <div
+                className={`w-3 h-3 rounded-full ${isDark ? "bg-[#28c840]" : "bg-green-400"}`}
+              />
+            </div>
+            <div
+              className={`flex-1 mx-3 px-3 py-1 rounded-md text-[12px] ${isDark ? "bg-[#1e1e1e] text-gray-400 border border-[#3d3d3d]" : "bg-white text-gray-500 border border-[#e5e5e3]"}`}
+            >
+              localhost:3000
+            </div>
+            <button
+              onClick={() => setIsPreviewFullscreen(false)}
+              className={`p-1.5 rounded cursor-pointer ${isDark ? "hover:bg-[#3d3d3d] text-gray-400" : "hover:bg-[#e5e5e3] text-gray-500"}`}
+              title="Exit fullscreen"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 4H4m0 0v5m0-5l5 5m6-5h5m0 0v5m0-5l-5 5M9 20H4m0 0v-5m0 5l5-5m6 5h5m0 0v-5m0 5l-5-5"
+                />
+              </svg>
+            </button>
+          </div>
+          <iframe
+            src={`http://sandbox-${jobId}.localhost:3003`}
+            className="flex-1 w-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"
+            allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone; midi; payment; usb"
+            title="Live Preview Fullscreen"
+          />
+        </div>
+      )}
 
       <style>{`
         @keyframes chatDot {

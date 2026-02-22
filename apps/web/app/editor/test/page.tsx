@@ -260,6 +260,7 @@ export default function TestEditorPage() {
   const [activeFile, setActiveFile] = useState(DUMMY_FILES[0]!.path);
   const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
   const [mobilePanel, setMobilePanel] = useState<"chat" | "editor">("editor");
+  const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
 
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const modelsCreatedRef = useRef(false);
@@ -794,6 +795,25 @@ export default function TestEditorPage() {
                       />
                     </svg>
                   </button>
+                  <button
+                    onClick={() => setIsPreviewFullscreen(true)}
+                    className={`p-1 rounded cursor-pointer ${isDark ? "hover:bg-[#3d3d3d] text-gray-400" : "hover:bg-gray-200 text-gray-500"}`}
+                    title="Fullscreen preview"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"
+                      />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* Preview placeholder */}
@@ -837,6 +857,87 @@ export default function TestEditorPage() {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Preview Overlay */}
+      {isPreviewFullscreen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col"
+          style={{ background: isDark ? "#1e1e1e" : "#f5f5f0" }}
+        >
+          <div
+            className={`flex items-center gap-2 px-4 py-2.5 ${isDark ? "bg-[#252526] border-[#3d3d3d]" : "bg-gray-50 border-gray-200"} border-b`}
+          >
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`w-3 h-3 rounded-full ${isDark ? "bg-[#ff5f57]" : "bg-red-400"}`}
+              />
+              <div
+                className={`w-3 h-3 rounded-full ${isDark ? "bg-[#febc2e]" : "bg-yellow-400"}`}
+              />
+              <div
+                className={`w-3 h-3 rounded-full ${isDark ? "bg-[#28c840]" : "bg-green-400"}`}
+              />
+            </div>
+            <div
+              className={`flex-1 mx-3 px-3 py-1 rounded-md text-[12px] ${isDark ? "bg-[#1e1e1e] text-gray-400 border border-[#3d3d3d]" : "bg-white text-gray-500 border border-gray-200"}`}
+            >
+              localhost:3000
+            </div>
+            <button
+              onClick={() => setIsPreviewFullscreen(false)}
+              className={`p-1.5 rounded cursor-pointer ${isDark ? "hover:bg-[#3d3d3d] text-gray-400" : "hover:bg-gray-200 text-gray-500"}`}
+              title="Exit fullscreen"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 4H4m0 0v5m0-5l5 5m6-5h5m0 0v5m0-5l-5 5M9 20H4m0 0v-5m0 5l5-5m6 5h5m0 0v-5m0 5l-5-5"
+                />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div
+                className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${isDark ? "bg-[#2d2d30]" : "bg-gray-100"}`}
+              >
+                <svg
+                  className={`w-10 h-10 ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3
+                  className={`text-base font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Fullscreen Preview
+                </h3>
+                <p
+                  className={`text-sm mt-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}
+                >
+                  Your live site will render here at full size
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes chatDot {
