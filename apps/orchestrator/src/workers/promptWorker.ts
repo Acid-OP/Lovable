@@ -532,9 +532,9 @@ export function createPromptWorker() {
             currentStep: "Building your application",
           });
         } else if (fixAttempts === 1) {
-          // Only update to "Optimizing" once (not every retry)
           await SessionManager.update(jobId, {
             currentStep: "Optimizing code",
+            buildExtending: "true",
           });
         }
 
@@ -837,6 +837,7 @@ export function createPromptWorker() {
 
         await SessionManager.update(jobId, {
           currentStep: "Optimizing code",
+          buildExtending: "true",
         });
 
         // Create synthetic error for the LLM to fix
@@ -1048,6 +1049,7 @@ export function createPromptWorker() {
 
         await SessionManager.update(jobId, {
           currentStep: "Optimizing code",
+          buildExtending: "true",
         });
 
         const runtimeClassified = classifyBuildErrors(runtimeErrorMap);

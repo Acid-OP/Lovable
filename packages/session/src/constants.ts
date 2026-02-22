@@ -33,4 +33,6 @@ export interface SessionData {
   iterationCount?: number;
   // Runtime error checking
   runtimeCheck?: string;
+  // Signals the frontend that errors caused the build to extend
+  buildExtending?: string;
 }

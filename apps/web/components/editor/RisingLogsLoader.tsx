@@ -23,20 +23,24 @@ const PRIMARY_STEPS = [
 ];
 
 const EXTENDED_STEPS = [
-  "Running additional checks",
-  "Verifying build output",
-  "Optimizing asset delivery",
-  "Validating component tree",
-  "Checking for runtime errors",
   "Refining code quality",
+  "Resolving dependencies",
+  "Optimizing component tree",
+  "Running additional checks",
+  "Validating build output",
+  "Fine-tuning performance",
   "Polishing final output",
   "Almost there",
 ];
 
 const ALL_STEPS = [...PRIMARY_STEPS, ...EXTENDED_STEPS];
 const LAST_PRIMARY = PRIMARY_STEPS.length - 1;
-const MIN_STEPS = 6;
-const MIN_TIME_MS = 8000;
+
+// ~60s for a normal build: 16 steps × 3.5s = 56s
+const NORMAL_PACE = 3500;
+// Cache hits: don't reveal speed, enforce minimum ~50s display
+const MIN_TIME_MS = 50000;
+const MIN_STEPS = 14;
 
 export function RisingLogsLoader({
   messages,
@@ -56,7 +60,26 @@ export function RisingLogsLoader({
       m.status === "completed",
   );
 
+  const isExtending = messages.some((m) => m.buildExtending === "true");
+
+  // Single adaptive timer
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
+    const getPace = (): number => {
+      if (!streamDone) return NORMAL_PACE;
+
+      const elapsed = Date.now() - mountTime.current;
+
+      // Stream done but we haven't shown enough yet — gentle pace
+      if (elapsed < MIN_TIME_MS || activeIndex < MIN_STEPS - 1) {
+        return NORMAL_PACE;
+      }
+
+      // Past minimums — rush to finish
+      return 300;
+    };
+
     const tick = () => {
       setActiveIndex((cur) => {
         const next = cur + 1;
@@ -64,15 +87,6 @@ export function RisingLogsLoader({
         return next;
       });
     };
-
-    const getPace = (): number => {
-      if (!streamDone) return 1800;
-      const elapsed = Date.now() - mountTime.current;
-      if (elapsed < MIN_TIME_MS) return 600;
-      return 280;
-    };
-
-    let timer: ReturnType<typeof setTimeout>;
 
     const schedule = () => {
       timer = setTimeout(() => {
@@ -83,12 +97,23 @@ export function RisingLogsLoader({
 
     schedule();
     return () => clearTimeout(timer);
-  }, [streamDone]);
+  }, [streamDone, activeIndex]);
 
-  // Fire onComplete when conditions are met
+  // When build is extending (errors/retries), bump into extended steps faster
   useEffect(() => {
-    if (completeFired.current) return;
-    if (!streamDone) return;
+    if (!isExtending) return;
+    if (activeIndex >= LAST_PRIMARY) return;
+
+    // Jump ahead to ensure we have runway for the extended phase
+    const target = Math.max(activeIndex, LAST_PRIMARY - 2);
+    if (target > activeIndex) {
+      setActiveIndex(target);
+    }
+  }, [isExtending, activeIndex]);
+
+  // Fire onComplete when all conditions met
+  useEffect(() => {
+    if (completeFired.current || !streamDone) return;
 
     const elapsed = Date.now() - mountTime.current;
     if (activeIndex < MIN_STEPS - 1) return;
@@ -96,19 +121,28 @@ export function RisingLogsLoader({
     if (activeIndex < LAST_PRIMARY) return;
 
     completeFired.current = true;
-    setTimeout(() => onCompleteRef.current?.(), 500);
+    setTimeout(() => onCompleteRef.current?.(), 600);
   }, [activeIndex, streamDone]);
 
+  // Compute visible window
   const WINDOW = 5;
   const clamped = Math.max(0, activeIndex);
   const start = Math.max(0, clamped - WINDOW + 1);
   const visible = activeIndex >= 0 ? ALL_STEPS.slice(start, clamped + 1) : [];
 
-  const displayTotal = streamDone ? PRIMARY_STEPS.length : ALL_STEPS.length;
-  const progress = Math.min(
-    streamDone && activeIndex >= LAST_PRIMARY ? 100 : 95,
-    Math.round(((activeIndex + 1) / displayTotal) * 100),
-  );
+  const displayTotal = PRIMARY_STEPS.length;
+  const rawProgress = ((activeIndex + 1) / displayTotal) * 100;
+  const progress =
+    streamDone && activeIndex >= LAST_PRIMARY
+      ? 100
+      : Math.min(95, Math.round(rawProgress));
+
+  const statusText =
+    activeIndex < 0
+      ? "Initializing"
+      : activeIndex >= PRIMARY_STEPS.length
+        ? "Finishing up"
+        : "Processing";
 
   return (
     <div
@@ -132,11 +166,7 @@ export function RisingLogsLoader({
           <span className="tabular-nums">{Math.max(0, progress)}%</span>
           <span>·</span>
           <span>
-            {activeIndex < 0
-              ? "Initializing"
-              : activeIndex >= PRIMARY_STEPS.length
-                ? "Finishing up"
-                : "Processing"}
+            {statusText}
             <span className="inline-flex gap-[1px] ml-0.5">
               <span style={{ animation: "dotFade 1.4s ease-in-out infinite" }}>
                 .

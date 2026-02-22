@@ -14,6 +14,7 @@ export interface SSEMessage {
   message?: string;
   currentStep?: string;
   runtimeCheck?: string;
+  buildExtending?: string;
   files?: Array<{
     path: string;
     content: string;
