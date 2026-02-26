@@ -5,22 +5,22 @@ const models = [
   {
     key: "openai",
     name: null,
-    icon: <OpenAI size={14} />,
+    icon: <OpenAI size={16} />,
   },
   {
     key: "claude",
     name: "Claude",
-    icon: <Claude.Color size={14} />,
+    icon: <Claude.Color size={16} />,
   },
   {
     key: "perplexity",
     name: "Perplexity",
-    icon: <Perplexity.Color size={14} />,
+    icon: <Perplexity.Color size={16} />,
   },
   {
     key: "gemini",
     name: null,
-    icon: <Gemini.Color size={14} />,
+    icon: <Gemini.Color size={16} />,
   },
 ];
 
@@ -40,14 +40,16 @@ export function HeroContent() {
         AI builds it.
       </h1>
 
-      <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-1 mb-4">
+      <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-1 mb-1">
         <span className="text-[13px] text-[#888]">Understand how</span>
         {models.map((model) => (
           <span
             key={model.key}
-            className={`inline-flex items-center gap-1.5 ${model.name ? "px-2.5" : "px-2"} py-1 rounded-md border border-[#e5e5e3] bg-white text-[12px] font-semibold text-[#222] shadow-[0_1px_2px_rgba(0,0,0,0.04)]`}
+            className={`inline-flex items-center gap-1.5 ${model.name ? "px-2.5" : "px-2"} py-1 h-7 rounded-md border border-[#e5e5e3] bg-white text-[12px] font-semibold text-[#222] shadow-[0_1px_2px_rgba(0,0,0,0.04)]`}
           >
-            {model.icon}
+            <span className="w-4 h-4 flex items-center justify-center shrink-0">
+              {model.icon}
+            </span>
             {model.name}
           </span>
         ))}

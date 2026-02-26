@@ -254,7 +254,7 @@ export function UseCases() {
               >
                 {active === i && (
                   <div
-                    className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-[#2d2d2d]"
+                    className="absolute left-0 top-0.5 bottom-0.5 w-[3px] rounded-full bg-[#2d2d2d]"
                     style={{
                       clipPath: `inset(0 0 ${100 - progress}% 0)`,
                       transition: "clip-path 50ms linear",
