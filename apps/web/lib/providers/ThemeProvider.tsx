@@ -31,10 +31,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  // Persist to localStorage on change
+  // Persist to localStorage and sync class on <html>
   useEffect(() => {
     if (mounted) {
       localStorage.setItem("theme", isDark ? "dark" : "light");
+      document.documentElement.classList.toggle("dark", isDark);
     }
   }, [isDark, mounted]);
 

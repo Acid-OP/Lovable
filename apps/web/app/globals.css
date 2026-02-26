@@ -5,11 +5,9 @@
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 html,
@@ -36,17 +34,16 @@ a {
   display: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+:root.dark {
+  color-scheme: dark;
+}
 
-  .imgLight {
-    display: none;
-  }
-  .imgDark {
-    display: unset;
-  }
+:root.dark .imgLight {
+  display: none;
+}
+
+:root.dark .imgDark {
+  display: unset;
 }
 
 /* Custom animations for landing page */
