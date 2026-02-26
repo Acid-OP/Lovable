@@ -1,10 +1,17 @@
+"use client";
+
 import Image from "next/image";
+import { useTheme } from "@/lib/providers/ThemeProvider";
 
 export function Quote() {
+  const { isDark } = useTheme();
+
   return (
     <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       <div className="max-w-2xl mx-auto text-center">
-        <p className="font-[family-name:var(--font-heading)] text-[18px] sm:text-[22px] text-[#555] leading-[1.6] tracking-[-0.01em] italic mb-5">
+        <p
+          className={`font-[family-name:var(--font-heading)] text-[18px] sm:text-[22px] ${isDark ? "text-[#aaa]" : "text-[#555]"} leading-[1.6] tracking-[-0.01em] italic mb-5`}
+        >
           &ldquo;Work until the people who doubted you become the ones bragging
           about knowing you.&rdquo;
         </p>
@@ -17,10 +24,16 @@ export function Quote() {
             className="w-8 h-8 rounded-full object-cover"
           />
           <div className="text-left">
-            <p className="text-[12px] font-medium text-[#1a1a1a]">
+            <p
+              className={`text-[12px] font-medium ${isDark ? "text-[#f0f0f0]" : "text-[#1a1a1a]"}`}
+            >
               Gaurav Kapur
             </p>
-            <p className="text-[11px] text-[#aaa]">Creator of Bolt</p>
+            <p
+              className={`text-[11px] ${isDark ? "text-[#666]" : "text-[#aaa]"}`}
+            >
+              Creator of Bolt
+            </p>
           </div>
         </div>
       </div>

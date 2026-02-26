@@ -1,8 +1,15 @@
+"use client";
+
 import Link from "next/link";
+import { useTheme } from "@/lib/providers/ThemeProvider";
 
 export function Footer() {
+  const { isDark } = useTheme();
+
   return (
-    <footer className="px-4 sm:px-6 lg:px-8 border-t border-[#e8e8e4]">
+    <footer
+      className={`px-4 sm:px-6 lg:px-8 border-t ${isDark ? "border-[#2a2a2a]" : "border-[#e8e8e4]"}`}
+    >
       <div className="max-w-5xl mx-auto py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <svg
@@ -20,13 +27,15 @@ export function Footer() {
             <circle cx="6" cy="18" r="3" />
             <path d="M18 9a9 9 0 0 1-9 9" />
           </svg>
-          <span className="text-[12px] text-[#aaa]">
+          <span
+            className={`text-[12px] ${isDark ? "text-[#666]" : "text-[#aaa]"}`}
+          >
             © {new Date().getFullYear()} Bolt · Built by{" "}
             <a
               href="https://github.com/Acid-OP"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#888] hover:text-[#1a1a1a] transition-colors"
+              className={`${isDark ? "text-[#777] hover:text-[#f0f0f0]" : "text-[#888] hover:text-[#1a1a1a]"} transition-colors`}
             >
               Gaurav Kapur
             </a>
@@ -36,19 +45,19 @@ export function Footer() {
         <div className="flex items-center gap-5">
           <Link
             href="/editor"
-            className="text-[11px] text-[#aaa] hover:text-[#555] transition-colors"
+            className={`text-[11px] ${isDark ? "text-[#666] hover:text-[#aaa]" : "text-[#aaa] hover:text-[#555]"} transition-colors`}
           >
             Editor
           </Link>
           <Link
             href="#"
-            className="text-[11px] text-[#aaa] hover:text-[#555] transition-colors"
+            className={`text-[11px] ${isDark ? "text-[#666] hover:text-[#aaa]" : "text-[#aaa] hover:text-[#555]"} transition-colors`}
           >
             Privacy
           </Link>
           <Link
             href="#"
-            className="text-[11px] text-[#aaa] hover:text-[#555] transition-colors"
+            className={`text-[11px] ${isDark ? "text-[#666] hover:text-[#aaa]" : "text-[#aaa] hover:text-[#555]"} transition-colors`}
           >
             Terms
           </Link>
@@ -56,7 +65,7 @@ export function Footer() {
             href="https://github.com/Acid-OP"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#bbb] hover:text-[#666] transition-colors"
+            className={`${isDark ? "text-[#555] hover:text-[#aaa]" : "text-[#bbb] hover:text-[#666]"} transition-colors`}
           >
             <svg
               className="w-3.5 h-3.5"
@@ -70,7 +79,7 @@ export function Footer() {
             href="https://x.com/GauravKapurr"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#bbb] hover:text-[#666] transition-colors"
+            className={`${isDark ? "text-[#555] hover:text-[#aaa]" : "text-[#bbb] hover:text-[#666]"} transition-colors`}
           >
             <svg
               className="w-3.5 h-3.5"
@@ -84,7 +93,7 @@ export function Footer() {
             href="https://www.linkedin.com/in/gaurav-kapur-a3286b258/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#bbb] hover:text-[#666] transition-colors"
+            className={`${isDark ? "text-[#555] hover:text-[#aaa]" : "text-[#bbb] hover:text-[#666]"} transition-colors`}
           >
             <svg
               className="w-3.5 h-3.5"

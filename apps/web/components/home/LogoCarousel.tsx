@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { useTheme } from "@/lib/providers/ThemeProvider";
 
 const YCombinatorLogo = () => (
   <svg
@@ -43,9 +44,16 @@ const companies: {
   width: number; // rendered width in px
   height: number; // rendered height in px
   crop?: boolean; // if true, crop to container showing left portion only
+  wordmark?: boolean; // text-based logos that need color inversion in dark mode
 }[] = [
   { name: "Y Combinator", component: YCombinatorLogo, width: 40, height: 40 },
-  { name: "Lovable", logo: "/lovable.svg", width: 160, height: 28 },
+  {
+    name: "Lovable",
+    logo: "/lovable.svg",
+    width: 160,
+    height: 28,
+    wordmark: true,
+  },
   { name: "Barclays", component: BarclaysLogo, width: 40, height: 40 },
   {
     name: "IgniteTech",
@@ -55,7 +63,13 @@ const companies: {
     crop: true,
   },
   { name: "Apple", logo: "/apple-logo.png", width: 40, height: 40 },
-  { name: "Turing", logo: "/Turing_idyH0bVZzp_0.svg", width: 150, height: 22 },
+  {
+    name: "Turing",
+    logo: "/Turing_idyH0bVZzp_0.svg",
+    width: 150,
+    height: 22,
+    wordmark: true,
+  },
   { name: "Atlassian", logo: "/atlassian.png", width: 40, height: 40 },
 ];
 
@@ -104,6 +118,7 @@ function LogoItem({ company }: { company: (typeof companies)[number] }) {
 }
 
 export function LogoCarousel() {
+  const { isDark } = useTheme();
   const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -121,8 +136,12 @@ export function LogoCarousel() {
       </p>
       <div className="relative overflow-hidden w-full">
         {/* Fade edges */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-[#f5f5f0] to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-[#f5f5f0] to-transparent z-10" />
+        <div
+          className={`pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r ${isDark ? "from-[#0a0a0a]" : "from-[#f5f5f0]"} to-transparent z-10`}
+        />
+        <div
+          className={`pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l ${isDark ? "from-[#0a0a0a]" : "from-[#f5f5f0]"} to-transparent z-10`}
+        />
 
         <div
           ref={trackRef}
@@ -134,7 +153,13 @@ export function LogoCarousel() {
               <div
                 key={`${company.name}-${setIdx}`}
                 className="flex-shrink-0 flex items-center justify-center"
-                style={{ height: 40 }}
+                style={{
+                  height: 40,
+                  filter:
+                    company.wordmark && isDark
+                      ? "brightness(0) invert(1)"
+                      : "none",
+                }}
               >
                 <LogoItem company={company} />
               </div>

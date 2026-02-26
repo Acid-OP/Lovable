@@ -30,13 +30,19 @@ describe("Navbar", () => {
 
   it("renders mobile menu button", () => {
     render(<Navbar />);
-    const menuButton = screen.getByRole("button");
+    const buttons = screen.getAllByRole("button");
+    const menuButton = buttons.find((btn) =>
+      btn.className.includes("md:hidden"),
+    );
     expect(menuButton).toBeInTheDocument();
   });
 
   it("toggles mobile menu on button click", () => {
     render(<Navbar />);
-    const menuButton = screen.getByRole("button");
+    const buttons = screen.getAllByRole("button");
+    const menuButton = buttons.find((btn) =>
+      btn.className.includes("md:hidden"),
+    )!;
 
     const initialLinks = screen.getAllByRole("link", { name: "Features" });
     expect(initialLinks).toHaveLength(1);

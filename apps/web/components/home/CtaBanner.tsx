@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/lib/providers/ThemeProvider";
 
 const defaultPrompt = "Build a portfolio website with dark mode";
 
 export function CtaBanner() {
+  const { isDark } = useTheme();
   const router = useRouter();
 
   const handleSubmit = () => {
@@ -13,7 +15,9 @@ export function CtaBanner() {
 
   return (
     <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-      <div className="max-w-5xl mx-auto rounded-2xl bg-[#1a1a1a] px-8 sm:px-12 py-14 sm:py-18 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+      <div
+        className={`max-w-5xl mx-auto rounded-2xl bg-[#1a1a1a] px-8 sm:px-12 py-14 sm:py-18 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 ${isDark ? "border border-[#2a2a2a]" : ""}`}
+      >
         <div>
           <h2 className="font-[family-name:var(--font-heading)] text-[24px] sm:text-[30px] lg:text-[36px] font-normal text-white leading-[1.2] tracking-[-0.02em] mb-2">
             Your next app is one prompt away

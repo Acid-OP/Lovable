@@ -1,11 +1,20 @@
+"use client";
+
+import { useTheme } from "@/lib/providers/ThemeProvider";
+
 interface MobileMenuButtonProps {
   isOpen: boolean;
   onClick: () => void;
 }
 
 export function MobileMenuButton({ isOpen, onClick }: MobileMenuButtonProps) {
+  const { isDark } = useTheme();
+
   return (
-    <button onClick={onClick} className="md:hidden p-2 text-[#000000]">
+    <button
+      onClick={onClick}
+      className={`md:hidden p-2 ${isDark ? "text-[#f0f0f0]" : "text-[#000000]"}`}
+    >
       <svg
         className="w-6 h-6"
         fill="none"

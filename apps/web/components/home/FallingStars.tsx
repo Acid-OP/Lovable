@@ -1,4 +1,9 @@
+"use client";
+
+import { useTheme } from "@/lib/providers/ThemeProvider";
+
 export function FallingStars() {
+  const { isDark } = useTheme();
   const stars = [
     { startX: -350, delay: 0 },
     { startX: -280, delay: 1.2 },
@@ -20,8 +25,10 @@ export function FallingStars() {
             width: "5px",
             height: "5px",
             borderRadius: "50%",
-            backgroundColor: "#333",
-            boxShadow: "0 0 6px 2px rgba(50, 50, 50, 0.7)",
+            backgroundColor: isDark ? "#ccc" : "#333",
+            boxShadow: isDark
+              ? "0 0 6px 2px rgba(200, 200, 200, 0.7)"
+              : "0 0 6px 2px rgba(50, 50, 50, 0.7)",
             pointerEvents: "none",
             zIndex: 0,
             opacity: 0,

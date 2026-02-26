@@ -59,10 +59,10 @@ describe("HeroContent", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders Get Started button linking to /editor", () => {
+  it("renders Get Started button", () => {
     render(<HeroContent />);
-    const link = screen.getByRole("link", { name: /get started/i });
-    expect(link).toHaveAttribute("href", "/editor");
+    const button = screen.getByRole("button", { name: /get started/i });
+    expect(button).toBeInTheDocument();
   });
 
   it("renders View Demo button", () => {

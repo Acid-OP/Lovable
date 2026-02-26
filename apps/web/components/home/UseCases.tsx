@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useTheme } from "@/lib/providers/ThemeProvider";
 
 const showcases = [
   {
@@ -202,6 +203,7 @@ const showcases = [
 ];
 
 export function UseCases() {
+  const { isDark } = useTheme();
   const [active, setActive] = useState(0);
   const [progress, setProgress] = useState(0);
 
@@ -232,10 +234,14 @@ export function UseCases() {
   return (
     <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
       <div className="max-w-5xl mx-auto">
-        <p className="text-[11px] sm:text-[12px] font-medium text-[#aaa] tracking-widest uppercase mb-5">
+        <p
+          className={`text-[11px] sm:text-[12px] font-medium ${isDark ? "text-[#666]" : "text-[#aaa]"} tracking-widest uppercase mb-5`}
+        >
           Use Cases
         </p>
-        <h2 className="font-[family-name:var(--font-heading)] text-[28px] sm:text-[36px] lg:text-[42px] font-normal text-[#1a1a1a] leading-[1.15] tracking-[-0.02em] mb-14">
+        <h2
+          className={`font-[family-name:var(--font-heading)] text-[28px] sm:text-[36px] lg:text-[42px] font-normal ${isDark ? "text-[#f0f0f0]" : "text-[#1a1a1a]"} leading-[1.15] tracking-[-0.02em] mb-14`}
+        >
           What will you build?
         </h2>
 
@@ -248,13 +254,13 @@ export function UseCases() {
                 onClick={() => handleSelect(i)}
                 className={`group relative text-left px-5 py-4 rounded-xl transition-all duration-200 cursor-pointer ${
                   active === i
-                    ? "bg-white border border-[#e5e5e3] shadow-sm"
-                    : "hover:bg-white/60"
+                    ? `${isDark ? "bg-[#141414] border border-[#2a2a2a]" : "bg-white border border-[#e5e5e3]"} shadow-sm`
+                    : `${isDark ? "hover:bg-white/5" : "hover:bg-white/60"}`
                 }`}
               >
                 {active === i && (
                   <div
-                    className="absolute left-0 top-0.5 bottom-0.5 w-[3px] rounded-full bg-[#2d2d2d]"
+                    className={`absolute left-0 top-0.5 bottom-0.5 w-[3px] rounded-full ${isDark ? "bg-[#f0f0f0]" : "bg-[#2d2d2d]"}`}
                     style={{
                       clipPath: `inset(0 0 ${100 - progress}% 0)`,
                       transition: "clip-path 50ms linear",
@@ -262,12 +268,12 @@ export function UseCases() {
                   />
                 )}
                 <div
-                  className={`text-[14px] font-semibold mb-0.5 transition-colors ${active === i ? "text-[#1a1a1a]" : "text-[#999] group-hover:text-[#666]"}`}
+                  className={`text-[14px] font-semibold mb-0.5 transition-colors ${active === i ? `${isDark ? "text-[#f0f0f0]" : "text-[#1a1a1a]"}` : `${isDark ? "text-[#666] group-hover:text-[#999]" : "text-[#999] group-hover:text-[#666]"}`}`}
                 >
                   {item.title}
                 </div>
                 <div
-                  className={`text-[12px] leading-[1.5] transition-colors ${active === i ? "text-[#888]" : "text-[#bbb] group-hover:text-[#aaa]"}`}
+                  className={`text-[12px] leading-[1.5] transition-colors ${active === i ? `${isDark ? "text-[#777]" : "text-[#888]"}` : `${isDark ? "text-[#555] group-hover:text-[#666]" : "text-[#bbb] group-hover:text-[#aaa]"}`}`}
                 >
                   {item.description}
                 </div>
@@ -276,7 +282,7 @@ export function UseCases() {
 
             <Link
               href="/editor"
-              className="mt-4 ml-5 text-[13px] font-medium text-[#2d2d2d] hover:text-[#000] transition-colors inline-flex items-center gap-1.5"
+              className={`mt-4 ml-5 text-[13px] font-medium ${isDark ? "text-[#f0f0f0] hover:text-[#ffffff]" : "text-[#2d2d2d] hover:text-[#000]"} transition-colors inline-flex items-center gap-1.5`}
             >
               Try it yourself
               <span>→</span>
@@ -285,15 +291,21 @@ export function UseCases() {
 
           {/* Right — interactive preview */}
           <div className="flex-1 min-w-0">
-            <div className="relative rounded-2xl border border-[#e5e5e3] bg-white shadow-lg shadow-black/5 overflow-hidden">
+            <div
+              className={`relative rounded-2xl border ${isDark ? "border-[#2a2a2a] bg-[#141414]" : "border-[#e5e5e3] bg-white"} shadow-lg shadow-black/5 overflow-hidden`}
+            >
               {/* Browser chrome */}
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#f0f0ee] bg-[#fafaf8]">
+              <div
+                className={`flex items-center gap-2 px-4 py-2.5 border-b ${isDark ? "border-[#2a2a2a] bg-[#1a1a1a]" : "border-[#f0f0ee] bg-[#fafaf8]"}`}
+              >
                 <div className="flex gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
                   <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
                   <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
                 </div>
-                <div className="flex-1 mx-4 px-3 py-1 rounded-md bg-white border border-[#e5e5e3] text-[10px] text-[#aaa] truncate">
+                <div
+                  className={`flex-1 mx-4 px-3 py-1 rounded-md ${isDark ? "bg-[#0a0a0a] border border-[#2a2a2a] text-[#666]" : "bg-white border border-[#e5e5e3] text-[#aaa]"} text-[10px] truncate`}
+                >
                   {showcases[active]?.prompt}
                 </div>
               </div>
