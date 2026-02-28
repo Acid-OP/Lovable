@@ -17,6 +17,7 @@
     "@repo/redis": "workspace:*",
     "@repo/session": "workspace:*",
     "axios": "^1.7.9",
+    "cors": "^2.8.6",
     "dotenv": "^16.4.5",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/supertest": "^6.0.3",
     "ioredis": "^5.4.1",

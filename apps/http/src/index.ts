@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import helmet from "helmet";
+import cors from "cors";
 import routes from "./routes/index.js";
 import { config } from "./config.js";
 import { SSEManager } from "./services/SSEManager.js";
@@ -9,6 +10,26 @@ import { logger } from "./utils/logger.js";
 const app = express();
 const PORT = config.server.port;
 
+const allowedOrigins = (
+  process.env.CORS_ORIGINS || "http://localhost:4050,http://localhost:3000"
+)
+  .split(",")
+  .map((o) => o.trim());
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (server-to-server, curl, etc.)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
+
 app.use((req, res, next) => {
   if (req.hostname !== "localhost" && req.hostname.includes(".")) {
     return next();
@@ -16,7 +37,7 @@ app.use((req, res, next) => {
   helmet()(req, res, next);
 });
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use(routes);
 
 const server = app.listen(PORT, () => {

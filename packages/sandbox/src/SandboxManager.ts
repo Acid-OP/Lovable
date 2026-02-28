@@ -15,6 +15,30 @@ interface DockerContainer {
   Names: string[];
 }
 
+/**
+ * Escapes a string for safe use inside single quotes in a shell command.
+ *
+ * Shell single quotes treat everything as literal — no variable expansion,
+ * no command substitution, nothing. The ONLY character that can break out
+ * of single quotes is... a single quote itself.
+ *
+ * So we replace every ' with: '\''
+ *   ' → close the current single-quoted string
+ *   \' → insert a literal single quote (backslash-escaped, outside quotes)
+ *   ' → reopen a new single-quoted string
+ *
+ * The shell concatenates adjacent strings automatically.
+ *
+ * Example: /workspace/it's here → '/workspace/it'\''s here'
+ * Shell sees: '/workspace/it' + \' + 's here' = /workspace/it's here (literal)
+ *
+ * This makes it impossible for ANY input to execute as a command,
+ * because the value never leaves the single-quoted context.
+ */
+function escapeShellArg(arg: string): string {
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
 export class SandboxManager {
   private static instance: SandboxManager;
 
@@ -212,7 +236,9 @@ export class SandboxManager {
     content: string,
   ): Promise<void> {
     const base64Content = Buffer.from(content).toString("base64");
-    const command = `mkdir -p "$(dirname '${filePath}')" && echo '${base64Content}' | base64 -d > '${filePath}'`;
+    const safePath = escapeShellArg(filePath);
+    const safeB64 = escapeShellArg(base64Content);
+    const command = `mkdir -p "$(dirname ${safePath})" && echo ${safeB64} | base64 -d > ${safePath}`;
 
     await this.exec(containerId, command);
   }
@@ -221,7 +247,7 @@ export class SandboxManager {
     containerId: string,
     filePath: string,
   ): Promise<void> {
-    await this.exec(containerId, `rm -f '${filePath}'`);
+    await this.exec(containerId, `rm -f ${escapeShellArg(filePath)}`);
   }
 
   public async readFile(
@@ -229,7 +255,10 @@ export class SandboxManager {
     filePath: string,
   ): Promise<string> {
     try {
-      const result = await this.exec(containerId, `cat '${filePath}'`);
+      const result = await this.exec(
+        containerId,
+        `cat ${escapeShellArg(filePath)}`,
+      );
       return result.output;
     } catch {
       return "";
