@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Plan, PlanStep, STEP_TYPES } from "../planner/types.js";
 
 export interface ValidationResult {
@@ -25,6 +26,11 @@ const DANGEROUS_PATTERNS: { pattern: RegExp; reason: string }[] = [
   { pattern: /shutdown/, reason: "System shutdown" },
   { pattern: /reboot/, reason: "System reboot" },
 ];
+
+function isInsideWorkspace(filePath: string): boolean {
+  const resolved = path.resolve("/workspace", filePath);
+  return resolved === "/workspace" || resolved.startsWith("/workspace/");
+}
 
 const MAX_STEPS = 25;
 const MAX_COMMAND_LENGTH = 500;
@@ -149,7 +155,7 @@ export class PlanValidator {
       step.workingDirectory = "/workspace";
     }
 
-    if (!step.workingDirectory.startsWith("/workspace")) {
+    if (!isInsideWorkspace(step.workingDirectory)) {
       result.errors.push(
         `Step ${stepNum}: workingDirectory must be inside /workspace`,
       );
@@ -179,7 +185,7 @@ export class PlanValidator {
       result.valid = false;
     }
 
-    if (step.path && !step.path.startsWith("/workspace")) {
+    if (step.path && !isInsideWorkspace(step.path)) {
       result.errors.push(`Step ${stepNum}: path must be inside /workspace`);
       result.valid = false;
     }
@@ -195,7 +201,7 @@ export class PlanValidator {
       result.valid = false;
     }
 
-    if (step.path && !step.path.startsWith("/workspace")) {
+    if (step.path && !isInsideWorkspace(step.path)) {
       result.errors.push(`Step ${stepNum}: path must be inside /workspace`);
       result.valid = false;
     }

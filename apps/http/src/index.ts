@@ -30,12 +30,17 @@ app.use(
   }),
 );
 
-app.use((req, res, next) => {
-  if (req.hostname !== "localhost" && req.hostname.includes(".")) {
-    return next();
-  }
-  helmet()(req, res, next);
-});
+app.use(
+  helmet({
+    // Disable X-Frame-Options — sandbox iframes need to embed previews
+    frameguard: false,
+    // Disable CSP — sandbox previews load scripts/styles from container origins
+    contentSecurityPolicy: false,
+    // Disable COEP — cross-origin requests to sandbox containers need to work
+    crossOriginEmbedderPolicy: false,
+    // Keep everything else: nosniff, HSTS, XSS, referrer-policy, etc.
+  }),
+);
 
 app.use(express.json({ limit: "1mb" }));
 app.use(routes);

@@ -677,6 +677,14 @@ export function createPromptWorker() {
               });
               throw new Error(handlingResult.message);
             }
+
+            // Clean stale build artifacts before retrying
+            try {
+              await sandbox.exec(containerId, "rm -rf /workspace/.next");
+              logger.info("build.cleaned_artifacts", { jobId });
+            } catch {
+              // Non-fatal — container may not have .next yet
+            }
           }
         }
       }

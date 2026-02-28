@@ -5,6 +5,8 @@ import { QuotaManager } from "@repo/quota";
 import { PromptCacheManager } from "./llm/promptCache.js";
 import { getLLMParams } from "./llm/config.js";
 
+const LLM_TIMEOUT_MS = 120_000; // 120 seconds — longest observed call was ~45s for full plan generation
+
 export async function givePromptToLLM<T>(
   prompt: string,
   schema: z.ZodType<T>,
@@ -19,6 +21,7 @@ export async function givePromptToLLM<T>(
     temperature,
     maxTokens,
     topP,
+    abortSignal: AbortSignal.timeout(LLM_TIMEOUT_MS),
   });
 
   // Track usage after successful API call
@@ -65,6 +68,7 @@ export async function givePromptToLLMWithCache<T>(
     temperature,
     maxTokens,
     topP,
+    abortSignal: AbortSignal.timeout(LLM_TIMEOUT_MS),
   });
 
   // Track usage after successful API call

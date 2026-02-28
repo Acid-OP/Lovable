@@ -166,7 +166,10 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   useEffect(() => {
     if (!isRuntimeChecking) return;
 
+    const sandboxOrigin = `http://sandbox-${jobId}.localhost:3003`;
+
     function handleMessage(event: MessageEvent) {
+      if (event.origin !== sandboxOrigin) return;
       if (event.data?.type !== "__ERROR_BRIDGE_REPORT__") return;
       if (runtimeReportSentRef.current) return;
       runtimeReportSentRef.current = true;
