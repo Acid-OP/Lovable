@@ -7,7 +7,7 @@ export const promptSchema = z.object({
     .min(1, "Prompt cannot be empty")
     .max(5000, "Prompt is too long (max 5000 characters)")
     .trim(),
-  previousJobId: z.string().uuid().optional(),
+  previousJobId: z.string().min(1).optional(),
 });
 
 export type PromptInput = z.infer<typeof promptSchema>;
