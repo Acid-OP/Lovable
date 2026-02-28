@@ -7,6 +7,7 @@ import Editor from "@monaco-editor/react";
 import useMonacoModel from "@/lib/hooks/useMonacoModels";
 import { useSSEStream } from "@/lib/hooks/useSSEStream";
 import { useFetchFiles } from "@/lib/hooks/useFetchFiles";
+import { useSubmitPrompt } from "@/lib/hooks/useSubmitPrompt";
 import { RisingLogsLoader } from "@/components/editor/RisingLogsLoader";
 import { useTheme } from "@/lib/providers/ThemeProvider";
 import type { Monaco } from "@monaco-editor/react";
@@ -57,9 +58,14 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { handleEditorDidMount, createModel, switchToFile, isReady } =
     useMonacoModel();
   const { fetchFiles, error: fetchError } = useFetchFiles();
+  const { submitPrompt } = useSubmitPrompt();
 
   // Connect to SSE stream
-  const { messages: sseMessages, error: sseError } = useSSEStream(jobId);
+  const {
+    messages: sseMessages,
+    error: sseError,
+    reconnect,
+  } = useSSEStream(jobId);
 
   // Process SSE messages
   useEffect(() => {
@@ -205,25 +211,37 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     [handleEditorDidMount],
   );
 
-  const handleSend = useCallback(() => {
-    if (!input.trim()) return;
+  const handleSend = useCallback(async () => {
+    if (!input.trim() || isGenerating) return;
 
-    setMessages((prev) => [...prev, { role: "user", content: input }]);
+    const prompt = input.trim();
+    setMessages((prev) => [...prev, { role: "user", content: prompt }]);
     setInput("");
     setIsGenerating(true);
+    setShowLogs(true);
 
-    // TODO: Submit iteration with previousJobId = jobId
-    setTimeout(() => {
+    // Reset refs so files get re-fetched and models re-created on completion
+    filesFetchedRef.current = false;
+    modelsCreatedRef.current = false;
+    runtimeReportSentRef.current = false;
+
+    // Reconnect SSE before submitting so we catch all messages
+    reconnect();
+
+    const result = await submitPrompt(prompt, jobId);
+
+    if (!result) {
+      setIsGenerating(false);
+      setShowLogs(false);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "I'll help you with that...",
+          content: "Failed to submit prompt. Please try again.",
         },
       ]);
-      setIsGenerating(false);
-    }, 1000);
-  }, [input]);
+    }
+  }, [input, isGenerating, jobId, submitPrompt, reconnect]);
 
   const handleTabClick = useCallback(
     (filename: string) => {

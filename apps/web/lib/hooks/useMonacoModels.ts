@@ -100,6 +100,13 @@ export default function useMonacoModel() {
       return;
     }
 
+    // If model already exists for this file, update its content instead of creating a duplicate
+    const existing = modelsRef.current.get(filename);
+    if (existing && !existing.isDisposed()) {
+      existing.setValue(content);
+      return existing;
+    }
+
     const uri = monacoRef.current.Uri.parse(`file:///${filename}`);
     const model = monacoRef.current.editor.createModel(content, language, uri);
 

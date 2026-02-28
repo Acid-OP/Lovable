@@ -48,8 +48,10 @@ export async function sanitizePrompt(
   }
 
   const dangerousCommands = [
-    /\b(rm|delete|sudo|chmod|chown|kill|shutdown|reboot|format)\b/gi,
-    /\b(unlink|rmdir|fdisk|mkfs|dd)\b/gi,
+    /\b(sudo|chmod|chown|shutdown|reboot)\b/gi,
+    /\b(rmdir|fdisk|mkfs)\b/gi,
+    /\brm\s+-rf?\b/gi, // Only flag "rm -r" / "rm -rf", not bare "rm"
+    /\bdd\s+if=/gi, // Only flag "dd if=", not bare "dd"
   ];
 
   dangerousCommands.forEach((pattern) => {
