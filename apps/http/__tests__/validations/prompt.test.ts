@@ -38,18 +38,18 @@ describe("promptSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts valid UUID for previousJobId", () => {
+  it("accepts valid previousJobId", () => {
     const result = promptSchema.safeParse({
       prompt: "Iterate",
-      previousJobId: "550e8400-e29b-41d4-a716-446655440000",
+      previousJobId: "job-abc123",
     });
     expect(result.success).toBe(true);
   });
 
-  it("rejects invalid previousJobId format", () => {
+  it("rejects empty previousJobId", () => {
     const result = promptSchema.safeParse({
       prompt: "Iterate",
-      previousJobId: "not-a-uuid",
+      previousJobId: "",
     });
     expect(result.success).toBe(false);
   });

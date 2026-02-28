@@ -61,22 +61,22 @@ describe("POST /api/v1/prompt", () => {
     expect(res.body.error).toBe("Invalid input");
   });
 
-  it("returns 400 for invalid previousJobId format", async () => {
+  it("returns 400 for empty previousJobId", async () => {
     const res = await request(app)
       .post("/api/v1/prompt")
-      .send({ prompt: "Iterate on this", previousJobId: "not-a-uuid" });
+      .send({ prompt: "Iterate on this", previousJobId: "" });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("Invalid input");
   });
 
   it("handles iteration with valid previousJobId", async () => {
-    const uuid = "550e8400-e29b-41d4-a716-446655440000";
-    mockPushToQueue.mockResolvedValue({ jobId: uuid });
+    const jobId = "job-abc123";
+    mockPushToQueue.mockResolvedValue({ jobId });
 
     const res = await request(app)
       .post("/api/v1/prompt")
-      .send({ prompt: "Add dark mode", previousJobId: uuid });
+      .send({ prompt: "Add dark mode", previousJobId: jobId });
 
     expect(res.status).toBe(200);
     expect(res.body.isIteration).toBe(true);
