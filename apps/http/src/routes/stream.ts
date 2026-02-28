@@ -32,19 +32,21 @@ streamRouter.get(
     activeConnections++;
     logger.info(`Active connections: ${activeConnections}`);
 
+    let heartbeat: ReturnType<typeof setInterval> | null = null;
+
     try {
       await SSEManager.addClient(jobId, res);
 
-      const heartbeat = setInterval(() => {
+      heartbeat = setInterval(() => {
         try {
           res.write(`:heartbeat\n\n`);
         } catch (err) {
-          clearInterval(heartbeat);
+          if (heartbeat) clearInterval(heartbeat);
         }
       }, 30000);
 
       req.on("close", async () => {
-        clearInterval(heartbeat);
+        if (heartbeat) clearInterval(heartbeat);
         await SSEManager.removeClient(jobId, res);
         activeConnections--;
         logger.info(
@@ -53,6 +55,7 @@ streamRouter.get(
         res.end();
       });
     } catch (error) {
+      if (heartbeat) clearInterval(heartbeat);
       logger.error("SSE stream error:", error);
       activeConnections--;
       res.end();

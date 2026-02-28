@@ -738,7 +738,7 @@ export function createPromptWorker() {
           filesCount: allContainerFiles.length,
         });
 
-        const generatedFiles = await Promise.all(
+        const fileResults = await Promise.allSettled(
           allContainerFiles.map(async (path: string) => {
             const content = await sandbox.readFile(containerId, path);
 
@@ -763,6 +763,27 @@ export function createPromptWorker() {
             };
           }),
         );
+
+        const generatedFiles = fileResults
+          .filter(
+            (
+              r,
+            ): r is PromiseFulfilledResult<{
+              path: string;
+              content: string;
+              language: string;
+            }> => r.status === "fulfilled",
+          )
+          .map((r) => r.value);
+
+        const failedReads = fileResults.filter((r) => r.status === "rejected");
+        if (failedReads.length > 0) {
+          logger.warn("files.partial_read_failures", {
+            jobId,
+            failedCount: failedReads.length,
+            totalCount: allContainerFiles.length,
+          });
+        }
 
         const filesData = {
           files: generatedFiles,
@@ -1195,16 +1216,41 @@ export function createPromptWorker() {
     }
 
     const failedJobData = job?.data;
+    const isIteration = !!failedJobData?.previousJobId;
     logger.error("job.failed", {
       jobId: job?.id,
       attempt: job?.attemptsMade,
       errorMessage: err.message,
       errorName: err.name,
       errorStack: err.stack?.split("\n").slice(0, 5).join("\n"), // First 5 lines only
-      isIteration: !!failedJobData?.previousJobId,
+      isIteration,
       promptPreview: failedJobData?.prompt?.slice(0, 100),
       willRetry: (job?.attemptsMade || 0) < 3,
     });
+
+    // Destroy orphaned container for non-iteration jobs that won't be retried
+    if (job?.id && !isIteration && (job.attemptsMade || 0) >= 3) {
+      try {
+        const session = await SessionManager.get(job.id);
+        if (session?.containerId) {
+          const sandbox = SandboxManager.getInstance();
+          await sandbox.destroy(session.containerId);
+          logger.info("job.orphaned_container_destroyed", {
+            jobId: job.id,
+            containerId: session.containerId.slice(0, 12),
+          });
+        }
+      } catch (cleanupErr) {
+        logger.warn("job.container_cleanup_failed", {
+          jobId: job.id,
+          error:
+            cleanupErr instanceof Error
+              ? cleanupErr.message
+              : String(cleanupErr),
+        });
+      }
+    }
+
     workerHealthy = false;
   });
 
