@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MountainWithStars from "@/components/MountainWithStars";
@@ -11,9 +11,23 @@ import { useTheme } from "@/lib/providers/ThemeProvider";
 export default function EditorPage() {
   const [prompt, setPrompt] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Restore saved prompt after hydration
+  useEffect(() => {
+    const saved = localStorage.getItem("editor-prompt");
+    if (saved) setPrompt(saved);
+  }, []);
   const { isDark, toggleTheme } = useTheme();
   const router = useRouter();
   const { submitPrompt, isLoading, error, clearError } = useSubmitPrompt();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 300) + "px";
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -25,6 +39,8 @@ export default function EditorPage() {
     const result = await submitPrompt(prompt);
 
     if (result) {
+      // Clear saved prompt on success
+      localStorage.removeItem("editor-prompt");
       // Show transition loader
       setIsTransitioning(true);
 
@@ -160,8 +176,38 @@ export default function EditorPage() {
               className={`relative ${isDark ? "bg-[#2d2d30] border-[#3d3d3d] focus-within:border-[#555555]" : "bg-white border-[#e5e5e3] focus-within:border-[#ccc]"} rounded-xl sm:rounded-2xl border-2 shadow-lg hover:shadow-xl transition-shadow`}
             >
               <textarea
+                ref={textareaRef}
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e) => {
+                  setPrompt(e.target.value);
+                  localStorage.setItem("editor-prompt", e.target.value);
+                  autoResize();
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData("text/plain");
+                  // Normalize: collapse single newlines into spaces, keep paragraph breaks
+                  const cleaned = pasted
+                    .replace(/\r\n/g, "\n")
+                    .replace(/([^\n])\n([^\n])/g, "$1 $2")
+                    .trim();
+                  setPrompt((prev) => {
+                    const el = textareaRef.current;
+                    if (!el) return prev + cleaned;
+                    const start = el.selectionStart;
+                    const end = el.selectionEnd;
+                    const updated =
+                      prev.slice(0, start) + cleaned + prev.slice(end);
+                    localStorage.setItem("editor-prompt", updated);
+                    // Restore cursor position after React re-render
+                    requestAnimationFrame(() => {
+                      el.selectionStart = el.selectionEnd =
+                        start + cleaned.length;
+                      autoResize();
+                    });
+                    return updated;
+                  });
+                }}
                 onKeyDown={(e) => {
                   if (
                     e.key === "Enter" &&

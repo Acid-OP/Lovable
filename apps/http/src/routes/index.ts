@@ -7,6 +7,7 @@ import streamTesterRouter from "./streamTester.js";
 import { healthCheckRouter } from "./healthCheck.js";
 import usageRouter from "./usage.js";
 import filesRouter from "./files.js";
+import sessionRouter from "./session.js";
 import { runtimeReportRouter } from "./runtimeReport.js";
 
 const router = Router();
@@ -25,6 +26,7 @@ router.use("/api/v1/stream-test", streamTesterRouter); // Test endpoint
 router.use(streamRouter); // Real SSE endpoint
 
 router.use("/api/v1/files", filesRouter); // Files endpoint
+router.use("/api/v1/session", sessionRouter); // Session status endpoint
 router.use(runtimeReportRouter); // Runtime error report endpoint
 
 router.use(previewRouter);

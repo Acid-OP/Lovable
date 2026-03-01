@@ -24,15 +24,10 @@ interface WorkspacePageProps {
 export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { jobId } = use(params);
   const searchParams = useSearchParams();
-  const userPrompt = searchParams.get("prompt") || "create a portfolio website";
+  const userPrompt = searchParams.get("prompt");
 
   const { isDark, toggleTheme } = useTheme();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "user",
-      content: userPrompt,
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(true);
   const [activeFile, setActiveFile] = useState("index.tsx");
@@ -43,12 +38,14 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const [mobilePanel, setMobilePanel] = useState<"chat" | "editor">("editor");
   const [isRuntimeChecking, setIsRuntimeChecking] = useState(false);
   const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
+  const [shouldConnectSSE, setShouldConnectSSE] = useState(false);
 
   // Refs to prevent duplicate operations
   const modelsCreatedRef = useRef(false);
   const filesFetchedRef = useRef(false);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const runtimeReportSentRef = useRef(false);
+  const initRef = useRef(false);
 
   // Callback when logs animation completes
   const handleLogsComplete = useCallback(() => {
@@ -60,12 +57,104 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { fetchFiles, error: fetchError } = useFetchFiles();
   const { submitPrompt, error: submitError } = useSubmitPrompt();
 
-  // Connect to SSE stream
+  // SSE only connects when shouldConnectSSE is true
   const {
     messages: sseMessages,
     error: sseError,
     reconnect,
-  } = useSSEStream(jobId);
+  } = useSSEStream(jobId, shouldConnectSSE);
+
+  // Helper: load files into editor state
+  const loadFiles = useCallback(
+    async (jId: string) => {
+      filesFetchedRef.current = true;
+      const data = await fetchFiles(jId);
+      if (!data) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Error: Failed to load generated files",
+          },
+        ]);
+        return;
+      }
+      setFilesData(data);
+      const fileNames = data.files.map((f: GeneratedFile) => f.path);
+      setFiles(fileNames);
+      if (fileNames[0]) setActiveFile(fileNames[0]);
+    },
+    [fetchFiles],
+  );
+
+  // Single initialization: always check session first, then decide what to do
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
+    async function init() {
+      // 1. Check session status
+      let session: {
+        status?: string;
+        prompt?: string;
+        currentStep?: string;
+      } | null = null;
+      try {
+        const res = await fetch(`/api/session/${jobId}`);
+        if (res.ok) session = await res.json();
+      } catch {
+        // Session API unreachable — fall through to SSE
+      }
+
+      // 2. Show the user's prompt in chat (from URL param or session)
+      const prompt = userPrompt || session?.prompt;
+      if (prompt) {
+        setMessages([{ role: "user", content: prompt }]);
+      }
+
+      // 3. Route based on session status
+      const status = session?.status;
+
+      if (status === "completed") {
+        // Already done — restore files and show editor
+        setIsGenerating(false);
+        setShowLogs(false);
+        await loadFiles(jobId);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "Your app is ready." },
+        ]);
+      } else if (status === "failed") {
+        // Failed — show error
+        setIsGenerating(false);
+        setShowLogs(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `Error: ${session?.currentStep || "Build failed"}`,
+          },
+        ]);
+      } else if (!session) {
+        // No session found — expired or invalid
+        setIsGenerating(false);
+        setShowLogs(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content:
+              "Session expired or not found. Please start a new project.",
+          },
+        ]);
+      } else {
+        // processing / queued — connect SSE to track progress
+        setShouldConnectSSE(true);
+      }
+    }
+
+    init();
+  }, [jobId, userPrompt, loadFiles]);
 
   // Process SSE messages
   useEffect(() => {
@@ -88,37 +177,10 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       !filesFetchedRef.current
     ) {
       setIsGenerating(false);
-      filesFetchedRef.current = true;
-
-      // Fetch files from API endpoint
-      fetchFiles(jobId).then((data) => {
-        if (!data) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "assistant",
-              content: "Error: Failed to load generated files",
-            },
-          ]);
-          return;
-        }
-
-        // Store files data - models will be created when Monaco is ready
-        setFilesData(data);
-
-        // Extract and set file names for tabs
-        const fileNames = data.files.map((f) => f.path);
-        setFiles(fileNames);
-        if (fileNames[0]) {
-          setActiveFile(fileNames[0]);
-        }
-
+      loadFiles(jobId).then(() => {
         setMessages((prev) => [
           ...prev,
-          {
-            role: "assistant",
-            content: "Done! Your application is ready.",
-          },
+          { role: "assistant", content: "Done! Your application is ready." },
         ]);
       });
     }
@@ -134,7 +196,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
         },
       ]);
     }
-  }, [sseMessages, jobId, fetchFiles, createModel]);
+  }, [sseMessages, jobId, loadFiles]);
 
   // Show SSE errors in chat
   useEffect(() => {
@@ -228,7 +290,8 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     modelsCreatedRef.current = false;
     runtimeReportSentRef.current = false;
 
-    // Reconnect SSE before submitting so we catch all messages
+    // Ensure SSE is connected and reconnect to catch all messages
+    setShouldConnectSSE(true);
     reconnect();
 
     const result = await submitPrompt(prompt, jobId);

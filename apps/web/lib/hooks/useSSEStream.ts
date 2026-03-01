@@ -10,11 +10,15 @@ interface UseSSEStreamReturn {
   messages: SSEMessage[];
   isConnected: boolean;
   error: string | null;
+  connect: () => void;
   disconnect: () => void;
   reconnect: () => void;
 }
 
-export function useSSEStream(jobId: string | null): UseSSEStreamReturn {
+export function useSSEStream(
+  jobId: string | null,
+  autoConnect = false,
+): UseSSEStreamReturn {
   const [messages, setMessages] = useState<SSEMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,8 +94,9 @@ export function useSSEStream(jobId: string | null): UseSSEStreamReturn {
     }
   }, []);
 
+  // Auto-connect only if flag is set
   useEffect(() => {
-    if (!jobId) return;
+    if (!jobId || !autoConnect) return;
     connect();
 
     return () => {
@@ -101,7 +106,17 @@ export function useSSEStream(jobId: string | null): UseSSEStreamReturn {
         eventSourceRef.current = null;
       }
     };
-  }, [jobId, connect]);
+  }, [jobId, autoConnect, connect]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+  }, []);
 
   const disconnect = () => {
     if (eventSourceRef.current) {
@@ -117,5 +132,5 @@ export function useSSEStream(jobId: string | null): UseSSEStreamReturn {
     connect();
   }, [connect]);
 
-  return { messages, isConnected, error, disconnect, reconnect };
+  return { messages, isConnected, error, connect, disconnect, reconnect };
 }
