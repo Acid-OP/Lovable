@@ -62,7 +62,6 @@ router.post("/", async (req, res) => {
     });
     return res.status(500).json({
       error: "Failed to enqueue prompt",
-      details: e instanceof Error ? e.message : String(e),
     });
   }
 });

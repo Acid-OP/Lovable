@@ -58,7 +58,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { handleEditorDidMount, createModel, switchToFile, isReady } =
     useMonacoModel();
   const { fetchFiles, error: fetchError } = useFetchFiles();
-  const { submitPrompt } = useSubmitPrompt();
+  const { submitPrompt, error: submitError } = useSubmitPrompt();
 
   // Connect to SSE stream
   const {
@@ -240,11 +240,13 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
         ...prev,
         {
           role: "assistant",
-          content: "Failed to submit prompt. Please try again.",
+          content: submitError
+            ? `Error: ${submitError}`
+            : "Failed to submit prompt. Please try again.",
         },
       ]);
     }
-  }, [input, isGenerating, jobId, submitPrompt, reconnect]);
+  }, [input, isGenerating, jobId, submitPrompt, reconnect, submitError]);
 
   const handleTabClick = useCallback(
     (filename: string) => {

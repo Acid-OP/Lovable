@@ -20,9 +20,10 @@ export function useSubmitPrompt(): UseSubmitPromptReturn {
   return {
     submitPrompt: async (prompt: string, previousJobId?: string) => {
       try {
-        const result = await mutation.mutateAsync({ prompt, previousJobId });
-        return result;
+        return await mutation.mutateAsync({ prompt, previousJobId });
       } catch {
+        // React Query tracks the error via mutation.error
+        // Return null so callers can check for failure
         return null;
       }
     },

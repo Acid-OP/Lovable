@@ -43,7 +43,6 @@ router.post("/", async (req, res) => {
     });
     return res.status(500).json({
       error: "Failed to process test request",
-      details: e instanceof Error ? e.message : String(e),
     });
   }
 });

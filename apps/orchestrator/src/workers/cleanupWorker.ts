@@ -72,8 +72,10 @@ async function runCleanup() {
 
       checkedCount++;
 
-      // Skip only if failed (completed jobs still need container cleanup)
+      // Destroy containers for failed jobs immediately
       if (session.status === SESSION_STATUS.FAILED) {
+        await killContainer(jobId, session.containerId, "job_failed", 0);
+        killedCount++;
         continue;
       }
 
@@ -166,7 +168,7 @@ async function cleanupAllContainers() {
       const jobId = key.replace("session:job:", "");
       const session = await SessionManager.get(jobId);
 
-      if (session?.containerId && session.status !== SESSION_STATUS.FAILED) {
+      if (session?.containerId) {
         const sandbox = SandboxManager.getInstance();
         await sandbox.destroy(session.containerId);
 

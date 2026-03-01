@@ -6,8 +6,8 @@ import {
   SessionData,
 } from "./constants.js";
 
-// Session expir
-const SESSION_TTL_SECONDS = 60 * 60 * 2;
+// Session TTL — sliding window, resets on every update() call
+const SESSION_TTL_SECONDS = 60 * 60 * 4;
 
 class SessionManagerClass {
   private getKey(jobId: string) {

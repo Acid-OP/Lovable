@@ -48,7 +48,6 @@ router.get("/", async (req, res) => {
     });
     return res.status(500).json({
       error: "Failed to fetch usage statistics",
-      details: e instanceof Error ? e.message : String(e),
     });
   }
 });
