@@ -35,7 +35,7 @@ interface DockerContainer {
  * This makes it impossible for ANY input to execute as a command,
  * because the value never leaves the single-quoted context.
  */
-function escapeShellArg(arg: string): string {
+export function escapeShellArg(arg: string): string {
   return `'${arg.replace(/'/g, "'\\''")}'`;
 }
 
