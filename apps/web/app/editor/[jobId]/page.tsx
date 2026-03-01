@@ -428,17 +428,6 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                 </svg>
               )}
             </button>
-
-            <button
-              className={`hidden sm:inline-block px-3 sm:px-4 py-1.5 text-[12px] sm:text-[13px] ${isDark ? "text-gray-400 hover:text-white" : "text-gray-700 hover:text-black"} transition-colors cursor-pointer`}
-            >
-              Share
-            </button>
-            <button
-              className={`hidden sm:inline-block px-3 sm:px-4 py-1.5 ${isDark ? "bg-white hover:bg-gray-200 text-black" : "bg-[#2d2d2d] hover:bg-[#222] text-white"} text-[12px] sm:text-[13px] font-medium rounded-md transition-colors cursor-pointer`}
-            >
-              Deploy
-            </button>
           </div>
         </div>
       </nav>
@@ -514,11 +503,8 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (
-                    e.key === "Enter" &&
-                    (e.metaKey || e.ctrlKey) &&
-                    input.trim()
-                  ) {
+                  if (e.key === "Enter" && !e.shiftKey && input.trim()) {
+                    e.preventDefault();
                     handleSend();
                   }
                 }}

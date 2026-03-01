@@ -209,11 +209,8 @@ export default function EditorPage() {
                   });
                 }}
                 onKeyDown={(e) => {
-                  if (
-                    e.key === "Enter" &&
-                    (e.metaKey || e.ctrlKey) &&
-                    prompt.trim()
-                  ) {
+                  if (e.key === "Enter" && !e.shiftKey && prompt.trim()) {
+                    e.preventDefault();
                     handleGenerate();
                   }
                 }}
