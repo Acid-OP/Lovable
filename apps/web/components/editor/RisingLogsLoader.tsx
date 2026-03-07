@@ -168,6 +168,10 @@ export function RisingLogsLoader({
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        @keyframes progressFill {
+          0% { height: 0%; }
+          100% { height: 100%; }
+        }
       `}</style>
     </div>
   );
