@@ -478,7 +478,7 @@ export default function TestEditorPage() {
         <div
           className={`${
             mobilePanel === "chat" ? "flex" : "hidden"
-          } md:flex w-full md:w-[300px] lg:w-[380px] flex-shrink-0 ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} md:border-r flex-col`}
+          } md:flex w-full md:w-[260px] lg:w-[320px] flex-shrink-0 ${isDark ? "bg-[#1e1e1e] border-[#333]" : "bg-white border-gray-200"} md:border-r flex-col`}
         >
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, i) => (
