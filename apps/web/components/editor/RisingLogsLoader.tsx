@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { RisingLogsLoaderProps } from "@/lib/types/editor";
+import { ProjectShowcase } from "./ProjectShowcase";
 
 const PRIMARY_STEPS = [
   "Initializing workspace",
@@ -124,203 +125,48 @@ export function RisingLogsLoader({
     setTimeout(() => onCompleteRef.current?.(), 600);
   }, [activeIndex, streamDone]);
 
-  // Compute visible window
-  const WINDOW = 5;
-  const clamped = Math.max(0, activeIndex);
-  const start = Math.max(0, clamped - WINDOW + 1);
-  const visible = activeIndex >= 0 ? ALL_STEPS.slice(start, clamped + 1) : [];
-
-  const displayTotal = PRIMARY_STEPS.length;
-  const rawProgress = ((activeIndex + 1) / displayTotal) * 100;
-  const progress =
-    streamDone && activeIndex >= LAST_PRIMARY
-      ? 100
-      : Math.min(95, Math.round(rawProgress));
-
-  const statusText =
-    activeIndex < 0
-      ? "Initializing"
-      : activeIndex >= PRIMARY_STEPS.length
-        ? "Finishing up"
-        : "Processing";
-
   return (
     <div
       className={`h-full flex flex-col items-center relative overflow-hidden select-none ${
-        isDark ? "bg-[#1e1e1e]" : "bg-[#f5f5f0]"
+        isDark ? "bg-[#1A1A1A]" : "bg-[#f5f5f0]"
       }`}
     >
-      <div className="text-center pt-[6%]">
-        <h2
-          className={`text-[24px] sm:text-[28px] font-semibold tracking-tight ${
-            isDark ? "text-white" : "text-[#1a1a1a]"
-          }`}
+      {/* Getting ready spinner */}
+      <div className="flex items-center gap-2 pt-6 pb-2">
+        <svg
+          className={`w-4 h-4 ${isDark ? "text-neutral-500" : "text-gray-400"}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+          style={{ animation: "spin 2s linear infinite" }}
         >
-          Bringing your vision to life
-        </h2>
-        <div
-          className={`flex items-center justify-center gap-2 mt-2.5 text-[13px] ${
-            isDark ? "text-neutral-500" : "text-[#999]"
-          }`}
-        >
-          <span className="tabular-nums">{Math.max(0, progress)}%</span>
-          <span>·</span>
-          <span>
-            {statusText}
-            <span className="inline-flex gap-[1px] ml-0.5">
-              <span style={{ animation: "dotFade 1.4s ease-in-out infinite" }}>
-                .
-              </span>
-              <span
-                style={{ animation: "dotFade 1.4s ease-in-out 0.2s infinite" }}
-              >
-                .
-              </span>
-              <span
-                style={{ animation: "dotFade 1.4s ease-in-out 0.4s infinite" }}
-              >
-                .
-              </span>
-            </span>
-          </span>
-        </div>
-      </div>
-
-      <div className="w-48 mt-6 mb-2">
-        <div
-          className={`h-[3px] rounded-full overflow-hidden ${
-            isDark ? "bg-neutral-800" : "bg-[#e5e5e3]"
-          }`}
-        >
-          <div
-            className={`h-full rounded-full transition-all duration-1000 ease-out ${
-              isDark ? "bg-white/40" : "bg-[#1a1a1a]/25"
-            }`}
-            style={{ width: `${Math.max(0, progress)}%` }}
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
-        </div>
+        </svg>
+        <span
+          className={`text-[13px] ${isDark ? "text-neutral-500" : "text-gray-400"}`}
+        >
+          Getting ready...
+        </span>
       </div>
 
-      <div className="flex-1 w-full max-w-md px-6 flex flex-col relative">
-        <div
-          className="absolute top-0 left-0 right-0 h-16 z-10 pointer-events-none"
-          style={{
-            background: isDark
-              ? "linear-gradient(to bottom, #1e1e1e 30%, transparent)"
-              : "linear-gradient(to bottom, #f5f5f0 30%, transparent)",
-          }}
-        />
-
-        <div className="flex-1 flex flex-col gap-6 items-center justify-start pt-8 relative">
-          {visible.map((step, idx) => {
-            const dist = visible.length - 1 - idx;
-            const isNewest = dist === 0;
-            const opacity = 1 - dist * 0.22;
-            const scale = 1 - dist * 0.015;
-
-            return (
-              <div
-                key={`${start + idx}-${step}`}
-                className="flex items-center gap-3 justify-center"
-                style={{
-                  opacity: Math.max(0.05, opacity),
-                  transform: isNewest ? undefined : `scale(${scale})`,
-                  animation: isNewest
-                    ? "logEnter 0.8s cubic-bezier(0.33, 1, 0.68, 1) both"
-                    : undefined,
-                  transition: "opacity 1.2s ease, transform 1.2s ease",
-                }}
-              >
-                <div className="flex-shrink-0">
-                  {isNewest ? (
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        isDark ? "bg-white" : "bg-[#1a1a1a]"
-                      }`}
-                      style={{ animation: "pulse 2s ease-in-out infinite" }}
-                    />
-                  ) : (
-                    <svg
-                      className={`w-3.5 h-3.5 ${
-                        isDark ? "text-emerald-400/60" : "text-emerald-500/50"
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
-                </div>
-
-                <span
-                  className={`text-[15px] font-medium ${
-                    isNewest
-                      ? isDark
-                        ? "text-white"
-                        : "text-[#1a1a1a]"
-                      : isDark
-                        ? "text-neutral-500"
-                        : "text-[#aaa]"
-                  }`}
-                >
-                  {step}
-                </span>
-              </div>
-            );
-          })}
-
-          <div className="flex justify-center pt-2">
-            <div className="relative h-[2px] w-24 overflow-hidden rounded-full">
-              <div
-                className={`absolute inset-0 rounded-full ${
-                  isDark ? "bg-neutral-800" : "bg-[#e5e5e3]"
-                }`}
-              />
-              <div
-                className="absolute inset-y-0 w-10 rounded-full"
-                style={{
-                  background: isDark
-                    ? "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)"
-                    : "linear-gradient(90deg, transparent, rgba(0,0,0,0.15), transparent)",
-                  animation: "shimmer 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="absolute bottom-0 left-0 right-0 h-16 z-10 pointer-events-none"
-          style={{
-            background: isDark
-              ? "linear-gradient(to top, #1e1e1e 30%, transparent)"
-              : "linear-gradient(to top, #f5f5f0 30%, transparent)",
-          }}
-        />
+      {/* Centered showcase card */}
+      <div className="flex-1 flex items-center justify-center w-full">
+        <ProjectShowcase isDark={isDark} />
       </div>
 
       <style>{`
-        @keyframes logEnter {
-          0% { opacity: 0; transform: translateY(18px) scale(0.97); }
+        @keyframes cardFadeIn {
+          0% { opacity: 0; transform: translateY(10px) scale(0.98); }
           100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-        @keyframes dotFade {
-          0%, 100% { opacity: 0.2; }
-          50% { opacity: 1; }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.85); }
-        }
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(350%); }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
