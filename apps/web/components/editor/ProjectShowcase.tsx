@@ -2,53 +2,23 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-
-const PROJECTS = [
-  {
-    name: "DrawDeck",
-    description:
-      "Draw together with built-in video calls and end-to-end encryption. Real-time collaborative canvas.",
-    url: "https://drawdeck.xyz",
-    image: "/showcase-drawdeck.png",
-  },
-  {
-    name: "Vault",
-    description:
-      "Exchange platform built for speed and scale. Real-time order books, WebSocket feeds, and Redis-backed matching.",
-    url: "https://github.com/Acid-OP/Vault",
-    image: "/showcase-vault.png",
-  },
-  {
-    name: "Second Brain",
-    description:
-      "Save, organize, and share all in one place. Store and access your links with intelligent embeddings.",
-    url: "https://secondbrain-hazel.vercel.app/",
-    image: "/showcase-secondbrain.png",
-  },
-  {
-    name: "Promptly",
-    description:
-      "AI coding terminal that generates and runs code from natural language. Describe what you want, get working code.",
-    url: "https://github.com/Acid-OP/Promptly",
-    image: null,
-  },
-];
-
-interface ProjectShowcaseProps {
-  isDark: boolean;
-}
+import type { ProjectShowcaseProps } from "@/lib/types/editor";
+import {
+  SHOWCASE_PROJECTS,
+  SHOWCASE_INTERVAL_MS,
+} from "@/lib/constants/editor";
 
 export function ProjectShowcase({ isDark }: ProjectShowcaseProps) {
   const [activeIdx, setActiveIdx] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveIdx((cur) => (cur + 1) % PROJECTS.length);
-    }, 4500);
+      setActiveIdx((cur) => (cur + 1) % SHOWCASE_PROJECTS.length);
+    }, SHOWCASE_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 
-  const project = PROJECTS[activeIdx]!;
+  const project = SHOWCASE_PROJECTS[activeIdx]!;
 
   return (
     <div className="flex items-center w-full px-5" style={{ maxWidth: 640 }}>
@@ -62,7 +32,9 @@ export function ProjectShowcase({ isDark }: ProjectShowcaseProps) {
         <div
           key={activeIdx}
           className={`w-full rounded-full ${isDark ? "bg-white/40" : "bg-black/25"}`}
-          style={{ animation: "progressFill 4.5s linear both" }}
+          style={{
+            animation: `progressFill ${SHOWCASE_INTERVAL_MS / 1000}s linear both`,
+          }}
         />
       </div>
 
@@ -128,7 +100,7 @@ export function ProjectShowcase({ isDark }: ProjectShowcaseProps) {
 
       {/* Right — card indicator dots */}
       <div className="flex flex-col items-center gap-2 ml-3 self-center">
-        {PROJECTS.map((p, i) => (
+        {SHOWCASE_PROJECTS.map((p, i) => (
           <button
             key={p.name}
             onClick={() => setActiveIdx(i)}

@@ -2,46 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { RisingLogsLoaderProps } from "@/lib/types/editor";
+import {
+  ALL_STEPS,
+  LAST_PRIMARY_INDEX,
+  NORMAL_PACE_MS,
+  MIN_DISPLAY_TIME_MS,
+  MIN_STEPS_BEFORE_COMPLETE,
+} from "@/lib/constants/editor";
 import { ProjectShowcase } from "./ProjectShowcase";
-
-const PRIMARY_STEPS = [
-  "Initializing workspace",
-  "Analyzing your prompt",
-  "Planning project structure",
-  "Setting up dependencies",
-  "Configuring TypeScript",
-  "Creating component architecture",
-  "Generating UI components",
-  "Setting up routing",
-  "Wiring up state management",
-  "Writing styles and layouts",
-  "Creating page templates",
-  "Connecting API layer",
-  "Optimizing bundle size",
-  "Running type checks",
-  "Building for production",
-  "Preparing deployment",
-];
-
-const EXTENDED_STEPS = [
-  "Refining code quality",
-  "Resolving dependencies",
-  "Optimizing component tree",
-  "Running additional checks",
-  "Validating build output",
-  "Fine-tuning performance",
-  "Polishing final output",
-  "Almost there",
-];
-
-const ALL_STEPS = [...PRIMARY_STEPS, ...EXTENDED_STEPS];
-const LAST_PRIMARY = PRIMARY_STEPS.length - 1;
-
-// ~60s for a normal build: 16 steps × 3.5s = 56s
-const NORMAL_PACE = 3500;
-// Cache hits: don't reveal speed, enforce minimum ~50s display
-const MIN_TIME_MS = 50000;
-const MIN_STEPS = 14;
 
 export function RisingLogsLoader({
   messages,
@@ -68,13 +36,15 @@ export function RisingLogsLoader({
     let timer: ReturnType<typeof setTimeout>;
 
     const getPace = (): number => {
-      if (!streamDone) return NORMAL_PACE;
+      if (!streamDone) return NORMAL_PACE_MS;
 
       const elapsed = Date.now() - mountTime.current;
 
-      // Stream done but we haven't shown enough yet — gentle pace
-      if (elapsed < MIN_TIME_MS || activeIndex < MIN_STEPS - 1) {
-        return NORMAL_PACE;
+      if (
+        elapsed < MIN_DISPLAY_TIME_MS ||
+        activeIndex < MIN_STEPS_BEFORE_COMPLETE - 1
+      ) {
+        return NORMAL_PACE_MS;
       }
 
       // Past minimums — rush to finish
@@ -103,10 +73,9 @@ export function RisingLogsLoader({
   // When build is extending (errors/retries), bump into extended steps faster
   useEffect(() => {
     if (!isExtending) return;
-    if (activeIndex >= LAST_PRIMARY) return;
+    if (activeIndex >= LAST_PRIMARY_INDEX) return;
 
-    // Jump ahead to ensure we have runway for the extended phase
-    const target = Math.max(activeIndex, LAST_PRIMARY - 2);
+    const target = Math.max(activeIndex, LAST_PRIMARY_INDEX - 2);
     if (target > activeIndex) {
       setActiveIndex(target);
     }
@@ -117,9 +86,9 @@ export function RisingLogsLoader({
     if (completeFired.current || !streamDone) return;
 
     const elapsed = Date.now() - mountTime.current;
-    if (activeIndex < MIN_STEPS - 1) return;
-    if (elapsed < MIN_TIME_MS) return;
-    if (activeIndex < LAST_PRIMARY) return;
+    if (activeIndex < MIN_STEPS_BEFORE_COMPLETE - 1) return;
+    if (elapsed < MIN_DISPLAY_TIME_MS) return;
+    if (activeIndex < LAST_PRIMARY_INDEX) return;
 
     completeFired.current = true;
     setTimeout(() => onCompleteRef.current?.(), 600);

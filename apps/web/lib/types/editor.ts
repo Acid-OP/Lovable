@@ -27,6 +27,10 @@ export interface DummyPreviewProps {
   isDark: boolean;
 }
 
+export interface ProjectShowcaseProps {
+  isDark: boolean;
+}
+
 export interface RisingLogsLoaderProps {
   messages: SSEMessage[];
   isDark?: boolean;

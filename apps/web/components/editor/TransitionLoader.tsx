@@ -1,21 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const loadingMessages = [
-  "Setting up your workspace...",
-  "Analyzing your prompt...",
-  "Preparing the environment...",
-  "Almost there...",
-];
+import {
+  TRANSITION_MESSAGES,
+  TRANSITION_INTERVAL_MS,
+} from "@/lib/constants/editor";
 
 export function TransitionLoader() {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
-    }, 2000);
+      setMessageIndex((prev) => (prev + 1) % TRANSITION_MESSAGES.length);
+    }, TRANSITION_INTERVAL_MS);
 
     return () => clearInterval(interval);
   }, []);
@@ -57,7 +54,7 @@ export function TransitionLoader() {
             key={messageIndex}
             className="text-lg font-medium text-gray-900 animate-fade-in"
           >
-            {loadingMessages[messageIndex]}
+            {TRANSITION_MESSAGES[messageIndex]}
           </p>
           <p className="text-sm text-gray-500">This will just take a moment</p>
         </div>
