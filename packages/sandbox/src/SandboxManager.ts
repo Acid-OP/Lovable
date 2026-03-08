@@ -129,7 +129,10 @@ export class SandboxManager {
       },
       HostConfig: {
         Memory: CONTAINER_CONFIG.MEMORY_LIMIT,
-        // No PortBindings - using Docker network instead
+        MemorySwap: CONTAINER_CONFIG.MEMORY_SWAP,
+        CpuPeriod: CONTAINER_CONFIG.CPU_PERIOD,
+        CpuQuota: CONTAINER_CONFIG.CPU_QUOTA,
+        PidsLimit: CONTAINER_CONFIG.PIDS_LIMIT,
       },
       NetworkingConfig: {
         EndpointsConfig: {

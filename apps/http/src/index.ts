@@ -63,3 +63,18 @@ const gracefulShutdown = async () => {
 
 process.on("SIGTERM", gracefulShutdown);
 process.on("SIGINT", gracefulShutdown);
+
+process.on("unhandledRejection", (reason) => {
+  logger.error("unhandledRejection", {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error("uncaughtException", {
+    error: error.message,
+    stack: error.stack,
+  });
+  process.exit(1);
+});
