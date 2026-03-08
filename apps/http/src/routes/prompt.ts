@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { QueueManager } from "@repo/queue";
 import { SessionManager } from "@repo/session";
 import { promptSchema } from "../validations/prompt";
@@ -6,7 +7,16 @@ import { logger } from "../utils/logger";
 
 const router = Router();
 
-router.post("/", async (req, res) => {
+const promptLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later" },
+  keyGenerator: (req) => req.ip || "unknown",
+});
+
+router.post("/", promptLimiter, async (req, res) => {
   try {
     // Validate request body
     const validation = promptSchema.safeParse(req.body);

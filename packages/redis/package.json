@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/src/index.d.ts",
       "default": "./dist/src/index.js"
+    },
+    "./utils": {
+      "types": "./dist/src/utils.d.ts",
+      "default": "./dist/src/utils.js"
     }
   },
   "scripts": {
@@ -20,4 +24,3 @@
     "@repo/typescript-config": "workspace:*"
   }
 }
-

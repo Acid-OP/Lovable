@@ -27,10 +27,47 @@ import os from "os";
 
 const WORKER_CONCURRENCY = 3;
 const MAX_FIX_RETRIES = 3;
+const MAX_FILES_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB max for Redis storage
+const HEALTH_CHECK_RETRIES = 3;
+const HEALTH_CHECK_RETRY_DELAY_MS = 3000;
 let workerHealthy = false;
 
 export function isWorkerHealthy() {
   return workerHealthy;
+}
+
+async function healthCheckWithRetry(
+  jobId: string,
+  routes: string[],
+): Promise<{ runtimeErrorDetected: boolean; runtimeErrorMessage: string }> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= HEALTH_CHECK_RETRIES; attempt++) {
+    try {
+      const response = await axios.post(
+        `${config.api.httpServiceUrl}/internal/health-check`,
+        { jobId, routes },
+        { timeout: 15000 },
+      );
+      return response.data;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      logger.warn("health.check_retry", {
+        jobId,
+        attempt,
+        maxAttempts: HEALTH_CHECK_RETRIES,
+        error: lastError.message,
+      });
+
+      if (attempt < HEALTH_CHECK_RETRIES) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, HEALTH_CHECK_RETRY_DELAY_MS * attempt),
+        );
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 // Helper to convert technical step descriptions to user-friendly phase names
@@ -798,10 +835,24 @@ export function createPromptWorker() {
           },
         };
 
+        // Validate size before storing
+        const serialized = JSON.stringify(filesData);
+        if (serialized.length > MAX_FILES_SIZE_BYTES) {
+          logger.warn("files.too_large", {
+            jobId,
+            sizeBytes: serialized.length,
+            maxBytes: MAX_FILES_SIZE_BYTES,
+            filesCount: generatedFiles.length,
+          });
+          throw new Error(
+            `Generated files too large (${(serialized.length / 1024 / 1024).toFixed(1)}MB), max ${MAX_FILES_SIZE_BYTES / 1024 / 1024}MB`,
+          );
+        }
+
         // Store in Redis with 1 hour expiry
         await redis.set(
           `files:${jobId}`,
-          JSON.stringify(filesData),
+          serialized,
           "EX",
           3600, // 1 hour TTL
         );
@@ -836,16 +887,8 @@ export function createPromptWorker() {
       // Call HTTP server's health check endpoint (HTTP has network access to containers)
       const healthCheckStartTime = Date.now();
       logger.info("health.checking", { jobId, routes: routes.length });
-      const healthCheckResponse = await axios.post(
-        `${config.api.httpServiceUrl}/internal/health-check`,
-        {
-          jobId,
-          routes,
-        },
-        {
-          timeout: 15000,
-        },
-      );
+      const { runtimeErrorDetected, runtimeErrorMessage } =
+        await healthCheckWithRetry(jobId, routes);
       const healthCheckDuration = Date.now() - healthCheckStartTime;
 
       logger.info("health.check_completed", {
@@ -853,9 +896,6 @@ export function createPromptWorker() {
         durationMs: healthCheckDuration,
         routesChecked: routes.length,
       });
-
-      const { runtimeErrorDetected, runtimeErrorMessage } =
-        healthCheckResponse.data;
 
       // If runtime errors detected, attempt one fix (extending the build fix loop by 1)
       if (runtimeErrorDetected) {
@@ -920,29 +960,15 @@ export function createPromptWorker() {
           // Re-run health check to verify fix worked
           try {
             logger.info("health.rechecking", { jobId });
-            const recheckResponse = await axios.post(
-              `${config.api.httpServiceUrl}/internal/health-check`,
-              {
-                jobId,
-                routes,
-              },
-              {
-                timeout: 15000,
-              },
-            );
+            const recheckResult = await healthCheckWithRetry(jobId, routes);
 
-            const stillHasErrors = recheckResponse.data.runtimeErrorDetected;
-
-            if (stillHasErrors) {
+            if (recheckResult.runtimeErrorDetected) {
               logger.error("health.errors_persist", {
                 jobId,
-                errorPreview: recheckResponse.data.runtimeErrorMessage.slice(
-                  0,
-                  200,
-                ),
+                errorPreview: recheckResult.runtimeErrorMessage.slice(0, 200),
               });
               throw new Error(
-                `Runtime errors persist after fix: ${recheckResponse.data.runtimeErrorMessage}`,
+                `Runtime errors persist after fix: ${recheckResult.runtimeErrorMessage}`,
               );
             } else {
               logger.info("health.fix_successful", { jobId });

@@ -7,6 +7,11 @@ export const config = {
     maxContainerAge: 2 * 60 * 60 * 1000,
   },
 
+  // Health check server
+  health: {
+    port: parseInt(process.env.HEALTH_PORT || "3010"),
+  },
+
   api: {
     baseUrl: process.env.API_BASE_URL || "http://localhost:3001",
     // HTTP service URL for internal API calls (health check, etc.)

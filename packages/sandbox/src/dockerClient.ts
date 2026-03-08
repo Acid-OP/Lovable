@@ -7,6 +7,8 @@ interface DockerRequestOptions {
   body?: object;
   /** If true, collect response as raw Buffer instead of string (needed for Docker exec streams). */
   raw?: boolean;
+  /** Request timeout in milliseconds. If exceeded, the request is aborted. */
+  timeoutMs?: number;
 }
 
 interface DockerResponse {
@@ -26,6 +28,7 @@ export async function dockerRequest(
       headers: options.body
         ? { "Content-Type": "application/json" }
         : undefined,
+      timeout: options.timeoutMs,
     };
 
     const req = http.request(reqOptions, (res: IncomingMessage) => {
@@ -43,6 +46,15 @@ export async function dockerRequest(
           rawData,
         });
       });
+    });
+
+    req.on("timeout", () => {
+      req.destroy();
+      reject(
+        new Error(
+          `Docker request timed out after ${options.timeoutMs}ms: ${options.method} ${options.path}`,
+        ),
+      );
     });
 
     req.on("error", reject);

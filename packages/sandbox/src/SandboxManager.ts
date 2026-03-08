@@ -179,6 +179,7 @@ export class SandboxManager {
     containerId: string,
     command: string,
     workingDir?: string,
+    timeoutMs?: number,
   ): Promise<ExecResult> {
     // creating exec
     const createResponse = await dockerRequest({
@@ -205,6 +206,7 @@ export class SandboxManager {
       method: "POST",
       body: { Detach: false, Tty: false },
       raw: true,
+      timeoutMs: timeoutMs || 60_000,
     });
 
     // Docker exec with Tty:false uses a multiplexed stream format where each
@@ -269,7 +271,12 @@ export class SandboxManager {
     containerId: string,
   ): Promise<{ success: boolean; errors: string }> {
     try {
-      await this.exec(containerId, "cd /workspace && pnpm build 2>&1");
+      await this.exec(
+        containerId,
+        "cd /workspace && pnpm build 2>&1",
+        undefined,
+        300_000,
+      );
       return { success: true, errors: "" };
     } catch (error) {
       return {

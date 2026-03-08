@@ -7,6 +7,25 @@ import { config } from "../config.js";
 const IDLE_TIMEOUT = config.cleanup.idleTimeout;
 const CLEANUP_INTERVAL = config.cleanup.checkInterval;
 const MAX_CONTAINER_AGE = config.cleanup.maxContainerAge;
+const SCAN_BATCH_SIZE = 100;
+
+async function scanSessionKeys(): Promise<string[]> {
+  const keys: string[] = [];
+  const stream = redis.scanStream({
+    match: "session:job:*",
+    count: SCAN_BATCH_SIZE,
+  });
+
+  return new Promise((resolve, reject) => {
+    stream.on("data", (batch: string[]) => {
+      keys.push(...batch);
+    });
+    stream.on("end", () => resolve(keys));
+    stream.on("error", reject);
+  });
+}
+
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
 
 export function startCleanupWorker() {
   logger.info("cleanup.worker.starting", {
@@ -15,7 +34,7 @@ export function startCleanupWorker() {
     maxAge: MAX_CONTAINER_AGE / 60000 + " minutes",
   });
 
-  const intervalId = setInterval(async () => {
+  cleanupIntervalId = setInterval(async () => {
     try {
       await runCleanup();
     } catch (error) {
@@ -26,38 +45,35 @@ export function startCleanupWorker() {
     }
   }, CLEANUP_INTERVAL);
 
-  // Cleanup on process termination
-  const gracefulShutdown = async () => {
-    logger.info("cleanup.worker.shutdown", {
-      message: "Graceful shutdown initiated",
-    });
-    clearInterval(intervalId);
-
-    try {
-      // Kill all running containers
-      await cleanupAllContainers();
-      logger.info("cleanup.worker.shutdown.complete", {
-        message: "All containers cleaned up",
-      });
-    } catch (error) {
-      logger.error("cleanup.worker.shutdown.error", { error });
-    }
-
-    process.exit(0);
-  };
-
-  process.on("SIGTERM", gracefulShutdown);
-  process.on("SIGINT", gracefulShutdown);
-
   logger.info("cleanup.worker.started", {
     message: "Cleanup worker is running",
   });
 }
 
+export async function stopCleanupWorker() {
+  logger.info("cleanup.worker.shutdown", {
+    message: "Stopping cleanup worker",
+  });
+
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+
+  try {
+    await cleanupAllContainers();
+    logger.info("cleanup.worker.shutdown.complete", {
+      message: "All containers cleaned up",
+    });
+  } catch (error) {
+    logger.error("cleanup.worker.shutdown.error", { error });
+  }
+}
+
 async function runCleanup() {
   logger.info("cleanup.check.start", { timestamp: new Date().toISOString() });
 
-  const keys = await redis.keys("session:job:*");
+  const keys = await scanSessionKeys();
   let checkedCount = 0;
   let killedCount = 0;
 
@@ -135,6 +151,21 @@ async function killContainer(
   timeMs: number,
 ) {
   try {
+    // Re-check session status to avoid race with prompt worker picking up the container
+    const freshSession = await SessionManager.get(jobId);
+    if (
+      freshSession?.status === SESSION_STATUS.QUEUED ||
+      freshSession?.status === SESSION_STATUS.PROCESSING
+    ) {
+      logger.info("cleanup.container.skipped", {
+        jobId,
+        containerId: containerId.slice(0, 12),
+        reason: "session_active",
+        status: freshSession.status,
+      });
+      return;
+    }
+
     const sandbox = SandboxManager.getInstance();
     await sandbox.destroy(containerId);
 
@@ -161,7 +192,7 @@ async function killContainer(
 }
 
 async function cleanupAllContainers() {
-  const keys = await redis.keys("session:job:*");
+  const keys = await scanSessionKeys();
 
   for (const key of keys) {
     try {
