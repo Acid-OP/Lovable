@@ -12,6 +12,7 @@ import { RisingLogsLoader } from "@/components/editor/RisingLogsLoader";
 import { useTheme } from "@/lib/providers/ThemeProvider";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
+import JSZip from "jszip";
 import type { FilesData, GeneratedFile } from "@/lib/types/api";
 import type { Message } from "@/lib/types/editor";
 
@@ -276,6 +277,21 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     [handleEditorDidMount],
   );
 
+  const handleDownloadCode = useCallback(async () => {
+    if (!filesData) return;
+    const zip = new JSZip();
+    filesData.files.forEach((file: GeneratedFile) => {
+      zip.file(file.path, file.content);
+    });
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `project-${jobId}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filesData, jobId]);
+
   const handleSend = useCallback(async () => {
     if (!input.trim() || isGenerating) return;
 
@@ -390,6 +406,33 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
                 Editor
               </button>
             </div>
+
+            {/* Get Code */}
+            {filesData && (
+              <button
+                onClick={handleDownloadCode}
+                className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-full cursor-pointer ${
+                  isDark
+                    ? "bg-white hover:bg-gray-200 text-black"
+                    : "bg-black hover:bg-gray-900 text-white"
+                }`}
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Get Code
+              </button>
+            )}
 
             {/* Theme Toggle */}
             <button

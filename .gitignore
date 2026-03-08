@@ -36,6 +36,7 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+Screenshot*.png
 
 # Claude Code temp files
 .claude/
