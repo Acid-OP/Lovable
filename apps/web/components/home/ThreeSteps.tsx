@@ -60,7 +60,7 @@ export function ThreeSteps() {
           {steps.map((step, i) => (
             <div
               key={step.title}
-              className={`pt-6 pb-8 pr-8 ${i > 0 ? "md:pl-8" : ""} ${i < steps.length - 1 ? `md:border-r ${isDark ? "border-[#2a2a2a]" : "border-[#e5e5e3]"}` : ""} border-t ${isDark ? "border-[#2a2a2a]" : "border-[#e5e5e3]"}`}
+              className={`pt-6 pb-8 pr-0 md:pr-8 ${i > 0 ? "md:pl-8" : ""} ${i < steps.length - 1 ? `md:border-r ${isDark ? "border-[#2a2a2a]" : "border-[#e5e5e3]"}` : ""} border-t ${isDark ? "border-[#2a2a2a]" : "border-[#e5e5e3]"}`}
             >
               <div className="flex items-center gap-2 mb-4">
                 <span

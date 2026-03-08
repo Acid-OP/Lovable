@@ -310,8 +310,7 @@ export function LogoCarousel() {
 
         <div
           ref={trackRef}
-          className="flex items-center logo-track"
-          style={{ gap: 64 }}
+          className="flex items-center logo-track gap-10 sm:gap-16"
         >
           {[0, 1, 2].map((setIdx) =>
             companies.map((company) => (

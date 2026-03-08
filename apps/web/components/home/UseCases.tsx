@@ -247,25 +247,36 @@ export function UseCases() {
 
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
           {/* Left — prompt list */}
-          <div className="lg:w-[280px] flex-shrink-0 flex flex-col gap-1">
+          <div className="lg:w-[280px] flex-shrink-0 flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0">
             {showcases.map((item, i) => (
               <button
                 key={item.title}
                 onClick={() => handleSelect(i)}
-                className={`group relative text-left px-5 py-4 rounded-xl transition-all duration-200 cursor-pointer ${
+                className={`group relative text-left px-4 sm:px-5 py-3 sm:py-4 rounded-xl transition-all duration-200 cursor-pointer shrink-0 lg:shrink lg:w-auto ${
                   active === i
                     ? `${isDark ? "bg-[#141414] border border-[#2a2a2a]" : "bg-white border border-[#e5e5e3]"} shadow-sm`
                     : `${isDark ? "hover:bg-white/5" : "hover:bg-white/60"}`
                 }`}
               >
                 {active === i && (
-                  <div
-                    className={`absolute left-0 top-0.5 bottom-0.5 w-[3px] rounded-full ${isDark ? "bg-[#f0f0f0]" : "bg-[#2d2d2d]"}`}
-                    style={{
-                      clipPath: `inset(0 0 ${100 - progress}% 0)`,
-                      transition: "clip-path 50ms linear",
-                    }}
-                  />
+                  <>
+                    {/* Vertical progress — desktop */}
+                    <div
+                      className={`hidden lg:block absolute left-0 top-0.5 bottom-0.5 w-[3px] rounded-full ${isDark ? "bg-[#f0f0f0]" : "bg-[#2d2d2d]"}`}
+                      style={{
+                        clipPath: `inset(0 0 ${100 - progress}% 0)`,
+                        transition: "clip-path 50ms linear",
+                      }}
+                    />
+                    {/* Horizontal progress — mobile */}
+                    <div
+                      className={`lg:hidden absolute bottom-0 left-0.5 right-0.5 h-[3px] rounded-full ${isDark ? "bg-[#f0f0f0]" : "bg-[#2d2d2d]"}`}
+                      style={{
+                        clipPath: `inset(0 ${100 - progress}% 0 0)`,
+                        transition: "clip-path 50ms linear",
+                      }}
+                    />
+                  </>
                 )}
                 <div
                   className={`text-[14px] font-semibold mb-0.5 transition-colors ${active === i ? `${isDark ? "text-[#f0f0f0]" : "text-[#1a1a1a]"}` : `${isDark ? "text-[#666] group-hover:text-[#999]" : "text-[#999] group-hover:text-[#666]"}`}`}
@@ -282,12 +293,21 @@ export function UseCases() {
 
             <Link
               href="/editor"
-              className={`mt-4 ml-5 text-[13px] font-medium ${isDark ? "text-[#f0f0f0] hover:text-[#ffffff]" : "text-[#2d2d2d] hover:text-[#000]"} transition-colors inline-flex items-center gap-1.5`}
+              className={`hidden lg:inline-flex mt-4 ml-5 text-[13px] font-medium ${isDark ? "text-[#f0f0f0] hover:text-[#ffffff]" : "text-[#2d2d2d] hover:text-[#000]"} transition-colors items-center gap-1.5`}
             >
               Try it yourself
               <span>→</span>
             </Link>
           </div>
+
+          {/* Mobile — "Try it yourself" link */}
+          <Link
+            href="/editor"
+            className={`lg:hidden text-[13px] font-medium ${isDark ? "text-[#f0f0f0] hover:text-[#ffffff]" : "text-[#2d2d2d] hover:text-[#000]"} transition-colors inline-flex items-center gap-1.5 -mt-4`}
+          >
+            Try it yourself
+            <span>→</span>
+          </Link>
 
           {/* Right — interactive preview */}
           <div className="flex-1 min-w-0">
@@ -311,7 +331,7 @@ export function UseCases() {
               </div>
 
               {/* Mockup area */}
-              <div className="relative h-[320px] sm:h-[380px] p-4">
+              <div className="relative h-[280px] sm:h-[380px] p-3 sm:p-4">
                 {showcases.map((item, i) => (
                   <div
                     key={item.title}

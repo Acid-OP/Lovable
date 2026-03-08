@@ -16,7 +16,7 @@ export function CtaBanner() {
   return (
     <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
       <div
-        className={`max-w-5xl mx-auto rounded-2xl bg-[#1a1a1a] px-8 sm:px-12 py-14 sm:py-18 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 ${isDark ? "border border-[#2a2a2a]" : ""}`}
+        className={`max-w-5xl mx-auto rounded-2xl bg-[#1a1a1a] px-5 sm:px-12 py-10 sm:py-14 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 sm:gap-8 ${isDark ? "border border-[#2a2a2a]" : ""}`}
       >
         <div>
           <h2 className="font-[family-name:var(--font-heading)] text-[24px] sm:text-[30px] lg:text-[36px] font-normal text-white leading-[1.2] tracking-[-0.02em] mb-2">
@@ -27,7 +27,7 @@ export function CtaBanner() {
           </p>
         </div>
 
-        <div className="flex-shrink-0 w-full lg:w-auto lg:min-w-[380px]">
+        <div className="flex-shrink-0 w-full lg:w-auto lg:min-w-[380px] max-w-full">
           <div className="relative flex items-center bg-[#252525] rounded-xl border border-[#333]">
             <div className="flex-1 px-5 py-4 text-[14px] text-[#999] select-none truncate">
               {defaultPrompt}

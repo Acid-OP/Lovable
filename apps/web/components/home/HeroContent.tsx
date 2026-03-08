@@ -62,7 +62,7 @@ export function HeroContent() {
         AI builds it.
       </h1>
 
-      <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-1 mb-1">
+      <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1 mb-1">
         <span
           className={`text-[13px] ${isDark ? "text-[#777]" : "text-[#888]"}`}
         >
