@@ -4,11 +4,7 @@ import {
   CONTAINER_CONFIG,
   DOCKER_NETWORK,
 } from "./constants.js";
-
-export interface ExecResult {
-  exitCode: number;
-  output: string;
-}
+import type { ISandboxProvider, ExecResult, BuildResult } from "./types.js";
 
 interface DockerContainer {
   Id: string;
@@ -39,19 +35,19 @@ export function escapeShellArg(arg: string): string {
   return `'${arg.replace(/'/g, "'\\''")}'`;
 }
 
-export class SandboxManager {
-  private static instance: SandboxManager;
+export class DockerSandboxProvider implements ISandboxProvider {
+  private static instance: DockerSandboxProvider;
 
   private constructor() {}
 
-  public static getInstance(): SandboxManager {
+  public static getInstance(): DockerSandboxProvider {
     if (!this.instance) {
-      this.instance = new SandboxManager();
+      this.instance = new DockerSandboxProvider();
     }
     return this.instance;
   }
 
-  public async cleanupOldContainers(): Promise<void> {
+  public async cleanup(): Promise<void> {
     try {
       const response = await dockerRequest({
         path: `/containers/json?all=true`,
@@ -87,10 +83,7 @@ export class SandboxManager {
     }
   }
 
-  public async createContainer(
-    jobId: string,
-    exposePort?: number,
-  ): Promise<string> {
+  public async create(jobId: string, exposePort?: number): Promise<string> {
     const containerName = `sandbox-${jobId}`;
 
     // Check if container with this name already exists (from failed previous attempt)
@@ -167,7 +160,7 @@ export class SandboxManager {
     throw new Error(parsed.message || "Failed to create container");
   }
 
-  public async startContainer(containerId: string): Promise<void> {
+  public async start(containerId: string): Promise<void> {
     const response = await dockerRequest({
       path: `/containers/${containerId}/start`,
       method: "POST",
@@ -270,9 +263,7 @@ export class SandboxManager {
     }
   }
 
-  public async runBuild(
-    containerId: string,
-  ): Promise<{ success: boolean; errors: string }> {
+  public async runBuild(containerId: string): Promise<BuildResult> {
     try {
       await this.exec(
         containerId,

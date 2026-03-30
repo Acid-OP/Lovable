@@ -2,7 +2,7 @@ import { Worker, Job } from "bullmq";
 import { redis } from "@repo/redis";
 import { QUEUE_NAMES } from "@repo/queue";
 import { SessionManager, SESSION_STATUS } from "@repo/session";
-import { SandboxManager } from "@repo/sandbox";
+import { createSandboxProvider } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
 import * as cache from "@repo/cache";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
@@ -205,7 +205,7 @@ export function createPromptWorker() {
       });
 
       // Step 3: Setup container (reuse for iterations, create new for first prompts)
-      const sandbox = SandboxManager.getInstance();
+      const sandbox = createSandboxProvider();
       let containerId: string | undefined;
       const previewUrl = `${config.api.baseUrl}/preview/${jobId}`;
 
@@ -344,6 +344,7 @@ export function createPromptWorker() {
             containerId!,
             context.previousProjectSummary,
             jobId,
+            sandbox,
           );
 
           enhancedPrompt = promptText; // No enhancement for continuation
@@ -404,7 +405,7 @@ export function createPromptWorker() {
         });
 
         logger.info("sandbox.creating_container", { jobId });
-        containerId = await sandbox.createContainer(jobId);
+        containerId = await sandbox.create(jobId);
         logger.info("sandbox.container_created", {
           jobId,
           containerId: containerId.slice(0, 12),
@@ -414,7 +415,7 @@ export function createPromptWorker() {
           jobId,
           containerId: containerId.slice(0, 12),
         });
-        await sandbox.startContainer(containerId);
+        await sandbox.start(containerId);
         logger.info("sandbox.container_started", {
           jobId,
           containerId: containerId.slice(0, 12),
@@ -679,6 +680,7 @@ export function createPromptWorker() {
               containerId,
               classifiedErrors,
               jobId,
+              sandbox,
             );
 
             logger.info("build.errors_handled", {
@@ -691,7 +693,12 @@ export function createPromptWorker() {
 
             // Apply LLM-generated fixes if any
             if (handlingResult.fixes && handlingResult.fixes.length > 0) {
-              await applyFixes(containerId, handlingResult.fixes, jobId);
+              await applyFixes(
+                containerId,
+                handlingResult.fixes,
+                jobId,
+                sandbox,
+              );
             }
 
             // If we auto-fixed dependencies, the build will likely succeed on retry
@@ -922,6 +929,7 @@ export function createPromptWorker() {
           containerId,
           runtimeClassifiedErrors,
           jobId,
+          sandbox,
         );
 
         logger.info("health.runtime_errors_handled", {
@@ -935,7 +943,12 @@ export function createPromptWorker() {
           runtimeHandlingResult.fixes &&
           runtimeHandlingResult.fixes.length > 0
         ) {
-          await applyFixes(containerId, runtimeHandlingResult.fixes, jobId);
+          await applyFixes(
+            containerId,
+            runtimeHandlingResult.fixes,
+            jobId,
+            sandbox,
+          );
 
           // Rebuild after runtime fixes (silent - already showing "Optimizing code")
           logger.info("health.rebuilding", { jobId });
@@ -1112,13 +1125,19 @@ export function createPromptWorker() {
           containerId,
           runtimeClassified,
           jobId,
+          sandbox,
         );
 
         if (
           runtimeHandlingResult.fixes &&
           runtimeHandlingResult.fixes.length > 0
         ) {
-          await applyFixes(containerId, runtimeHandlingResult.fixes, jobId);
+          await applyFixes(
+            containerId,
+            runtimeHandlingResult.fixes,
+            jobId,
+            sandbox,
+          );
 
           // Rebuild
           logger.info("runtime.rebuilding", { jobId });
@@ -1259,8 +1278,8 @@ export function createPromptWorker() {
       try {
         const session = await SessionManager.get(job.id);
         if (session?.containerId) {
-          const sandbox = SandboxManager.getInstance();
-          await sandbox.destroy(session.containerId);
+          const failSandbox = createSandboxProvider();
+          await failSandbox.destroy(session.containerId);
           logger.info("job.orphaned_container_destroyed", {
             jobId: job.id,
             containerId: session.containerId.slice(0, 12),

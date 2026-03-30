@@ -600,16 +600,17 @@ export async function generateIncrementalPlan(
   containerId: string,
   projectSummary?: string,
   jobId?: string,
+  sandbox?: import("@repo/sandbox").ISandboxProvider,
 ): Promise<Plan> {
-  const { SandboxManager } = await import("@repo/sandbox");
+  const { createSandboxProvider } = await import("@repo/sandbox");
   const { logger } = await import("../utils/logger.js");
-  const sandbox = SandboxManager.getInstance();
+  const resolvedSandbox = sandbox ?? createSandboxProvider();
 
   // Optimization: Only read files from /app directory (not entire workspace)
   // This reduces token usage from ~100K to ~15K (85% reduction)
   const findCommand =
     'find /workspace/app -type f \\( -name "*.ts" -o -name "*.tsx" -o -name "*.css" \\) 2>/dev/null || true';
-  const fileListResult = await sandbox.exec(containerId, findCommand);
+  const fileListResult = await resolvedSandbox.exec(containerId, findCommand);
   const filePaths = fileListResult.output.trim().split("\n").filter(Boolean);
 
   logger.info("iteration.files.scanned", {
@@ -623,7 +624,7 @@ export async function generateIncrementalPlan(
   let successfulReads = 0;
   for (const filePath of filePaths) {
     try {
-      const content = await sandbox.readFile(containerId, filePath);
+      const content = await resolvedSandbox.readFile(containerId, filePath);
       codebaseContext += `\n========================================\n`;
       codebaseContext += `FILE: ${filePath}\n`;
       codebaseContext += `========================================\n`;

@@ -1,5 +1,5 @@
 import { SessionManager, SESSION_STATUS } from "@repo/session";
-import { SandboxManager } from "@repo/sandbox";
+import { createSandboxProvider } from "@repo/sandbox";
 import { redis } from "@repo/redis";
 import { logger } from "../utils/logger.js";
 import { config } from "../config.js";
@@ -166,7 +166,7 @@ async function killContainer(
       return;
     }
 
-    const sandbox = SandboxManager.getInstance();
+    const sandbox = createSandboxProvider();
     await sandbox.destroy(containerId);
 
     await SessionManager.update(jobId, {
@@ -200,7 +200,7 @@ async function cleanupAllContainers() {
       const session = await SessionManager.get(jobId);
 
       if (session?.containerId) {
-        const sandbox = SandboxManager.getInstance();
+        const sandbox = createSandboxProvider();
         await sandbox.destroy(session.containerId);
 
         await SessionManager.update(jobId, {

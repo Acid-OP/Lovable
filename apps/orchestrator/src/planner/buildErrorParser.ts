@@ -1,4 +1,4 @@
-import { SandboxManager } from "@repo/sandbox";
+import type { ISandboxProvider } from "@repo/sandbox";
 
 export interface FileError {
   path: string;
@@ -74,8 +74,8 @@ export function parseErrorFiles(buildOutput: string): Map<string, string> {
 export async function getFileErrors(
   containerId: string,
   buildOutput: string,
+  sandbox: ISandboxProvider,
 ): Promise<FileError[]> {
-  const sandbox = SandboxManager.getInstance();
   const errorMap = parseErrorFiles(buildOutput);
   const fileErrors: FileError[] = [];
 

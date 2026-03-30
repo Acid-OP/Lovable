@@ -1,4 +1,4 @@
-import { SandboxManager } from "@repo/sandbox";
+import type { ISandboxProvider } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
 
 export interface InstallResult {
@@ -65,8 +65,8 @@ export async function autoInstallPackages(
   containerId: string,
   packageNames: string[],
   jobId: string,
+  sandbox: ISandboxProvider,
 ): Promise<InstallResult> {
-  const sandbox = SandboxManager.getInstance();
   const result: InstallResult = {
     success: false,
     installedPackages: [],
@@ -157,9 +157,8 @@ export async function autoInstallPackages(
 export async function isPackageInstalled(
   containerId: string,
   packageName: string,
+  sandbox: ISandboxProvider,
 ): Promise<boolean> {
-  const sandbox = SandboxManager.getInstance();
-
   try {
     const normalized = normalizePackageName(packageName);
     if (!normalized) return false;
@@ -176,9 +175,8 @@ export async function isPackageInstalled(
 
 export async function getInstalledPackages(
   containerId: string,
+  sandbox: ISandboxProvider,
 ): Promise<string[]> {
-  const sandbox = SandboxManager.getInstance();
-
   try {
     const command = "cd /workspace && pnpm list --depth=0 --json 2>&1";
     const execResult = await sandbox.exec(containerId, command);

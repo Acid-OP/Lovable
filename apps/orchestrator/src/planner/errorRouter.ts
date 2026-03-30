@@ -1,4 +1,4 @@
-import { SandboxManager } from "@repo/sandbox";
+import type { ISandboxProvider } from "@repo/sandbox";
 import { logger } from "../utils/logger.js";
 import {
   ClassifiedError,
@@ -27,6 +27,7 @@ export async function routeAndHandleErrors(
   containerId: string,
   classifiedErrors: ClassifiedError[],
   jobId: string,
+  sandbox: ISandboxProvider,
 ): Promise<ErrorHandlingResult> {
   const result: ErrorHandlingResult = {
     success: false,
@@ -77,6 +78,7 @@ export async function routeAndHandleErrors(
       containerId,
       packages,
       jobId,
+      sandbox,
     );
     result.installResult = installResult;
 
@@ -131,7 +133,11 @@ export async function routeAndHandleErrors(
     });
 
     // Convert ClassifiedError to FileError format for LLM
-    const fileErrors = await convertToFileErrors(containerId, errorsNeedingLLM);
+    const fileErrors = await convertToFileErrors(
+      containerId,
+      errorsNeedingLLM,
+      sandbox,
+    );
 
     try {
       // Generate fixes using Gemini
@@ -172,8 +178,8 @@ export async function routeAndHandleErrors(
 async function convertToFileErrors(
   containerId: string,
   classifiedErrors: ClassifiedError[],
+  sandbox: ISandboxProvider,
 ): Promise<FileError[]> {
-  const sandbox = SandboxManager.getInstance();
   const fileErrors: FileError[] = [];
 
   for (const error of classifiedErrors) {
@@ -206,9 +212,8 @@ export async function applyFixes(
   containerId: string,
   fixes: FileFix[],
   jobId: string,
+  sandbox: ISandboxProvider,
 ): Promise<void> {
-  const sandbox = SandboxManager.getInstance();
-
   for (const fix of fixes) {
     try {
       await sandbox.writeFile(containerId, fix.path, fix.content);

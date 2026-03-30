@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { SandboxManager } from "@repo/sandbox";
+import { createSandboxProvider } from "@repo/sandbox";
 import { gracefulShutdown as redisShutdown } from "@repo/redis/utils";
 import { createPromptWorker } from "./workers/promptWorker.js";
 import {
@@ -15,7 +15,7 @@ const SHUTDOWN_TIMEOUT_MS = 30_000;
   logger.info("startup.cleanup.start", {
     message: "Cleaning up orphaned containers",
   });
-  await SandboxManager.getInstance().cleanupOldContainers();
+  await createSandboxProvider().cleanup();
   logger.info("startup.cleanup.complete", { message: "Cleanup complete" });
 
   const promptWorker = createPromptWorker();
