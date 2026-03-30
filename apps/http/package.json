@@ -16,6 +16,7 @@
     "@repo/quota": "workspace:*",
     "@repo/redis": "workspace:*",
     "@repo/session": "workspace:*",
+    "@repo/storage": "workspace:*",
     "axios": "^1.7.9",
     "cors": "^2.8.6",
     "dotenv": "^16.4.5",

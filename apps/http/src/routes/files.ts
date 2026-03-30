@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { redis } from "@repo/redis";
+import { createStorageProvider } from "@repo/storage";
 import { logger } from "../utils/logger";
 
 const router = Router();
@@ -22,8 +23,8 @@ router.get("/:jobId", async (req, res) => {
   logger.info("files.request", { jobId, ip: req.ip });
 
   try {
-    // Get files from Redis
-    const data = await redis.get(`files:${jobId}`);
+    const storage = createStorageProvider(redis);
+    const data = await storage.get(`files:${jobId}`);
 
     if (!data) {
       logger.warn("files.not_found", { jobId });

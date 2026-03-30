@@ -15,6 +15,7 @@ import type { editor } from "monaco-editor";
 import JSZip from "jszip";
 import type { FilesData, GeneratedFile } from "@/lib/types/api";
 import type { Message } from "@/lib/types/editor";
+import { getPreviewUrl } from "@/lib/config/api";
 
 interface WorkspacePageProps {
   params: Promise<{
@@ -229,7 +230,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   useEffect(() => {
     if (!isRuntimeChecking) return;
 
-    const sandboxOrigin = `http://sandbox-${jobId}.localhost:3003`;
+    const sandboxOrigin = getPreviewUrl(jobId);
 
     function handleMessage(event: MessageEvent) {
       if (event.origin !== sandboxOrigin) return;
@@ -831,7 +832,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 
                 {/* Preview iframe */}
                 <iframe
-                  src={`http://sandbox-${jobId}.localhost:3003`}
+                  src={getPreviewUrl(jobId)}
                   className="flex-1 w-full border-0"
                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"
                   allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone; midi; payment; usb"
@@ -843,7 +844,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
             {/* Hidden iframe for runtime error checking (behind the loader) */}
             {isRuntimeChecking && showLogs && (
               <iframe
-                src={`http://sandbox-${jobId}.localhost:3003`}
+                src={getPreviewUrl(jobId)}
                 className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"
                 title="Runtime Check"
@@ -899,7 +900,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
             </button>
           </div>
           <iframe
-            src={`http://sandbox-${jobId}.localhost:3003`}
+            src={getPreviewUrl(jobId)}
             className="flex-1 w-full border-0"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"
             allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone; midi; payment; usb"

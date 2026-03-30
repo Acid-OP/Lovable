@@ -23,6 +23,7 @@
     "@repo/quota": "workspace:*",
     "@repo/redis": "workspace:*",
     "@repo/sandbox": "workspace:*",
+    "@repo/storage": "workspace:*",
     "@repo/session": "workspace:*",
     "ai": "^5.0.116",
     "axios": "^1.7.9",

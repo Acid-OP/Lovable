@@ -3,6 +3,7 @@ import { redis } from "@repo/redis";
 import { QUEUE_NAMES } from "@repo/queue";
 import { SessionManager, SESSION_STATUS } from "@repo/session";
 import { createSandboxProvider } from "@repo/sandbox";
+import { createStorageProvider } from "@repo/storage";
 import { logger } from "../utils/logger.js";
 import * as cache from "@repo/cache";
 import { sanitizePrompt } from "../sanitization/promptSanitizer.js";
@@ -27,7 +28,6 @@ import os from "os";
 
 const WORKER_CONCURRENCY = 3;
 const MAX_FIX_RETRIES = 3;
-const MAX_FILES_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB max for Redis storage
 const HEALTH_CHECK_RETRIES = 3;
 const HEALTH_CHECK_RETRY_DELAY_MS = 3000;
 let workerHealthy = false;
@@ -764,9 +764,8 @@ export function createPromptWorker() {
         startupDurationMs: devServerDuration,
       });
 
-      // Store generated files in Redis for API access
+      // Store generated files for API access
       try {
-        // Get ALL files from container (not just .tsx from plan)
         const findResult = await sandbox.exec(
           containerId,
           "find /workspace -type f \\( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.css' -o -name '*.json' -o -name '*.html' -o -name '*.md' \\) ! -path '*/node_modules/*' ! -path '*/.next/*' ! -name '__error-bridge.js'",
@@ -786,7 +785,6 @@ export function createPromptWorker() {
           allContainerFiles.map(async (path: string) => {
             const content = await sandbox.readFile(containerId, path);
 
-            // Determine language from file extension
             const language =
               path.endsWith(".tsx") || path.endsWith(".ts")
                 ? "typescript"
@@ -801,7 +799,7 @@ export function createPromptWorker() {
                         : "plaintext";
 
             return {
-              path: path.replace("/workspace/", ""), // Remove /workspace prefix
+              path: path.replace("/workspace/", ""),
               content,
               language,
             };
@@ -842,33 +840,15 @@ export function createPromptWorker() {
           },
         };
 
-        // Validate size before storing
         const serialized = JSON.stringify(filesData);
-        if (serialized.length > MAX_FILES_SIZE_BYTES) {
-          logger.warn("files.too_large", {
-            jobId,
-            sizeBytes: serialized.length,
-            maxBytes: MAX_FILES_SIZE_BYTES,
-            filesCount: generatedFiles.length,
-          });
-          throw new Error(
-            `Generated files too large (${(serialized.length / 1024 / 1024).toFixed(1)}MB), max ${MAX_FILES_SIZE_BYTES / 1024 / 1024}MB`,
-          );
-        }
-
-        // Store in Redis with 1 hour expiry
-        await redis.set(
-          `files:${jobId}`,
-          serialized,
-          "EX",
-          3600, // 1 hour TTL
-        );
+        const storage = createStorageProvider(redis);
+        await storage.put(`files:${jobId}`, serialized);
 
         logger.info("files.stored", {
           jobId,
           filesCount: generatedFiles.length,
           totalSizeBytes: filesData.metadata.totalSize,
-          expiresInSeconds: 3600,
+          provider: process.env.STORAGE_PROVIDER || "redis",
         });
       } catch (fileError) {
         logger.error("files.storage_failed", {
@@ -876,7 +856,6 @@ export function createPromptWorker() {
           error:
             fileError instanceof Error ? fileError.message : String(fileError),
         });
-        // Don't fail the job if file storage fails
       }
 
       // Wait for dev server to be ready (Next.js needs time to initialize)

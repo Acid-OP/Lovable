@@ -2,6 +2,14 @@
 export const BACKEND_URL =
   process.env.BACKEND_API_URL || "http://localhost:3001";
 
+const PREVIEW_BASE =
+  process.env.NEXT_PUBLIC_PREVIEW_URL ||
+  "http://sandbox-{{jobId}}.localhost:3003";
+
+export function getPreviewUrl(jobId: string): string {
+  return PREVIEW_BASE.replace("{{jobId}}", jobId);
+}
+
 /**
  * Requests will be aborted after this duration
  */
