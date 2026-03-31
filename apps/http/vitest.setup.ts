@@ -44,9 +44,14 @@ vi.mock("@repo/quota", () => ({
       }),
       checkQuotaStatus: vi.fn().mockResolvedValue({
         used: 10,
-        limit: 100,
-        remaining: 90,
-        percentUsed: 10,
+        limit: 1500,
+        remaining: 1490,
+        percentUsed: 0.67,
+      }),
+      checkIpQuota: vi.fn().mockResolvedValue({
+        allowed: true,
+        used: 1,
+        limit: 5,
       }),
       getRecentJobIds: vi.fn().mockResolvedValue(["job-1", "job-2"]),
       getJobMetrics: vi.fn().mockResolvedValue({

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { QueueManager } from "@repo/queue";
 import { SessionManager } from "@repo/session";
 import { QuotaManager } from "@repo/quota";
@@ -18,7 +18,7 @@ const promptLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later" },
-  keyGenerator: (req) => req.ip || "unknown",
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
 });
 
 router.post("/", promptLimiter, async (req, res) => {
