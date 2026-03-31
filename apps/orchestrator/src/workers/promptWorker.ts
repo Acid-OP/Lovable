@@ -1,6 +1,6 @@
 import { Worker, Job } from "bullmq";
 import { redis } from "@repo/redis";
-import { QUEUE_NAMES } from "@repo/queue";
+import { QUEUE_NAMES, JOB_OPTIONS } from "@repo/queue";
 import { SessionManager, SESSION_STATUS } from "@repo/session";
 import { createSandboxProvider } from "@repo/sandbox";
 import { createStorageProvider } from "@repo/storage";
@@ -1241,27 +1241,32 @@ export function createPromptWorker() {
 
     const failedJobData = job?.data;
     const isIteration = !!failedJobData?.previousJobId;
+    const isFinalAttempt = (job?.attemptsMade || 0) >= JOB_OPTIONS.attempts;
     logger.error("job.failed", {
       jobId: job?.id,
       attempt: job?.attemptsMade,
+      maxAttempts: JOB_OPTIONS.attempts,
       errorMessage: err.message,
       errorName: err.name,
-      errorStack: err.stack?.split("\n").slice(0, 5).join("\n"), // First 5 lines only
+      errorStack: err.stack?.split("\n").slice(0, 5).join("\n"),
       isIteration,
       promptPreview: failedJobData?.prompt?.slice(0, 100),
-      willRetry: (job?.attemptsMade || 0) < 3,
+      willRetry: !isFinalAttempt,
     });
 
-    // Destroy orphaned container for non-iteration jobs that won't be retried
-    if (job?.id && !isIteration && (job.attemptsMade || 0) >= 3) {
+    // Destroy orphaned container on final failure (both new and iteration jobs)
+    if (job?.id && isFinalAttempt) {
       try {
         const session = await SessionManager.get(job.id);
-        if (session?.containerId) {
+        const containerId =
+          session?.containerId || failedJobData?.previousContainerId;
+        if (containerId) {
           const failSandbox = createSandboxProvider();
-          await failSandbox.destroy(session.containerId);
+          await failSandbox.destroy(containerId);
           logger.info("job.orphaned_container_destroyed", {
             jobId: job.id,
-            containerId: session.containerId.slice(0, 12),
+            containerId: containerId.slice(0, 12),
+            isIteration,
           });
         }
       } catch (cleanupErr) {
