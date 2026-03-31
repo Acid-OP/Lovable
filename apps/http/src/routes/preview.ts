@@ -5,6 +5,9 @@ import { logger } from "../utils/logger";
 
 export const previewRouter = Router();
 
+// job-<base36chars> — matches the format from QueueManager.createId()
+const VALID_JOB_ID = /^job-[a-z0-9]{10,30}$/;
+
 // First middleware: Check if we should skip proxying
 previewRouter.use("/", async (req, res, next) => {
   const hostname = req.hostname;
@@ -21,8 +24,25 @@ previewRouter.use("/", async (req, res, next) => {
     return next("route");
   }
 
+  // Validate jobId format to prevent SSRF
+  if (!VALID_JOB_ID.test(jobId)) {
+    logger.warn("preview.invalid_job_id", {
+      jobId,
+      hostname,
+      ip: req.ip,
+    });
+    return res.status(404).send("Not found");
+  }
+
+  // Verify the job actually exists in Redis before proxying
+  const session = await SessionManager.get(jobId).catch(() => null);
+  if (!session?.containerId) {
+    logger.warn("preview.no_session", { jobId, ip: req.ip });
+    return res.status(404).send("Not found");
+  }
+
   try {
-    await SessionManager.update(jobId as string, {
+    await SessionManager.update(jobId, {
       lastActivity: Date.now().toString(),
     });
   } catch (error) {

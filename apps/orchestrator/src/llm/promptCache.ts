@@ -10,6 +10,16 @@ import {
 import { getApiKey } from "./config.js";
 import { logger } from "../utils/logger.js";
 
+function scanKeys(pattern: string): Promise<string[]> {
+  const keys: string[] = [];
+  const stream = redis.scanStream({ match: pattern, count: 100 });
+  return new Promise((resolve, reject) => {
+    stream.on("data", (batch: string[]) => keys.push(...batch));
+    stream.on("end", () => resolve(keys));
+    stream.on("error", reject);
+  });
+}
+
 export class PromptCacheManager {
   private static instance: PromptCacheManager;
   private cacheManager: GoogleAICacheManager;
@@ -158,7 +168,7 @@ export class PromptCacheManager {
     caches: Array<{ key: string; expiresIn: number }>;
   }> {
     const pattern = `${PROMPT_CACHE_PREFIX}*`;
-    const keys = await redis.keys(pattern);
+    const keys = await scanKeys(pattern);
 
     const caches = await Promise.all(
       keys.map(async (key: string) => {

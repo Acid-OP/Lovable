@@ -1,4 +1,9 @@
-export type { ISandboxProvider, ExecResult, BuildResult } from "./types.js";
+export type {
+  ISandboxProvider,
+  ExecResult,
+  BuildResult,
+  SandboxInfo,
+} from "./types.js";
 export { DockerSandboxProvider, escapeShellArg } from "./SandboxManager.js";
 export { createSandboxProvider } from "./factory.js";
 export type { SandboxProviderType } from "./factory.js";

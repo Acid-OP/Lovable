@@ -142,6 +142,69 @@ async function runCleanup() {
     killed: killedCount,
     timestamp: new Date().toISOString(),
   });
+
+  // Docker-level sweep: find containers that Redis doesn't know about
+  await sweepGhostContainers();
+}
+
+async function sweepGhostContainers() {
+  try {
+    const sandbox = createSandboxProvider();
+    const allContainers = await sandbox.list();
+
+    if (allContainers.length === 0) return;
+
+    let ghostCount = 0;
+
+    for (const container of allContainers) {
+      const session = await SessionManager.get(container.jobId);
+
+      const redisKnowsAboutIt = session?.containerId === container.id;
+      const isActiveInRedis =
+        session?.status === SESSION_STATUS.QUEUED ||
+        session?.status === SESSION_STATUS.PROCESSING;
+
+      if (redisKnowsAboutIt && isActiveInRedis) {
+        continue;
+      }
+
+      if (!redisKnowsAboutIt) {
+        // Ghost: Docker has it, Redis doesn't — orphaned container
+        logger.warn("cleanup.ghost.found", {
+          jobId: container.jobId,
+          containerId: container.id.slice(0, 12),
+          running: container.running,
+          createdAt: container.createdAt,
+        });
+
+        try {
+          await sandbox.destroy(container.id);
+          ghostCount++;
+          logger.info("cleanup.ghost.destroyed", {
+            jobId: container.jobId,
+            containerId: container.id.slice(0, 12),
+          });
+        } catch (destroyErr) {
+          logger.error("cleanup.ghost.destroy_failed", {
+            jobId: container.jobId,
+            containerId: container.id.slice(0, 12),
+            error:
+              destroyErr instanceof Error
+                ? destroyErr.message
+                : String(destroyErr),
+          });
+        }
+      }
+    }
+
+    if (ghostCount > 0) {
+      logger.info("cleanup.ghost.sweep_complete", { destroyed: ghostCount });
+    }
+  } catch (error) {
+    logger.error("cleanup.ghost.sweep_error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 async function killContainer(

@@ -4,7 +4,12 @@ import {
   CONTAINER_CONFIG,
   DOCKER_NETWORK,
 } from "./constants.js";
-import type { ISandboxProvider, ExecResult, BuildResult } from "./types.js";
+import type {
+  ISandboxProvider,
+  ExecResult,
+  BuildResult,
+  SandboxInfo,
+} from "./types.js";
 
 interface DockerContainer {
   Id: string;
@@ -83,6 +88,36 @@ export class DockerSandboxProvider implements ISandboxProvider {
     }
   }
 
+  public async list(): Promise<SandboxInfo[]> {
+    const response = await dockerRequest({
+      path: `/containers/json?all=true`,
+      method: "GET",
+    });
+    const containers: DockerContainer[] = JSON.parse(response.data);
+
+    const results: SandboxInfo[] = [];
+    for (const c of containers) {
+      const name = c.Names.find((n) => n.startsWith("/sandbox-"));
+      if (!name) continue;
+
+      const jobId = name.replace("/sandbox-", "");
+      const inspectRes = await dockerRequest({
+        path: `/containers/${c.Id}/json`,
+        method: "GET",
+      });
+      const info = JSON.parse(inspectRes.data);
+
+      results.push({
+        id: c.Id,
+        jobId,
+        running: info.State?.Running === true,
+        createdAt: info.Created,
+      });
+    }
+
+    return results;
+  }
+
   public async create(jobId: string, exposePort?: number): Promise<string> {
     const containerName = `sandbox-${jobId}`;
 
@@ -126,6 +161,20 @@ export class DockerSandboxProvider implements ISandboxProvider {
         CpuPeriod: CONTAINER_CONFIG.CPU_PERIOD,
         CpuQuota: CONTAINER_CONFIG.CPU_QUOTA,
         PidsLimit: CONTAINER_CONFIG.PIDS_LIMIT,
+
+        // Drop ALL capabilities, then add back only what Node.js needs
+        CapDrop: ["ALL"],
+        CapAdd: ["CHOWN", "SETUID", "SETGID", "DAC_OVERRIDE"],
+
+        // Prevent privilege escalation (e.g., setuid binaries)
+        SecurityOpt: ["no-new-privileges:true"],
+
+        // Writable tmpfs for /tmp with size limit
+        Tmpfs: {
+          "/tmp": "rw,nosuid,size=64m",
+        },
+
+        NetworkMode: DOCKER_NETWORK,
       },
       NetworkingConfig: {
         EndpointsConfig: {

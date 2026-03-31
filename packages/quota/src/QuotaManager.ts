@@ -9,6 +9,16 @@ import {
   KEY_ROTATION,
 } from "./constants.js";
 
+function scanKeys(pattern: string): Promise<string[]> {
+  const keys: string[] = [];
+  const stream = redis.scanStream({ match: pattern, count: 100 });
+  return new Promise((resolve, reject) => {
+    stream.on("data", (batch: string[]) => keys.push(...batch));
+    stream.on("end", () => resolve(keys));
+    stream.on("error", reject);
+  });
+}
+
 export class QuotaManager {
   private static instance: QuotaManager;
 
@@ -119,6 +129,32 @@ export class QuotaManager {
     };
   }
 
+  /**
+   * Check if a specific IP has exceeded their daily job limit.
+   * Returns { allowed, used, limit } so the caller can decide what to do.
+   */
+  async checkIpQuota(
+    ip: string,
+    maxPerDay: number = 5,
+  ): Promise<{ allowed: boolean; used: number; limit: number }> {
+    const today = new Date().toISOString().split("T")[0];
+    const key = `quota:ip:${ip}:${today}`;
+
+    const used = parseInt((await redis.get(key)) || "0");
+
+    if (used >= maxPerDay) {
+      return { allowed: false, used, limit: maxPerDay };
+    }
+
+    // Atomically increment and set TTL on first use
+    const newCount = await redis.incr(key);
+    if (newCount === 1) {
+      await redis.expire(key, 86400);
+    }
+
+    return { allowed: true, used: newCount, limit: maxPerDay };
+  }
+
   // Start tracking a job
   startJobTracking(jobId: string): number {
     return Date.now();
@@ -185,7 +221,7 @@ export class QuotaManager {
   // Get recent job IDs from Redis (for monitoring endpoint)
   async getRecentJobIds(limit: number = 10): Promise<string[]> {
     const pattern = `${JOB_METRICS_PREFIX}*`;
-    const keys = await redis.keys(pattern);
+    const keys = await scanKeys(pattern);
 
     // Extract jobIds and sort by most recent
     const jobIds = keys

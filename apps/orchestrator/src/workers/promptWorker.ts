@@ -399,6 +399,7 @@ export function createPromptWorker() {
       }
 
       // Step 5: Create container for new prompts (continuation already has one)
+      let createdContainer = false;
       if (promptType === PROMPT_TYPE.NEW) {
         await SessionManager.update(jobId, {
           currentStep: "Creating workspace",
@@ -406,6 +407,7 @@ export function createPromptWorker() {
 
         logger.info("sandbox.creating_container", { jobId });
         containerId = await sandbox.create(jobId);
+        createdContainer = true;
         logger.info("sandbox.container_created", {
           jobId,
           containerId: containerId.slice(0, 12),
@@ -427,763 +429,792 @@ export function createPromptWorker() {
         throw new Error("Container ID not assigned - this should never happen");
       }
 
-      // Store container metadata in session
-      await SessionManager.update(jobId, {
-        containerId,
-        lastActivity: Date.now().toString(),
-        previewUrl,
-      });
-
-      // Step 6: Execute plan steps (write files, run commands)
-      const appFiles = validatedPlan.steps
-        .filter(
-          (s: PlanStep) => s.type === "file_write" && s.path?.endsWith(".tsx"),
-        )
-        .map((s: PlanStep) => s.path as string);
-      const routes = extractRoutesFromPlan(appFiles);
-
-      const totalSteps = validatedPlan.steps.length;
-
-      const executionStartTime = Date.now();
-      logger.info("plan.execution_started", {
-        jobId,
-        totalSteps,
-        containerId: containerId.slice(0, 12),
-      });
-
-      // Count files to generate (for user-facing log)
-      const filesToGenerate = validatedPlan.steps.filter(
-        (s) => s.type === "file_write",
-      ).length;
-
-      // Show single unified log for all file operations
-      await SessionManager.update(jobId, {
-        currentStep: `Generating your application${filesToGenerate > 0 ? ` (${filesToGenerate} files)` : ""}`,
-      });
-
-      let installingDependencies = false;
-
-      for (const step of validatedPlan.steps) {
-        logger.info("step.executing", {
-          jobId,
-          stepId: step.id,
-          stepType: step.type,
-          description: step.description,
-          progress: `${step.id}/${totalSteps}`,
+      try {
+        // Store container metadata in session
+        await SessionManager.update(jobId, {
+          containerId,
+          lastActivity: Date.now().toString(),
+          previewUrl,
         });
 
-        if (step.type === "command" && step.command) {
-          // Show "Installing dependencies" log only once when npm/pnpm install runs
-          if (
-            !installingDependencies &&
-            (step.command.includes("install") ||
-              step.command.includes("npm") ||
-              step.command.includes("pnpm"))
-          ) {
-            installingDependencies = true;
-            await SessionManager.update(jobId, {
-              currentStep: "Installing dependencies",
+        // Step 6: Execute plan steps (write files, run commands)
+        const appFiles = validatedPlan.steps
+          .filter(
+            (s: PlanStep) =>
+              s.type === "file_write" && s.path?.endsWith(".tsx"),
+          )
+          .map((s: PlanStep) => s.path as string);
+        const routes = extractRoutesFromPlan(appFiles);
+
+        const totalSteps = validatedPlan.steps.length;
+
+        const executionStartTime = Date.now();
+        logger.info("plan.execution_started", {
+          jobId,
+          totalSteps,
+          containerId: containerId.slice(0, 12),
+        });
+
+        // Count files to generate (for user-facing log)
+        const filesToGenerate = validatedPlan.steps.filter(
+          (s) => s.type === "file_write",
+        ).length;
+
+        // Show single unified log for all file operations
+        await SessionManager.update(jobId, {
+          currentStep: `Generating your application${filesToGenerate > 0 ? ` (${filesToGenerate} files)` : ""}`,
+        });
+
+        let installingDependencies = false;
+
+        for (const step of validatedPlan.steps) {
+          logger.info("step.executing", {
+            jobId,
+            stepId: step.id,
+            stepType: step.type,
+            description: step.description,
+            progress: `${step.id}/${totalSteps}`,
+          });
+
+          if (step.type === "command" && step.command) {
+            // Show "Installing dependencies" log only once when npm/pnpm install runs
+            if (
+              !installingDependencies &&
+              (step.command.includes("install") ||
+                step.command.includes("npm") ||
+                step.command.includes("pnpm"))
+            ) {
+              installingDependencies = true;
+              await SessionManager.update(jobId, {
+                currentStep: "Installing dependencies",
+              });
+            }
+
+            const result = await sandbox.exec(
+              containerId,
+              step.command,
+              step.workingDirectory,
+            );
+            logger.info("step.command.completed", {
+              jobId,
+              stepId: step.id,
+              exitCode: result.exitCode,
+              command: step.command.slice(0, 50),
             });
           }
 
-          const result = await sandbox.exec(
-            containerId,
-            step.command,
-            step.workingDirectory,
-          );
-          logger.info("step.command.completed", {
-            jobId,
-            stepId: step.id,
-            exitCode: result.exitCode,
-            command: step.command.slice(0, 50),
-          });
+          if (step.type === "file_write" && step.path && step.content) {
+            await sandbox.writeFile(containerId, step.path, step.content);
+            logger.info("step.file_write.completed", {
+              jobId,
+              stepId: step.id,
+              path: step.path,
+            });
+          }
+
+          if (step.type === "file_delete" && step.path) {
+            await sandbox.deleteFile(containerId, step.path);
+            logger.info("step.file_delete.completed", {
+              jobId,
+              stepId: step.id,
+              path: step.path,
+            });
+          }
         }
 
-        if (step.type === "file_write" && step.path && step.content) {
-          await sandbox.writeFile(containerId, step.path, step.content);
-          logger.info("step.file_write.completed", {
-            jobId,
-            stepId: step.id,
-            path: step.path,
-          });
-        }
-
-        if (step.type === "file_delete" && step.path) {
-          await sandbox.deleteFile(containerId, step.path);
-          logger.info("step.file_delete.completed", {
-            jobId,
-            stepId: step.id,
-            path: step.path,
-          });
-        }
-      }
-
-      const executionDuration = Date.now() - executionStartTime;
-      logger.info("plan.execution_completed", {
-        jobId,
-        totalSteps,
-        durationMs: executionDuration,
-        avgStepDurationMs: Math.round(executionDuration / totalSteps),
-      });
-
-      // Inject error bridge script for iframe-based runtime error detection
-      try {
-        logger.info("errorbridge.injecting", { jobId });
-        await sandbox.writeFile(
-          containerId,
-          "/workspace/public/__error-bridge.js",
-          getErrorBridgeScript(),
-        );
-
-        // Inject script tag into layout.tsx
-        const layoutPath = "/workspace/app/layout.tsx";
-        const layoutContent = await sandbox.readFile(containerId, layoutPath);
-
-        if (layoutContent && !layoutContent.includes("__error-bridge.js")) {
-          const patchedLayout = layoutContent.replace(
-            /(<body[^>]*>)/,
-            '$1\n        <script src="/__error-bridge.js" defer></script>',
-          );
-          await sandbox.writeFile(containerId, layoutPath, patchedLayout);
-          logger.info("errorbridge.layout_injected", { jobId });
-        }
-      } catch (bridgeError) {
-        logger.warn("errorbridge.injection_failed", {
+        const executionDuration = Date.now() - executionStartTime;
+        logger.info("plan.execution_completed", {
           jobId,
-          error:
-            bridgeError instanceof Error
-              ? bridgeError.message
-              : String(bridgeError),
+          totalSteps,
+          durationMs: executionDuration,
+          avgStepDurationMs: Math.round(executionDuration / totalSteps),
         });
-        // Non-fatal: runtime check will fall back to old health check
-      }
 
-      // Step 7: Build project and auto-fix errors (retry up to MAX_FIX_RETRIES)
-      let buildSuccess = false;
-      let fixAttempts = 0;
-      let lastBuildErrors = "";
+        // Inject error bridge script for iframe-based runtime error detection
+        try {
+          logger.info("errorbridge.injecting", { jobId });
+          await sandbox.writeFile(
+            containerId,
+            "/workspace/public/__error-bridge.js",
+            getErrorBridgeScript(),
+          );
 
-      while (!buildSuccess && fixAttempts < MAX_FIX_RETRIES) {
-        // Show "Building" on first attempt, "Optimizing" on retries
-        if (fixAttempts === 0) {
-          await SessionManager.update(jobId, {
-            currentStep: "Building your application",
+          // Inject script tag into layout.tsx
+          const layoutPath = "/workspace/app/layout.tsx";
+          const layoutContent = await sandbox.readFile(containerId, layoutPath);
+
+          if (layoutContent && !layoutContent.includes("__error-bridge.js")) {
+            const patchedLayout = layoutContent.replace(
+              /(<body[^>]*>)/,
+              '$1\n        <script src="/__error-bridge.js" defer></script>',
+            );
+            await sandbox.writeFile(containerId, layoutPath, patchedLayout);
+            logger.info("errorbridge.layout_injected", { jobId });
+          }
+        } catch (bridgeError) {
+          logger.warn("errorbridge.injection_failed", {
+            jobId,
+            error:
+              bridgeError instanceof Error
+                ? bridgeError.message
+                : String(bridgeError),
           });
-        } else if (fixAttempts === 1) {
+          // Non-fatal: runtime check will fall back to old health check
+        }
+
+        // Step 7: Build project and auto-fix errors (retry up to MAX_FIX_RETRIES)
+        let buildSuccess = false;
+        let fixAttempts = 0;
+        let lastBuildErrors = "";
+
+        while (!buildSuccess && fixAttempts < MAX_FIX_RETRIES) {
+          // Show "Building" on first attempt, "Optimizing" on retries
+          if (fixAttempts === 0) {
+            await SessionManager.update(jobId, {
+              currentStep: "Building your application",
+            });
+          } else if (fixAttempts === 1) {
+            await SessionManager.update(jobId, {
+              currentStep: "Optimizing code",
+              buildExtending: "true",
+            });
+          }
+
+          const buildStartTime = Date.now();
+          logger.info("build.attempting", {
+            jobId,
+            attempt: fixAttempts + 1,
+            maxAttempts: MAX_FIX_RETRIES,
+          });
+
+          const buildResult = await sandbox.runBuild(containerId);
+          const buildDuration = Date.now() - buildStartTime;
+
+          if (buildResult.success) {
+            buildSuccess = true;
+            logger.info("build.success", {
+              jobId,
+              containerId: containerId.slice(0, 12),
+              attempts: fixAttempts + 1,
+              onFirstTry: fixAttempts === 0,
+              durationMs: buildDuration,
+            });
+
+            // Post-build UI validation on actual generated files (silent)
+            if (fixAttempts > 0) {
+              logger.info("build.validating_ui_quality", { jobId });
+
+              try {
+                // Read generated files from sandbox (using already extracted appFiles)
+                const generatedPlan = {
+                  summary: validatedPlan.summary,
+                  estimatedTimeSeconds: validatedPlan.estimatedTimeSeconds,
+                  steps: await Promise.all(
+                    appFiles.map(async (path: string, index: number) => {
+                      const content = await sandbox.readFile(containerId, path);
+                      return {
+                        id: index + 1,
+                        type: "file_write" as const,
+                        description: `File ${path}`,
+                        path,
+                        content,
+                      };
+                    }),
+                  ),
+                };
+
+                const postBuildValidation =
+                  frontendValidator.validate(generatedPlan);
+
+                if (
+                  postBuildValidation.warnings.length > 0 ||
+                  postBuildValidation.suggestions.length > 0
+                ) {
+                  logger.warn("build.ui_quality_issues", {
+                    jobId,
+                    warningsCount: postBuildValidation.warnings.length,
+                    suggestionsCount: postBuildValidation.suggestions.length,
+                  });
+                } else {
+                  logger.info("build.ui_quality_maintained", { jobId });
+                }
+              } catch (validationError) {
+                logger.error("build.ui_validation_error", {
+                  jobId,
+                  error:
+                    validationError instanceof Error
+                      ? validationError.message
+                      : String(validationError),
+                });
+              }
+            }
+          } else {
+            lastBuildErrors = buildResult.errors;
+            fixAttempts++;
+            logger.warn("build.failed", {
+              jobId,
+              containerId: containerId.slice(0, 12),
+              attempt: fixAttempts,
+              durationMs: buildDuration,
+              errorsPreview: buildResult.errors.slice(0, 200),
+            });
+
+            if (fixAttempts < MAX_FIX_RETRIES) {
+              // Parse errors from build output
+              const errorMap = parseErrorFiles(buildResult.errors);
+
+              // Classify errors by type
+              const classifiedErrors = classifyBuildErrors(errorMap);
+
+              logger.info("build.errors_classified", {
+                jobId,
+                attempt: fixAttempts,
+                totalErrors: classifiedErrors.length,
+                byType: classifiedErrors.reduce(
+                  (acc, err) => {
+                    acc[err.type] = (acc[err.type] || 0) + 1;
+                    return acc;
+                  },
+                  {} as Record<string, number>,
+                ),
+              });
+
+              // Route errors to appropriate handlers
+              const handlingResult = await routeAndHandleErrors(
+                containerId,
+                classifiedErrors,
+                jobId,
+                sandbox,
+              );
+
+              logger.info("build.errors_handled", {
+                jobId,
+                success: handlingResult.success,
+                autoFixedCount: handlingResult.autoFixedErrors.length,
+                llmFixedCount: handlingResult.llmFixedErrors.length,
+                failedCount: handlingResult.failedErrors.length,
+              });
+
+              // Apply LLM-generated fixes if any
+              if (handlingResult.fixes && handlingResult.fixes.length > 0) {
+                await applyFixes(
+                  containerId,
+                  handlingResult.fixes,
+                  jobId,
+                  sandbox,
+                );
+              }
+
+              // If we auto-fixed dependencies, the build will likely succeed on retry
+              if (handlingResult.autoFixedErrors.length > 0) {
+                logger.info("build.auto_fixes_applied", {
+                  jobId,
+                  fixesCount: handlingResult.autoFixedErrors.length,
+                  willRetry: true,
+                });
+              }
+
+              // If config errors, abort immediately
+              if (
+                !handlingResult.success &&
+                handlingResult.failedErrors.some((e) => e.type === "config")
+              ) {
+                logger.error("build.config_error_fatal", {
+                  jobId,
+                  message: handlingResult.message,
+                });
+                throw new Error(handlingResult.message);
+              }
+
+              // Clean stale build artifacts before retrying
+              try {
+                await sandbox.exec(containerId, "rm -rf /workspace/.next");
+                logger.info("build.cleaned_artifacts", { jobId });
+              } catch {
+                // Non-fatal — container may not have .next yet
+              }
+            }
+          }
+        }
+
+        if (!buildSuccess) {
+          logger.error("build.failed_max_retries", {
+            jobId,
+            containerId: containerId.slice(0, 12),
+            totalAttempts: fixAttempts,
+            errorsPreview: lastBuildErrors.slice(0, 500),
+          });
+          throw new Error(
+            `Build failed after ${fixAttempts} attempts. Errors: ${lastBuildErrors.slice(0, 200)}`,
+          );
+        }
+
+        // Step 8: Start dev server and run health checks
+        await SessionManager.update(jobId, {
+          currentStep: "Starting preview",
+        });
+
+        const devServerStartTime = Date.now();
+        logger.info("devserver.starting", {
+          jobId,
+          containerId: containerId.slice(0, 12),
+          port: config.container.port,
+        });
+
+        await sandbox.startDevServer(containerId);
+        const devServerDuration = Date.now() - devServerStartTime;
+
+        logger.info("devserver.started", {
+          jobId,
+          containerId: containerId.slice(0, 12),
+          previewUrl: `http://localhost:${config.container.port}`,
+          startupDurationMs: devServerDuration,
+        });
+
+        // Store generated files for API access
+        try {
+          const findResult = await sandbox.exec(
+            containerId,
+            "find /workspace -type f \\( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.css' -o -name '*.json' -o -name '*.html' -o -name '*.md' \\) ! -path '*/node_modules/*' ! -path '*/.next/*' ! -name '__error-bridge.js'",
+          );
+
+          const allContainerFiles = findResult.output
+            .trim()
+            .split("\n")
+            .filter((path: string) => path.length > 0);
+
+          logger.info("files.reading", {
+            jobId,
+            filesCount: allContainerFiles.length,
+          });
+
+          const fileResults = await Promise.allSettled(
+            allContainerFiles.map(async (path: string) => {
+              const content = await sandbox.readFile(containerId, path);
+
+              const language =
+                path.endsWith(".tsx") || path.endsWith(".ts")
+                  ? "typescript"
+                  : path.endsWith(".jsx") || path.endsWith(".js")
+                    ? "javascript"
+                    : path.endsWith(".css")
+                      ? "css"
+                      : path.endsWith(".json")
+                        ? "json"
+                        : path.endsWith(".html")
+                          ? "html"
+                          : "plaintext";
+
+              return {
+                path: path.replace("/workspace/", ""),
+                content,
+                language,
+              };
+            }),
+          );
+
+          const generatedFiles = fileResults
+            .filter(
+              (
+                r,
+              ): r is PromiseFulfilledResult<{
+                path: string;
+                content: string;
+                language: string;
+              }> => r.status === "fulfilled",
+            )
+            .map((r) => r.value);
+
+          const failedReads = fileResults.filter(
+            (r) => r.status === "rejected",
+          );
+          if (failedReads.length > 0) {
+            logger.warn("files.partial_read_failures", {
+              jobId,
+              failedCount: failedReads.length,
+              totalCount: allContainerFiles.length,
+            });
+          }
+
+          const filesData = {
+            files: generatedFiles,
+            metadata: {
+              jobId,
+              generatedAt: new Date().toISOString(),
+              totalFiles: generatedFiles.length,
+              totalSize: generatedFiles.reduce(
+                (sum, f) => sum + f.content.length,
+                0,
+              ),
+            },
+          };
+
+          const serialized = JSON.stringify(filesData);
+          const storage = createStorageProvider(redis);
+          await storage.put(`files:${jobId}`, serialized);
+
+          logger.info("files.stored", {
+            jobId,
+            filesCount: generatedFiles.length,
+            totalSizeBytes: filesData.metadata.totalSize,
+            provider: process.env.STORAGE_PROVIDER || "redis",
+          });
+        } catch (fileError) {
+          logger.error("files.storage_failed", {
+            jobId,
+            error:
+              fileError instanceof Error
+                ? fileError.message
+                : String(fileError),
+          });
+        }
+
+        // Wait for dev server to be ready (Next.js needs time to initialize)
+        logger.info("devserver.initializing", {
+          jobId,
+          waitTimeMs: 5000,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        // Health check: Verify dev server is responding and app renders without errors
+        await SessionManager.update(jobId, {
+          currentStep: "Running final checks",
+        });
+
+        // Call HTTP server's health check endpoint (HTTP has network access to containers)
+        const healthCheckStartTime = Date.now();
+        logger.info("health.checking", { jobId, routes: routes.length });
+        const { runtimeErrorDetected, runtimeErrorMessage } =
+          await healthCheckWithRetry(jobId, routes);
+        const healthCheckDuration = Date.now() - healthCheckStartTime;
+
+        logger.info("health.check_completed", {
+          jobId,
+          durationMs: healthCheckDuration,
+          routesChecked: routes.length,
+        });
+
+        // If runtime errors detected, attempt one fix (extending the build fix loop by 1)
+        if (runtimeErrorDetected) {
+          logger.warn("health.runtime_errors_detected", {
+            jobId,
+            errorPreview: runtimeErrorMessage.slice(0, 200),
+          });
+
           await SessionManager.update(jobId, {
             currentStep: "Optimizing code",
             buildExtending: "true",
           });
-        }
 
-        const buildStartTime = Date.now();
-        logger.info("build.attempting", {
-          jobId,
-          attempt: fixAttempts + 1,
-          maxAttempts: MAX_FIX_RETRIES,
-        });
+          // Create synthetic error for the LLM to fix
+          const runtimeErrorMap = new Map<string, string>();
+          runtimeErrorMap.set(
+            "Runtime Error",
+            `Application runtime error detected:\n${runtimeErrorMessage}\n\nCommon causes:\n- Missing 'use client' directive in components using hooks/events\n- Missing imports (especially for framer-motion, lucide-react)\n- Incorrect component structure (server/client mismatch)\n- Type errors not caught at build time`,
+          );
 
-        const buildResult = await sandbox.runBuild(containerId);
-        const buildDuration = Date.now() - buildStartTime;
-
-        if (buildResult.success) {
-          buildSuccess = true;
-          logger.info("build.success", {
+          // Use existing error classification and handling pipeline
+          const runtimeClassifiedErrors = classifyBuildErrors(runtimeErrorMap);
+          const runtimeHandlingResult = await routeAndHandleErrors(
+            containerId,
+            runtimeClassifiedErrors,
             jobId,
-            containerId: containerId.slice(0, 12),
-            attempts: fixAttempts + 1,
-            onFirstTry: fixAttempts === 0,
-            durationMs: buildDuration,
+            sandbox,
+          );
+
+          logger.info("health.runtime_errors_handled", {
+            jobId,
+            success: runtimeHandlingResult.success,
+            fixesGenerated: runtimeHandlingResult.llmFixedErrors.length,
           });
 
-          // Post-build UI validation on actual generated files (silent)
-          if (fixAttempts > 0) {
-            logger.info("build.validating_ui_quality", { jobId });
-
-            try {
-              // Read generated files from sandbox (using already extracted appFiles)
-              const generatedPlan = {
-                summary: validatedPlan.summary,
-                estimatedTimeSeconds: validatedPlan.estimatedTimeSeconds,
-                steps: await Promise.all(
-                  appFiles.map(async (path: string, index: number) => {
-                    const content = await sandbox.readFile(containerId, path);
-                    return {
-                      id: index + 1,
-                      type: "file_write" as const,
-                      description: `File ${path}`,
-                      path,
-                      content,
-                    };
-                  }),
-                ),
-              };
-
-              const postBuildValidation =
-                frontendValidator.validate(generatedPlan);
-
-              if (
-                postBuildValidation.warnings.length > 0 ||
-                postBuildValidation.suggestions.length > 0
-              ) {
-                logger.warn("build.ui_quality_issues", {
-                  jobId,
-                  warningsCount: postBuildValidation.warnings.length,
-                  suggestionsCount: postBuildValidation.suggestions.length,
-                });
-              } else {
-                logger.info("build.ui_quality_maintained", { jobId });
-              }
-            } catch (validationError) {
-              logger.error("build.ui_validation_error", {
-                jobId,
-                error:
-                  validationError instanceof Error
-                    ? validationError.message
-                    : String(validationError),
-              });
-            }
-          }
-        } else {
-          lastBuildErrors = buildResult.errors;
-          fixAttempts++;
-          logger.warn("build.failed", {
-            jobId,
-            containerId: containerId.slice(0, 12),
-            attempt: fixAttempts,
-            durationMs: buildDuration,
-            errorsPreview: buildResult.errors.slice(0, 200),
-          });
-
-          if (fixAttempts < MAX_FIX_RETRIES) {
-            // Parse errors from build output
-            const errorMap = parseErrorFiles(buildResult.errors);
-
-            // Classify errors by type
-            const classifiedErrors = classifyBuildErrors(errorMap);
-
-            logger.info("build.errors_classified", {
-              jobId,
-              attempt: fixAttempts,
-              totalErrors: classifiedErrors.length,
-              byType: classifiedErrors.reduce(
-                (acc, err) => {
-                  acc[err.type] = (acc[err.type] || 0) + 1;
-                  return acc;
-                },
-                {} as Record<string, number>,
-              ),
-            });
-
-            // Route errors to appropriate handlers
-            const handlingResult = await routeAndHandleErrors(
+          // Apply LLM-generated fixes if any
+          if (
+            runtimeHandlingResult.fixes &&
+            runtimeHandlingResult.fixes.length > 0
+          ) {
+            await applyFixes(
               containerId,
-              classifiedErrors,
+              runtimeHandlingResult.fixes,
               jobId,
               sandbox,
             );
 
-            logger.info("build.errors_handled", {
-              jobId,
-              success: handlingResult.success,
-              autoFixedCount: handlingResult.autoFixedErrors.length,
-              llmFixedCount: handlingResult.llmFixedErrors.length,
-              failedCount: handlingResult.failedErrors.length,
-            });
+            // Rebuild after runtime fixes (silent - already showing "Optimizing code")
+            logger.info("health.rebuilding", { jobId });
+            const rebuildResult = await sandbox.runBuild(containerId);
 
-            // Apply LLM-generated fixes if any
-            if (handlingResult.fixes && handlingResult.fixes.length > 0) {
-              await applyFixes(
-                containerId,
-                handlingResult.fixes,
+            if (!rebuildResult.success) {
+              logger.error("health.rebuild_failed", {
                 jobId,
-                sandbox,
-              );
-            }
-
-            // If we auto-fixed dependencies, the build will likely succeed on retry
-            if (handlingResult.autoFixedErrors.length > 0) {
-              logger.info("build.auto_fixes_applied", {
-                jobId,
-                fixesCount: handlingResult.autoFixedErrors.length,
-                willRetry: true,
-              });
-            }
-
-            // If config errors, abort immediately
-            if (
-              !handlingResult.success &&
-              handlingResult.failedErrors.some((e) => e.type === "config")
-            ) {
-              logger.error("build.config_error_fatal", {
-                jobId,
-                message: handlingResult.message,
-              });
-              throw new Error(handlingResult.message);
-            }
-
-            // Clean stale build artifacts before retrying
-            try {
-              await sandbox.exec(containerId, "rm -rf /workspace/.next");
-              logger.info("build.cleaned_artifacts", { jobId });
-            } catch {
-              // Non-fatal — container may not have .next yet
-            }
-          }
-        }
-      }
-
-      if (!buildSuccess) {
-        logger.error("build.failed_max_retries", {
-          jobId,
-          containerId: containerId.slice(0, 12),
-          totalAttempts: fixAttempts,
-          errorsPreview: lastBuildErrors.slice(0, 500),
-        });
-      }
-
-      // Step 8: Start dev server and run health checks
-      await SessionManager.update(jobId, {
-        currentStep: "Starting preview",
-      });
-
-      const devServerStartTime = Date.now();
-      logger.info("devserver.starting", {
-        jobId,
-        containerId: containerId.slice(0, 12),
-        port: config.container.port,
-      });
-
-      await sandbox.startDevServer(containerId);
-      const devServerDuration = Date.now() - devServerStartTime;
-
-      logger.info("devserver.started", {
-        jobId,
-        containerId: containerId.slice(0, 12),
-        previewUrl: `http://localhost:${config.container.port}`,
-        startupDurationMs: devServerDuration,
-      });
-
-      // Store generated files for API access
-      try {
-        const findResult = await sandbox.exec(
-          containerId,
-          "find /workspace -type f \\( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.css' -o -name '*.json' -o -name '*.html' -o -name '*.md' \\) ! -path '*/node_modules/*' ! -path '*/.next/*' ! -name '__error-bridge.js'",
-        );
-
-        const allContainerFiles = findResult.output
-          .trim()
-          .split("\n")
-          .filter((path: string) => path.length > 0);
-
-        logger.info("files.reading", {
-          jobId,
-          filesCount: allContainerFiles.length,
-        });
-
-        const fileResults = await Promise.allSettled(
-          allContainerFiles.map(async (path: string) => {
-            const content = await sandbox.readFile(containerId, path);
-
-            const language =
-              path.endsWith(".tsx") || path.endsWith(".ts")
-                ? "typescript"
-                : path.endsWith(".jsx") || path.endsWith(".js")
-                  ? "javascript"
-                  : path.endsWith(".css")
-                    ? "css"
-                    : path.endsWith(".json")
-                      ? "json"
-                      : path.endsWith(".html")
-                        ? "html"
-                        : "plaintext";
-
-            return {
-              path: path.replace("/workspace/", ""),
-              content,
-              language,
-            };
-          }),
-        );
-
-        const generatedFiles = fileResults
-          .filter(
-            (
-              r,
-            ): r is PromiseFulfilledResult<{
-              path: string;
-              content: string;
-              language: string;
-            }> => r.status === "fulfilled",
-          )
-          .map((r) => r.value);
-
-        const failedReads = fileResults.filter((r) => r.status === "rejected");
-        if (failedReads.length > 0) {
-          logger.warn("files.partial_read_failures", {
-            jobId,
-            failedCount: failedReads.length,
-            totalCount: allContainerFiles.length,
-          });
-        }
-
-        const filesData = {
-          files: generatedFiles,
-          metadata: {
-            jobId,
-            generatedAt: new Date().toISOString(),
-            totalFiles: generatedFiles.length,
-            totalSize: generatedFiles.reduce(
-              (sum, f) => sum + f.content.length,
-              0,
-            ),
-          },
-        };
-
-        const serialized = JSON.stringify(filesData);
-        const storage = createStorageProvider(redis);
-        await storage.put(`files:${jobId}`, serialized);
-
-        logger.info("files.stored", {
-          jobId,
-          filesCount: generatedFiles.length,
-          totalSizeBytes: filesData.metadata.totalSize,
-          provider: process.env.STORAGE_PROVIDER || "redis",
-        });
-      } catch (fileError) {
-        logger.error("files.storage_failed", {
-          jobId,
-          error:
-            fileError instanceof Error ? fileError.message : String(fileError),
-        });
-      }
-
-      // Wait for dev server to be ready (Next.js needs time to initialize)
-      logger.info("devserver.initializing", {
-        jobId,
-        waitTimeMs: 5000,
-      });
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-
-      // Health check: Verify dev server is responding and app renders without errors
-      await SessionManager.update(jobId, {
-        currentStep: "Running final checks",
-      });
-
-      // Call HTTP server's health check endpoint (HTTP has network access to containers)
-      const healthCheckStartTime = Date.now();
-      logger.info("health.checking", { jobId, routes: routes.length });
-      const { runtimeErrorDetected, runtimeErrorMessage } =
-        await healthCheckWithRetry(jobId, routes);
-      const healthCheckDuration = Date.now() - healthCheckStartTime;
-
-      logger.info("health.check_completed", {
-        jobId,
-        durationMs: healthCheckDuration,
-        routesChecked: routes.length,
-      });
-
-      // If runtime errors detected, attempt one fix (extending the build fix loop by 1)
-      if (runtimeErrorDetected) {
-        logger.warn("health.runtime_errors_detected", {
-          jobId,
-          errorPreview: runtimeErrorMessage.slice(0, 200),
-        });
-
-        await SessionManager.update(jobId, {
-          currentStep: "Optimizing code",
-          buildExtending: "true",
-        });
-
-        // Create synthetic error for the LLM to fix
-        const runtimeErrorMap = new Map<string, string>();
-        runtimeErrorMap.set(
-          "Runtime Error",
-          `Application runtime error detected:\n${runtimeErrorMessage}\n\nCommon causes:\n- Missing 'use client' directive in components using hooks/events\n- Missing imports (especially for framer-motion, lucide-react)\n- Incorrect component structure (server/client mismatch)\n- Type errors not caught at build time`,
-        );
-
-        // Use existing error classification and handling pipeline
-        const runtimeClassifiedErrors = classifyBuildErrors(runtimeErrorMap);
-        const runtimeHandlingResult = await routeAndHandleErrors(
-          containerId,
-          runtimeClassifiedErrors,
-          jobId,
-          sandbox,
-        );
-
-        logger.info("health.runtime_errors_handled", {
-          jobId,
-          success: runtimeHandlingResult.success,
-          fixesGenerated: runtimeHandlingResult.llmFixedErrors.length,
-        });
-
-        // Apply LLM-generated fixes if any
-        if (
-          runtimeHandlingResult.fixes &&
-          runtimeHandlingResult.fixes.length > 0
-        ) {
-          await applyFixes(
-            containerId,
-            runtimeHandlingResult.fixes,
-            jobId,
-            sandbox,
-          );
-
-          // Rebuild after runtime fixes (silent - already showing "Optimizing code")
-          logger.info("health.rebuilding", { jobId });
-          const rebuildResult = await sandbox.runBuild(containerId);
-
-          if (!rebuildResult.success) {
-            logger.error("health.rebuild_failed", {
-              jobId,
-              errorsPreview: rebuildResult.errors.slice(0, 500),
-            });
-            throw new Error(
-              `Rebuild failed after runtime fix: ${rebuildResult.errors.slice(0, 200)}`,
-            );
-          }
-
-          logger.info("health.rebuild_success", { jobId });
-
-          // Restart dev server (rebuild stops the old one)
-          await sandbox.startDevServer(containerId);
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-
-          // Re-run health check to verify fix worked
-          try {
-            logger.info("health.rechecking", { jobId });
-            const recheckResult = await healthCheckWithRetry(jobId, routes);
-
-            if (recheckResult.runtimeErrorDetected) {
-              logger.error("health.errors_persist", {
-                jobId,
-                errorPreview: recheckResult.runtimeErrorMessage.slice(0, 200),
+                errorsPreview: rebuildResult.errors.slice(0, 500),
               });
               throw new Error(
-                `Runtime errors persist after fix: ${recheckResult.runtimeErrorMessage}`,
+                `Rebuild failed after runtime fix: ${rebuildResult.errors.slice(0, 200)}`,
               );
-            } else {
-              logger.info("health.fix_successful", { jobId });
             }
-          } catch (recheckError) {
-            logger.error("health.recheck_failed", {
+
+            logger.info("health.rebuild_success", { jobId });
+
+            // Restart dev server (rebuild stops the old one)
+            await sandbox.startDevServer(containerId);
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+
+            // Re-run health check to verify fix worked
+            try {
+              logger.info("health.rechecking", { jobId });
+              const recheckResult = await healthCheckWithRetry(jobId, routes);
+
+              if (recheckResult.runtimeErrorDetected) {
+                logger.error("health.errors_persist", {
+                  jobId,
+                  errorPreview: recheckResult.runtimeErrorMessage.slice(0, 200),
+                });
+                throw new Error(
+                  `Runtime errors persist after fix: ${recheckResult.runtimeErrorMessage}`,
+                );
+              } else {
+                logger.info("health.fix_successful", { jobId });
+              }
+            } catch (recheckError) {
+              logger.error("health.recheck_failed", {
+                jobId,
+                error:
+                  recheckError instanceof Error
+                    ? recheckError.message
+                    : String(recheckError),
+              });
+              throw new Error(
+                `Health check failed after runtime fix: ${recheckError instanceof Error ? recheckError.message : String(recheckError)}`,
+              );
+            }
+          } else {
+            logger.error("health.no_fixes_generated", {
               jobId,
-              error:
-                recheckError instanceof Error
-                  ? recheckError.message
-                  : String(recheckError),
+              errorPreview: runtimeErrorMessage.slice(0, 200),
             });
             throw new Error(
-              `Health check failed after runtime fix: ${recheckError instanceof Error ? recheckError.message : String(recheckError)}`,
+              `Runtime errors detected but could not generate fixes: ${runtimeErrorMessage}`,
             );
           }
         } else {
-          logger.error("health.no_fixes_generated", {
-            jobId,
-            errorPreview: runtimeErrorMessage.slice(0, 200),
-          });
-          throw new Error(
-            `Runtime errors detected but could not generate fixes: ${runtimeErrorMessage}`,
-          );
+          logger.info("health.passed", { jobId, routesChecked: routes.length });
         }
-      } else {
-        logger.info("health.passed", { jobId, routesChecked: routes.length });
-      }
 
-      // Step 9: Iframe-based runtime error checking
-      // The browser loads the app in a hidden iframe with the error bridge script.
-      // The bridge catches real JS errors and reports them back via postMessage → HTTP → Redis.
-      const RUNTIME_CHECK_TIMEOUT = 30; // seconds
-      const MAX_RUNTIME_FIX_RETRIES = 2;
-      let runtimeFixAttempts = 0;
-      let runtimeClean = false;
+        // Step 9: Iframe-based runtime error checking
+        // The browser loads the app in a hidden iframe with the error bridge script.
+        // The bridge catches real JS errors and reports them back via postMessage → HTTP → Redis.
+        const RUNTIME_CHECK_TIMEOUT = 30; // seconds
+        const MAX_RUNTIME_FIX_RETRIES = 2;
+        let runtimeFixAttempts = 0;
+        let runtimeClean = false;
 
-      while (!runtimeClean && runtimeFixAttempts <= MAX_RUNTIME_FIX_RETRIES) {
-        // Signal browser to load the hidden iframe
-        await SessionManager.update(jobId, {
-          currentStep:
-            runtimeFixAttempts === 0
-              ? "Running final checks"
-              : "Optimizing code",
-          runtimeCheck: "start",
-        });
+        while (!runtimeClean && runtimeFixAttempts <= MAX_RUNTIME_FIX_RETRIES) {
+          // Signal browser to load the hidden iframe
+          await SessionManager.update(jobId, {
+            currentStep:
+              runtimeFixAttempts === 0
+                ? "Running final checks"
+                : "Optimizing code",
+            runtimeCheck: "start",
+          });
 
-        // Clear any stale result from previous attempt
-        const runtimeResultKey = `runtime-result:${jobId}`;
-        await redis.del(runtimeResultKey);
+          // Clear any stale result from previous attempt
+          const runtimeResultKey = `runtime-result:${jobId}`;
+          await redis.del(runtimeResultKey);
 
-        logger.info("runtime.waiting_for_browser", {
-          jobId,
-          timeoutSeconds: RUNTIME_CHECK_TIMEOUT,
-          attempt: runtimeFixAttempts + 1,
-        });
+          logger.info("runtime.waiting_for_browser", {
+            jobId,
+            timeoutSeconds: RUNTIME_CHECK_TIMEOUT,
+            attempt: runtimeFixAttempts + 1,
+          });
 
-        // Use a duplicate Redis connection for the blocking BLPOP
-        const blpopRedis = redis.duplicate();
-        let report: {
-          errors: Array<{ source: string; message: string; extra?: any }>;
-          url: string;
-        } | null = null;
+          // Use a duplicate Redis connection for the blocking BLPOP
+          const blpopRedis = redis.duplicate();
+          let report: {
+            errors: Array<{ source: string; message: string; extra?: any }>;
+            url: string;
+          } | null = null;
 
-        try {
-          const result = await blpopRedis.blpop(
-            runtimeResultKey,
-            RUNTIME_CHECK_TIMEOUT,
-          );
+          try {
+            const result = await blpopRedis.blpop(
+              runtimeResultKey,
+              RUNTIME_CHECK_TIMEOUT,
+            );
 
-          if (result) {
-            const [, reportJson] = result;
-            report = JSON.parse(reportJson);
+            if (result) {
+              const [, reportJson] = result;
+              report = JSON.parse(reportJson);
+            }
+          } finally {
+            await blpopRedis.quit().catch(() => {});
           }
-        } finally {
-          await blpopRedis.quit().catch(() => {});
-        }
 
-        // Clean up the Redis key
-        await redis.del(runtimeResultKey);
+          // Clean up the Redis key
+          await redis.del(runtimeResultKey);
 
-        if (!report) {
-          // Timeout — browser didn't report back. Skip runtime check.
-          logger.warn("runtime.timeout", {
-            jobId,
-            message:
-              "Browser did not report within timeout. Skipping runtime check.",
-          });
-          runtimeClean = true;
-          break;
-        }
-
-        if (report.errors.length === 0) {
-          // No runtime errors — app is clean
-          logger.info("runtime.clean", { jobId });
-          runtimeClean = true;
-          break;
-        }
-
-        // Runtime errors detected
-        logger.warn("runtime.errors_detected", {
-          jobId,
-          errorCount: report.errors.length,
-          errors: report.errors.slice(0, 5).map((e) => e.message),
-        });
-
-        runtimeFixAttempts++;
-
-        if (runtimeFixAttempts > MAX_RUNTIME_FIX_RETRIES) {
-          logger.error("runtime.max_retries_exceeded", {
-            jobId,
-            attempts: runtimeFixAttempts,
-          });
-          // Don't fail the job — old health check already passed
-          break;
-        }
-
-        // Build error description for the existing fix pipeline
-        const runtimeErrorMessage = report.errors
-          .map((e) => `[${e.source}] ${e.message}`)
-          .join("\n");
-
-        const runtimeErrorMap = new Map<string, string>();
-        runtimeErrorMap.set(
-          "Runtime Error",
-          `Browser runtime errors detected:\n${runtimeErrorMessage}\n\n` +
-            `Common causes:\n` +
-            `- Missing 'use client' directive in components using hooks/events\n` +
-            `- Missing imports (especially for framer-motion, lucide-react)\n` +
-            `- Incorrect component structure (server/client mismatch)\n` +
-            `- Type errors not caught at build time`,
-        );
-
-        await SessionManager.update(jobId, {
-          currentStep: "Optimizing code",
-          buildExtending: "true",
-        });
-
-        const runtimeClassified = classifyBuildErrors(runtimeErrorMap);
-        const runtimeHandlingResult = await routeAndHandleErrors(
-          containerId,
-          runtimeClassified,
-          jobId,
-          sandbox,
-        );
-
-        if (
-          runtimeHandlingResult.fixes &&
-          runtimeHandlingResult.fixes.length > 0
-        ) {
-          await applyFixes(
-            containerId,
-            runtimeHandlingResult.fixes,
-            jobId,
-            sandbox,
-          );
-
-          // Rebuild
-          logger.info("runtime.rebuilding", { jobId });
-          const rebuildResult = await sandbox.runBuild(containerId);
-
-          if (!rebuildResult.success) {
-            logger.error("runtime.rebuild_failed", {
+          if (!report) {
+            // Timeout — browser didn't report back. Skip runtime check.
+            logger.warn("runtime.timeout", {
               jobId,
-              errorsPreview: rebuildResult.errors.slice(0, 500),
+              message:
+                "Browser did not report within timeout. Skipping runtime check.",
             });
-            // Don't fail — old health check passed, this is best-effort
+            runtimeClean = true;
             break;
           }
 
-          // Restart dev server
-          await sandbox.startDevServer(containerId);
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-
-          // Re-inject bridge script if layout was overwritten during fix
-          try {
-            const layoutPath = "/workspace/app/layout.tsx";
-            const newLayout = await sandbox.readFile(containerId, layoutPath);
-            if (newLayout && !newLayout.includes("__error-bridge.js")) {
-              const patched = newLayout.replace(
-                /(<body[^>]*>)/,
-                '$1\n        <script src="/__error-bridge.js" defer></script>',
-              );
-              await sandbox.writeFile(containerId, layoutPath, patched);
-            }
-          } catch {
-            // Non-fatal
+          if (report.errors.length === 0) {
+            // No runtime errors — app is clean
+            logger.info("runtime.clean", { jobId });
+            runtimeClean = true;
+            break;
           }
 
-          logger.info("runtime.fix_applied_retrying", {
+          // Runtime errors detected
+          logger.warn("runtime.errors_detected", {
             jobId,
-            attempt: runtimeFixAttempts,
+            errorCount: report.errors.length,
+            errors: report.errors.slice(0, 5).map((e) => e.message),
           });
-          // Loop continues — will send new runtimeCheck: "start"
-        } else {
-          logger.warn("runtime.no_fixes_generated", {
+
+          runtimeFixAttempts++;
+
+          if (runtimeFixAttempts > MAX_RUNTIME_FIX_RETRIES) {
+            logger.error("runtime.max_retries_exceeded", {
+              jobId,
+              attempts: runtimeFixAttempts,
+            });
+            // Don't fail the job — old health check already passed
+            break;
+          }
+
+          // Build error description for the existing fix pipeline
+          const runtimeErrorMessage = report.errors
+            .map((e) => `[${e.source}] ${e.message}`)
+            .join("\n");
+
+          const runtimeErrorMap = new Map<string, string>();
+          runtimeErrorMap.set(
+            "Runtime Error",
+            `Browser runtime errors detected:\n${runtimeErrorMessage}\n\n` +
+              `Common causes:\n` +
+              `- Missing 'use client' directive in components using hooks/events\n` +
+              `- Missing imports (especially for framer-motion, lucide-react)\n` +
+              `- Incorrect component structure (server/client mismatch)\n` +
+              `- Type errors not caught at build time`,
+          );
+
+          await SessionManager.update(jobId, {
+            currentStep: "Optimizing code",
+            buildExtending: "true",
+          });
+
+          const runtimeClassified = classifyBuildErrors(runtimeErrorMap);
+          const runtimeHandlingResult = await routeAndHandleErrors(
+            containerId,
+            runtimeClassified,
             jobId,
-            errorPreview: runtimeErrorMessage.slice(0, 200),
-          });
-          // No fixes generated — move on, old health check already passed
-          break;
+            sandbox,
+          );
+
+          if (
+            runtimeHandlingResult.fixes &&
+            runtimeHandlingResult.fixes.length > 0
+          ) {
+            await applyFixes(
+              containerId,
+              runtimeHandlingResult.fixes,
+              jobId,
+              sandbox,
+            );
+
+            // Rebuild
+            logger.info("runtime.rebuilding", { jobId });
+            const rebuildResult = await sandbox.runBuild(containerId);
+
+            if (!rebuildResult.success) {
+              logger.error("runtime.rebuild_failed", {
+                jobId,
+                errorsPreview: rebuildResult.errors.slice(0, 500),
+              });
+              // Don't fail — old health check passed, this is best-effort
+              break;
+            }
+
+            // Restart dev server
+            await sandbox.startDevServer(containerId);
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+
+            // Re-inject bridge script if layout was overwritten during fix
+            try {
+              const layoutPath = "/workspace/app/layout.tsx";
+              const newLayout = await sandbox.readFile(containerId, layoutPath);
+              if (newLayout && !newLayout.includes("__error-bridge.js")) {
+                const patched = newLayout.replace(
+                  /(<body[^>]*>)/,
+                  '$1\n        <script src="/__error-bridge.js" defer></script>',
+                );
+                await sandbox.writeFile(containerId, layoutPath, patched);
+              }
+            } catch {
+              // Non-fatal
+            }
+
+            logger.info("runtime.fix_applied_retrying", {
+              jobId,
+              attempt: runtimeFixAttempts,
+            });
+            // Loop continues — will send new runtimeCheck: "start"
+          } else {
+            logger.warn("runtime.no_fixes_generated", {
+              jobId,
+              errorPreview: runtimeErrorMessage.slice(0, 200),
+            });
+            // No fixes generated — move on, old health check already passed
+            break;
+          }
+        }
+
+        const jobDuration = Date.now() - jobStartTime;
+
+        logger.info("job.processing_completed", {
+          jobId,
+          totalDurationMs: jobDuration,
+          cached: fromCache,
+          hadErrors: fixAttempts > 0,
+          buildAttempts: fixAttempts + 1,
+        });
+
+        return {
+          plan: validatedPlan,
+          enhancedPrompt,
+          warnings: [...validation.warnings, ...planWarnings],
+          riskLevel: validation.riskLevel,
+          cached: fromCache,
+          previewUrl: `${config.api.baseUrl}/preview/${jobId}`,
+          containerId,
+        };
+      } finally {
+        if (createdContainer && containerId) {
+          try {
+            await sandbox.destroy(containerId);
+            logger.info("sandbox.container_cleaned_up", {
+              jobId,
+              containerId: containerId.slice(0, 12),
+            });
+          } catch (cleanupErr) {
+            logger.warn("sandbox.cleanup_failed_in_finally", {
+              jobId,
+              containerId: containerId.slice(0, 12),
+              error:
+                cleanupErr instanceof Error
+                  ? cleanupErr.message
+                  : String(cleanupErr),
+            });
+          }
         }
       }
-
-      const jobDuration = Date.now() - jobStartTime;
-
-      logger.info("job.processing_completed", {
-        jobId,
-        totalDurationMs: jobDuration,
-        cached: fromCache,
-        hadErrors: fixAttempts > 0,
-        buildAttempts: fixAttempts + 1,
-      });
-
-      return {
-        plan: validatedPlan,
-        enhancedPrompt,
-        warnings: [...validation.warnings, ...planWarnings],
-        riskLevel: validation.riskLevel,
-        cached: fromCache,
-        previewUrl: `${config.api.baseUrl}/preview/${jobId}`,
-        containerId,
-      };
     },
     {
       connection: redis,

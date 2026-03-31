@@ -14,6 +14,13 @@ export interface BuildResult {
  * Implementations can target Docker (local dev), Kubernetes Pods (production),
  * E2B sandboxes, Fly Machines, or any other container runtime.
  */
+export interface SandboxInfo {
+  id: string;
+  jobId: string;
+  running: boolean;
+  createdAt?: string;
+}
+
 export interface ISandboxProvider {
   create(jobId: string): Promise<string>;
   start(id: string): Promise<void>;
@@ -30,4 +37,5 @@ export interface ISandboxProvider {
   startDevServer(id: string): Promise<void>;
   destroy(id: string): Promise<void>;
   cleanup(): Promise<void>;
+  list(): Promise<SandboxInfo[]>;
 }
